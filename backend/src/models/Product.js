@@ -53,10 +53,10 @@ const productSchema = new Schema({
     default:5
   },
   
-  isActive:{
+  isActive: {
     type:Boolean,
-    default:true
-  }
+    required:true
+  },
 
 
 }, {timestamps: true});
