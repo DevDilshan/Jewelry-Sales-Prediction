@@ -30,7 +30,7 @@ export const createProduct = async(req,res) =>{
     const savedProduct = await product.save()
     res.status(201).json(savedProduct)
   }catch (error){
-      res.status(400).json({message: error.message})
+      res.status(500).json({message: error.message})
   }
   };
 
@@ -45,7 +45,7 @@ export const createProduct = async(req,res) =>{
       if (!updated) return res.status(404).json({message:'Product not found'})
         res.status(200).json(updated)
     }catch (error){
-      res.status(400).json({messge: error.essege})
+      res.status(500).json({messge: error.messege})
     }
     };
 
