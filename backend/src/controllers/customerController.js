@@ -1,7 +1,8 @@
-import Customer from "../models/customer.js";
+import Customer from "../models/customer";
 import jwt from "jsonwebtoken"; 
 
-const verifyToken = (req, res, next) => {
+
+export const verifyToken = (req, res, next) => {
     const token = req.header('Authorization');
     if (!token) return res.status(401).json({ message: 'Access denied' });
 
@@ -17,13 +18,14 @@ const verifyToken = (req, res, next) => {
 
 export const getCustomerProfile = async (req, res) => {
     try {
-        const customer = await Customer.findById(req.user.id); 
+        const customer = await Customer.findById(req.user.id); // Use user id from JWT
         if (!customer) return res.status(404).json({ message: 'Customer not found' });
         res.status(200).json(customer);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 export const updateCustomerProfile = async (req, res) => {
     try {
@@ -38,6 +40,7 @@ export const updateCustomerProfile = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 export const deleteCustomerProfile = async (req, res) => {
     try {
@@ -59,6 +62,7 @@ export const updateCustomerTier = async (req, res) => {
         const customer = await Customer.findById(req.user.id);
         if (!customer) return res.status(404).json({ message: 'Customer not found' });
 
+       
         if (customer.loyaltyPoints > 5000) {
             customer.membershipTier = 'Gold';
         } else if (customer.loyaltyPoints > 1000) {
@@ -67,7 +71,7 @@ export const updateCustomerTier = async (req, res) => {
             customer.membershipTier = 'Bronze';
         }
 
-        await customer.save();  
+        await customer.save(); 
         res.status(200).json({ message: 'Membership tier updated successfully', customer });
     } catch (error) {
         res.status(500).json({ message: error.message });
