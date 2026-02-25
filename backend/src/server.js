@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import cors from 'cors';
 import {connectDB} from './config/db.js'
 import authRoutes from './routes/authRoutes.js'
-import discountRoutes from './routes/discountRoutes.js'
+import staffRoutes from './routes/staffRoutes.js'
 dotenv.config();
 
 const app = express();
@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes)
-app.use('/api/discount', discountRoutes)
+app.use('/api/staff', staffRoutes)
 
 app.listen(PORT, ()=>{
     console.log("Server started on PORT:",PORT);

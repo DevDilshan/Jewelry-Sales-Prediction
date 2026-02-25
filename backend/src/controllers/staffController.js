@@ -1,0 +1,20 @@
+import jwt from 'jsonwebtoken'
+import Staff from '../models/Staff.js';
+
+const generateToken = (username, role)=>{
+    return jwt.sign({username, role}, process.env.ACCESS_TOKEN, {expiresIn:"7d"});
+}
+
+export async function registerUser(req, res){
+    try {
+        const {username, email} = req.body;
+        if(!username || !email){
+            return res.status(400).json({message: "All fields are required"});
+        }
+
+        const user = await Staff.create(req.body);
+        res.status(201).json(user);
+    } catch (error) {
+        res.status(500).json({message: "Internal server error", error:error.message})
+    }
+}
