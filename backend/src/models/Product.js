@@ -26,10 +26,16 @@ const productSchema = new Schema({
 
   },
 
-  productBrand :{
-    type:String,
-    required:true
+  metalMaterial: {
+  type: String,
+  enum: ['gold', 'silver', 'platinum', 'white gold', 'rose gold'],
   },
+
+ gemType: {
+  type: String,
+  enum: ['diamond', 'pearl', 'ruby', 'emerald', 'sapphire', 'none'],
+  default: 'none'
+},
 
   stockQuantity:{
     type:Number,
@@ -37,12 +43,6 @@ const productSchema = new Schema({
     default:0
   },
   
-  rating:{
-    type:Number,
-    min:0,
-    max:5,
-    default:0
-  },
 
   productImage:{
     type:String
@@ -53,10 +53,10 @@ const productSchema = new Schema({
     default:5
   },
   
-  isActive: {
+  isActive:{
     type:Boolean,
     required:true
-  },
+  }
 
 
 }, {timestamps: true});
