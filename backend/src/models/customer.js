@@ -1,18 +1,27 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema } from "mongoose";
 
 const customerSchema = new Schema({
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    phoneNumber: { type: String, required: true },
-    address: { type: String, required: true },
-    isActive: { type: Boolean, default: true },
-    loyaltyPoints: { type: Number, default: 0 }, 
-    membershipTier: { 
-        type: String, 
-        enum: ['Bronze', 'Silver', 'Gold'], 
-        default: 'Bronze' 
+    firstName: {
+        type:String,
+        trim: true
     },
-}, { timestamps: true });
+    lastName: {
+        type:String,
+        trim: true
+    },
+    address:{
+        type: String
+    },
+    email: {
+        type:String,
+        required: true,
+        unique: true,
+        lowercase:true
+    },
+    password: {
+        type:String,
+        required: true
+    }
+}, {timestamps: true})
 
-export default mongoose.model("Customer", customerSchema);
+const Customer = mongoose.model("Customer", customerSchema);

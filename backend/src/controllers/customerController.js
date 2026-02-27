@@ -1,80 +1,72 @@
-import Customer from "../models/customer.js";
-import jwt from "jsonwebtoken"; 
+import Customer from "../models/Customer.js";
+import jwt from 'jsonwebtoken'
 
+const generateToken = (customerId) =>{
+    return jwt.sign({id: customerId}, process.env.CUSTOMER_ACCESS_TOKEN, {expiresIn:"7d"})
+}
 
-
-export const verifyToken = (req, res, next) => {
-    const token = req.header('Authorization');
-    if (!token) return res.status(401).json({ message: 'Access denied' });
-
+export async function registerCustomer(req,res){
     try {
-        const verified = jwt.verify(token, process.env.ACCESS_TOKEN);
-        req.user = verified;
-        next();
-    } catch (err) {
-        res.status(400).json({ message: 'Invalid token' });
-    }
-};
+        const {email, password} = req.body;
 
+        if(!email || !password){
+            return res.status(400).json({message: "All fields are required."})
+        }
+        if(!email.includes("@")){
+            return res.status(400).json({message: "Invalid email"})
+        }
+        const customer = await Customer.create(req.body);
+        res.status(201).json({
+            firstname: customer.firstName, 
+            lastname: customer.lastName, 
+            email: customer.email, 
+            address: customer.address
+        })
 
-export const getCustomerProfile = async (req, res) => {
-    try {
-        const customer = await Customer.findById(req.user.id); // Use user id from JWT
-        if (!customer) return res.status(404).json({ message: 'Customer not found' });
-        res.status(200).json(customer);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({message: "Internal server error", error: error.message})
     }
-};
+}
 
-
-export const updateCustomerProfile = async (req, res) => {
+export async function loginCustomer(req,res){
     try {
-        const updatedCustomer = await Customer.findByIdAndUpdate(
-            req.user.id,
-            req.body,
-            { new: true }
-        );
-        if (!updatedCustomer) return res.status(404).json({ message: 'Customer not found' });
-        res.status(200).json(updatedCustomer);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-
-export const deleteCustomerProfile = async (req, res) => {
-    try {
-        const updatedCustomer = await Customer.findByIdAndUpdate(
-            req.user.id,
-            { isActive: false },
-            { new: true }
-        );
-        if (!updatedCustomer) return res.status(404).json({ message: 'Customer not found' });
-        res.status(200).json({ message: 'Account deactivated successfully' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-
-export const updateCustomerTier = async (req, res) => {
-    try {
-        const customer = await Customer.findById(req.user.id);
-        if (!customer) return res.status(404).json({ message: 'Customer not found' });
-
-       
-        if (customer.loyaltyPoints > 5000) {
-            customer.membershipTier = 'Gold';
-        } else if (customer.loyaltyPoints > 1000) {
-            customer.membershipTier = 'Silver';
-        } else {
-            customer.membershipTier = 'Bronze';
+        const {email, password} = req.body
+        if(!email || !password){
+            return res.status(400).json({message:"All fields are required"})
         }
 
-        await customer.save(); 
-        res.status(200).json({ message: 'Membership tier updated successfully', customer });
+        const customer = await Customer.findOne({email})
+        if(!customer) return res.status(400).json({message:"Invlaid customer"});
+        
+        const isMatch = (email === customer.email && password === customer.password)
+        if(!isMatch) return res.status(400).json({message:"Invalid credentials"});
+
+        const accesstoken = generateToken(customer._id);
+        res.json({
+            firstname: customer.firstName,
+            email: customer.firstName,
+            token: accesstoken
+        })
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({message:"Internal server error", error:error.message})
     }
-};
+}
+
+export async function updateCustomer(req,res){
+    try {
+        const customer = await Customer.findByIdAndUpdate(req.params.id, req.body, {new:true});
+        res.status(200).json({message: "Customer updated successfully"})
+    } catch (error) {
+        res.status(500).json({message:"Internal server error", error:error.message})
+    }
+}
+
+export async function deleteCustomer(req, res) {
+    try {
+        const customer = await Customer.findByIdAndDelete(req.params.id);
+        res.status(200).json({message: "User removed successfully"})
+    } catch (error) {
+        res.status(500).json({message: "Internal server error", error:error.message})
+    }
+}

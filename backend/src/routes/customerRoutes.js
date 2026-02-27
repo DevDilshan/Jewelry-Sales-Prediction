@@ -1,12 +1,12 @@
 import express from 'express';
-import { getCustomerProfile, updateCustomerProfile, deleteCustomerProfile, updateCustomerTier, verifyToken } from '../controllers/customerController.js';  // Correct import
+import { deleteCustomer, loginCustomer, registerCustomer, updateCustomer } from '../controllers/customerController.js';  
 
 const router = express.Router();
 
 
-router.get('/profile', verifyToken, getCustomerProfile);  
-router.put('/profile', verifyToken, updateCustomerProfile);  
-router.delete('/profile', verifyToken, deleteCustomerProfile);  
-router.put('/profile/tier', verifyToken, updateCustomerTier);  
+router.post('/register', registerCustomer);  
+router.post('/login', loginCustomer);  
+router.put('/:id', updateCustomer);  
+router.delete('/:id', deleteCustomer);  
 
 export default router;
