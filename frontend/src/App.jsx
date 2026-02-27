@@ -1,17 +1,22 @@
-import React from 'react'
-import { Route, Routes } from 'react-router-dom'
-import AdminLayout from './layouts/AdminLayout'
-import SignUp from './pages/Auth/SignUp'
+import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Dashboard from './components/pages/Dashboard'
+import Sidebar from './components/layouts/Sidebar'
+import './App.css'
+export default function App() {
+  const [activePage, setActivePage] = useState('dashboard')
 
-function App() {
   return (
-    <div>
-        <Routes>
-          <Route path='/' element={<AdminLayout/>}/>
-          <Route path='/signup' element={<SignUp/>}/>
-        </Routes>
-    </div>
+    <Router>
+      <div className="app-container">
+        <Sidebar activePage={activePage} setActivePage={setActivePage} />
+        <main className="main-content">
+          <Routes>
+            <Route path="/admin" element={<Dashboard setActivePage={setActivePage} />} />
+            <Route path="/admin/dashboard" element={<Dashboard setActivePage={setActivePage} />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   )
 }
-
-export default App
