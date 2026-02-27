@@ -1,5 +1,6 @@
-import Customer from "../models/customer";
+import Customer from "../models/customer.js";
 import jwt from "jsonwebtoken"; 
+
 
 
 export const verifyToken = (req, res, next) => {
