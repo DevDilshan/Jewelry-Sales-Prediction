@@ -1,4 +1,4 @@
-import Discount from "../models/Discount";
+import Discount from "../models/Discount.js";
 
 function generateCouponCode(name){
     const randomCode = Math.floor(1000+Math.random()*9000);
