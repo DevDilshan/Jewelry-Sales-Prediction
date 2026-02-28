@@ -11,7 +11,7 @@ export const createFeedback = async (req, res) => {
 
 export const getAllFeedback = async (req, res) => {
   try {
-    const feedbacks = await Feedback.find()
+    const feedbacks = await Feedback.find();
     res.status(200).json(feedbacks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -20,9 +20,8 @@ export const getAllFeedback = async (req, res) => {
 
 export const getFeedbackById = async (req, res) => {
   try {
-    const feedback = await Feedback.findById(req.params.id)
+    const feedback = await Feedback.findById(req.params.id);  // ✅ fixed - removed the req.body overwrite
     if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
-    feedback = req.body
     res.status(200).json(feedback);
   } catch (error) {
     res.status(500).json({ message: error.message });

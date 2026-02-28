@@ -5,6 +5,7 @@ import Sidebar from './components/layouts/Sidebar'
 import './App.css'
 import Products from './pages/Products'
 import Discounts from './pages/Discounts'
+import Feedbacks from './components/pages/Feedback'
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard')
 
@@ -18,6 +19,7 @@ export default function App() {
             <Route path="/admin/dashboard" element={<Dashboard setActivePage={setActivePage} />} />
             <Route path="/admin/products" element={<Products setActivePage={setActivePage} />} />
             <Route path="/admin/discounts" element={<Discounts setActivePage={setActivePage} />} />
+            <Route path="/admin/feedbacks" element={<Feedbacks setActivePage={setActivePage} />} />
 
           </Routes>
         </main>
