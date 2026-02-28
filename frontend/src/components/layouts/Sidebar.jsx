@@ -70,7 +70,7 @@ export default function Sidebar({ activePage, setActivePage }) {
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <span className="logo-text">AURELIA</span>
+        <span className="logo-text">BECEFF</span>
       </div>
 
       <nav className="sidebar-nav">
@@ -89,10 +89,10 @@ export default function Sidebar({ activePage, setActivePage }) {
       <div className="sidebar-footer">
         <div className="user-section">
           <div className="user-avatar-img">
-            <img src="https://i.pravatar.cc/80?img=47" alt="Julianne Moore" />
+            <img src="https://i.pravatar.cc/80?img=47" alt="Nayomi Silva" />
           </div>
-          <div className="user-info">
-            <p className="user-name">Julianne Moore</p>
+          <div className="user-info" >
+            <p className="user-name" onClick={() => navigate('admin/profile')}>Nayomi Silva</p>
             <p className="user-role">ADMIN</p>
           </div>
           <button
@@ -111,7 +111,7 @@ export default function Sidebar({ activePage, setActivePage }) {
             }}>
               My Profile
             </button>
-            <button onClick={() => navigate('/')}>Visit Website</button>
+            {/* <button onClick={() => navigate('/')}>Visit Website</button> */}
             <button onClick={() => alert('Logging out...')}>Logout</button>
           </div>
         )}
