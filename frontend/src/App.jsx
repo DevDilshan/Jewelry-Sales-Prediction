@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Dashboard from './components/pages/Dashboard'
 import Sidebar from './components/layouts/Sidebar'
 import './App.css'
-import Products from './pages/Products'
-import Discounts from './pages/Discounts'
+import Admin from './components/pages/Admin'
+import Profile from './components/pages/Profile'
+
+
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard')
 
@@ -16,9 +18,8 @@ export default function App() {
           <Routes>
             <Route path="/admin" element={<Dashboard setActivePage={setActivePage} />} />
             <Route path="/admin/dashboard" element={<Dashboard setActivePage={setActivePage} />} />
-            <Route path="/admin/products" element={<Products setActivePage={setActivePage} />} />
-            <Route path="/admin/discounts" element={<Discounts setActivePage={setActivePage} />} />
-
+            <Route path="/admin/staff" element={<Admin setActivePage={setActivePage} />} />
+            <Route path="/admin/profile" element={<Profile setActivePage={setActivePage} />} />
           </Routes>
         </main>
       </div>
