@@ -1,4 +1,4 @@
-import Customer from "../models/Customer.js";
+import { Customer } from "../models/Customer.js";
 import jwt from 'jsonwebtoken'
 
 const generateToken = (customerId) =>{
@@ -36,7 +36,7 @@ export async function loginCustomer(req,res){
         }
 
         const customer = await Customer.findOne({email})
-        if(!customer) return res.status(400).json({message:"Invlaid customer"});
+        if(!customer) return res.status(400).json({message:"Invalid customer"});
         
         const isMatch = (email === customer.email && password === customer.password)
         if(!isMatch) return res.status(400).json({message:"Invalid credentials"});
