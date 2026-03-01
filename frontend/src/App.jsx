@@ -9,13 +9,13 @@ import Admin from './components/pages/Admin'
 import Profile from './components/pages/Profile'
 import './App.css'
 import LandingPage from './website/LandingPage'
-// import UserDashboard from './components/user/UserDashboard'
-// import UserOrders from './components/user/UserOrders'
-// import UserSidebar from './components/user/UserSidebar'
-// import ProfileSettings from './components/user/UserProfile'
-// import AddressBook from './components/user/Addressbook'
+import UserDashboard from './components/user/UserDashboard'
+import UserOrders from './components/user/UserOrders'
+import UserSidebar from './components/user/UserSidebar'
+import ProfileSettings from './components/user/UserProfile'
+import AddressBook from './components/user/Addressbook'
 // import MyReviews from './components/user/Feedback'
-// import Sidebar from './components/layouts/Sidebar'
+import Sidebar from './components/layouts/Sidebar'
 
 export default function App() {
   return (
@@ -54,11 +54,10 @@ function AppContent() {
 
           <Route path="/" element={<LandingPage />} />
 
-          {/* <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/dashboard" element={<UserDashboard />} /> 
           <Route path="/dashboard/orders" element={<UserOrders />} />
           <Route path="/dashboard/address" element={<AddressBook />} />
           <Route path="/dashboard/profile" element={<ProfileSettings />} />
-          <Route path="/dashboard/feedback" element={<MyReviews />} /> */}
 
         </Routes>
       </main>
