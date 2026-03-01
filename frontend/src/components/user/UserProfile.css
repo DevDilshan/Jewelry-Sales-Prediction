@@ -1,0 +1,311 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+/* ── Layout ── */
+.ps-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f7f7f5;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Sidebar ── */
+.ps-sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #eeeeec;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 0 32px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.ps-sidebar-header {
+  padding: 0 32px 36px;
+  border-bottom: 1px solid #f0f0ee;
+}
+
+.ps-sidebar-header h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.ps-sidebar-sub {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+/* Nav */
+.ps-nav {
+  flex: 1;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ps-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 16px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #666;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  transition: all 0.18s;
+}
+
+.ps-nav-item:hover {
+  background: #f5f5f3;
+  color: #1a1a1a;
+}
+
+.ps-nav-item.active {
+  background: #fdf8ee;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.ps-nav-icon {
+  display: flex;
+  align-items: center;
+  color: inherit;
+}
+
+.ps-nav-item.active .ps-nav-icon {
+  color: #b8960c;
+}
+
+.ps-nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: #c9a84c;
+  border-radius: 0 2px 2px 0;
+}
+
+/* Logout */
+.ps-logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px;
+  padding: 11px 16px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: #e05c5c;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.ps-logout:hover {
+  background: #fff5f5;
+}
+
+/* ── Main ── */
+.ps-main {
+  flex: 1;
+  padding: 48px 60px;
+  max-width: 900px;
+}
+
+.ps-page-header {
+  margin-bottom: 40px;
+}
+
+.ps-page-header h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 34px;
+  font-weight: 400;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.ps-page-header p {
+  font-size: 14px;
+  color: #999;
+  font-weight: 300;
+}
+
+/* ── Cards ── */
+.ps-card {
+  background: #ffffff;
+  border: 1px solid #eeeeec;
+  border-radius: 12px;
+  padding: 36px 40px;
+  margin-bottom: 28px;
+}
+
+.ps-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.ps-card-header h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: #1a1a1a;
+  line-height: 1.2;
+}
+
+.ps-card-tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #bbb;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* ── Form ── */
+.ps-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ps-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.ps-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ps-field label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #7a9ab0;
+  text-transform: uppercase;
+}
+
+.ps-field input {
+  width: 100%;
+  padding: 13px 16px;
+  background: #f8f8f6;
+  border: 1px solid #ebebeb;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #1a1a1a;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.ps-field input::placeholder {
+  color: #bbb;
+}
+
+.ps-field input:focus {
+  outline: none;
+  border-color: #c9a84c;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+}
+
+/* Password input */
+.ps-password-wrap {
+  position: relative;
+}
+
+.ps-password-wrap input {
+  padding-right: 48px;
+}
+
+.ps-eye {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.ps-eye:hover {
+  color: #666;
+}
+
+/* Form footer */
+.ps-form-footer {
+  display: flex;
+  align-items: center;
+  padding-top: 4px;
+}
+
+/* Save button */
+.ps-btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 32px;
+  background: #f5f0e3;
+  border: 1.5px solid #e0d0a0;
+  border-radius: 50px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7a5f10;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ps-btn-save:hover {
+  background: #ede4cc;
+  border-color: #c9a84c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(201,168,76,0.18);
+}
+
+.ps-btn-save.saved {
+  background: #eaf5ec;
+  border-color: #8ec99a;
+  color: #2e7d40;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .ps-sidebar { display: none; }
+  .ps-main { padding: 32px 24px; }
+  .ps-form-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .ps-card { padding: 24px 20px; }
+}
