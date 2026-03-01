@@ -44,7 +44,7 @@ export async function loginCustomer(req,res){
         const accesstoken = generateToken(customer._id);
         res.json({
             firstname: customer.firstName,
-            email: customer.firstName,
+            email: customer.email,
             token: accesstoken
         })
 
