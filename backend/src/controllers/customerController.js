@@ -39,7 +39,7 @@ export async function loginCustomer(req,res){
         if(!customer) return res.status(400).json({message:"Invalid customer"});
         
         const isMatch = (email === customer.email && password === customer.password)
-        if(!isMatch) return res.status(400).json({message:"Invalid credentials"});
+        if(!isMatch) return res.status(400).json({message:"Invalid credentials!"});
 
         const accesstoken = generateToken(customer._id);
         res.json({
