@@ -285,19 +285,74 @@
   transform: translateX(0px);
 }
 
-/* Action Icon */
+/* Action wrapper + dropdown */
+.action-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
 .action-icon {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 18px;
-  color: #bbb;
+  font-size: 25px;
+  color: #000000;
   transition: all 0.2s;
-  padding: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
 }
 
 .action-icon:hover {
   color: #666;
+  background: #f0f0f0;
+}
+
+.action-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: white;
+  border: 1px solid #ebebeb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  z-index: 100;
+  min-width: 140px;
+  padding: 6px;
+  animation: dropIn 0.15s ease;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.action-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.action-dropdown-item:hover {
+  background: #f5f5f5;
+}
+
+.action-dropdown-item.danger {
+  color: #e53e3e;
+}
+
+.action-dropdown-item.danger:hover {
+  background: #fff5f5;
 }
 
 /* Pagination */
@@ -380,6 +435,11 @@
 .modal-wide {
   max-width: 860px;
   width: calc(100vw - 40px);
+}
+
+.modal.modal-sm {
+  max-width: 400px;
+  min-width: unset;
 }
 
 @keyframes slideUp {
@@ -576,6 +636,39 @@
   min-width: 0;
 }
 
+/* modal-left form group (for SKU in edit) */
+.modal-left .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-left .form-group label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #aaa;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-left .form-group input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #333;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  background: white;
+}
+
+.modal-left .form-group input:focus {
+  outline: none;
+  border-color: #d4af37;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
 /* Price input */
 .price-input-wrap {
   display: flex;
@@ -663,4 +756,50 @@
 
 .btn-submit:hover {
   background: #efe3c0;
+}
+
+.btn-danger {
+  padding: 10px 24px;
+  background: #e53e3e;
+  border: none;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger:hover {
+  background: #c53030;
+}
+
+/* Confirm modal body */
+.confirm-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 24px 28px 8px;
+}
+
+.confirm-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  background: #fff5f5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-body p {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin: 4px 0 0;
+}
+
+.confirm-body strong {
+  color: #1a1a1a;
 }
