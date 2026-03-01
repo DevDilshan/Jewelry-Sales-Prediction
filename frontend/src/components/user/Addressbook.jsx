@@ -1,22 +1,18 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useState } from 'react'
 import './AddressBook.css'
-
 
 const EMPTY_FORM = { label: '', name: '', line1: '', line2: '', city: '', country: 'Sri Lanka', phone: '' }
 
 export default function AddressBook() {
-  const navigate = useNavigate()
-  const location = useLocation()
-
   const [addresses, setAddresses] = useState([
-    { id: 1, label: 'Primary Residence', name: 'Eleanor St. James', line1: '128 Rosewood Avenue', line2: 'Penthouse 4B', city: 'Colombo 07', country: 'Sri Lanka', phone: '+94 77 123 4567', isDefault: true },
+    { id: 1, label: 'Primary Billing Address', name: 'Eleanor St. James', line1: '128 Rosewood Avenue', line2: 'Penthouse 4B', city: 'Colombo 07', country: 'Sri Lanka', phone: '+94 77 123 4567', isDefault: true },
   ])
 
   const [showModal, setShowModal] = useState(false)
   const [editTarget, setEditTarget] = useState(null)  // null = add, id = edit
   const [form, setForm] = useState(EMPTY_FORM)
   const [deleteConfirm, setDeleteConfirm] = useState(null) // id to delete
+  const [phoneError, setPhoneError] = useState('') // Error state for phone number
 
   const openAdd = () => {
     setEditTarget(null)
@@ -32,6 +28,13 @@ export default function AddressBook() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    // Validate phone number before submitting
+    if (!/^\d{10}$/.test(form.phone)) {
+      setPhoneError('Phone number must be exactly 10 digits.');
+      return; // Don't submit if phone number is invalid
+    }
+
     if (editTarget !== null) {
       setAddresses(addresses.map(a => a.id === editTarget ? { ...a, ...form } : a))
     } else {
@@ -53,7 +56,14 @@ export default function AddressBook() {
     setAddresses(addresses.map(a => ({ ...a, isDefault: a.id === id })))
   }
 
-  const isActive = (path) => location.pathname === path
+  const handlePhoneChange = (e) => {
+    const value = e.target.value
+    // Only accept numeric input with max length 10
+    if (/^\d{0,10}$/.test(value)) {
+      setForm({ ...form, phone: value })
+      setPhoneError('') // Clear error on valid input
+    }
+  }
 
   return (
     <div className="ab-layout">
@@ -61,12 +71,12 @@ export default function AddressBook() {
       <main className="ab-main">
         <div className="ab-top-bar">
           <div>
-            <h1>Address Book</h1>
-            <p>Manage your shipping and billing addresses for a seamless checkout.</p>
+            <h1>Billing Address Book</h1>
+            <p>Manage your billing details for order analysis and demographic purposes.</p>
           </div>
           <button className="ab-add-btn" onClick={openAdd}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add New Address
+            Add New Billing Address
           </button>
         </div>
 
@@ -115,7 +125,7 @@ export default function AddressBook() {
           {/* Add new slot */}
           <button className="ab-add-slot" onClick={openAdd}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>Add New Shipping Address</span>
+            <span>Add New Billing Address</span>
           </button>
         </div>
       </main>
@@ -125,7 +135,7 @@ export default function AddressBook() {
         <div className="ab-overlay" onClick={() => setShowModal(false)}>
           <div className="ab-modal" onClick={e => e.stopPropagation()}>
             <div className="ab-modal-header">
-              <h2>{editTarget ? 'Edit Address' : 'Add New Address'}</h2>
+              <h2>{editTarget ? 'Edit Billing Address' : 'Add New Billing Address'}</h2>
               <button className="ab-modal-close" onClick={() => setShowModal(false)}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
@@ -166,7 +176,15 @@ export default function AddressBook() {
               </div>
               <div className="ab-field">
                 <label>PHONE NUMBER</label>
-                <input type="tel" required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+94 77 000 0000" />
+                <input
+                  type="tel"
+                  required
+                  value={form.phone}
+                  onChange={handlePhoneChange} // Updated phone change handler
+                  placeholder="+94 77 000 0000"
+                  maxLength="10" // Limit to 10 digits
+                />
+                {phoneError && <p className="ab-error-text">{phoneError}</p>} {/* Error message */}
               </div>
               <div className="ab-modal-actions">
                 <button type="button" className="ab-btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
