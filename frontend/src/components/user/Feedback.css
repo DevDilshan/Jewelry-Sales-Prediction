@@ -696,6 +696,95 @@
 
 .rv-confirm-body strong { color: #1a1a1a; font-weight: 600; }
 
+.rv-auth-hint {
+  font-size: 14px;
+  color: #666;
+  margin-top: 8px;
+}
+
+.rv-auth-hint.error {
+  color: #b42318;
+}
+
+.rv-data-loading {
+  font-size: 15px;
+  color: #888;
+  margin: 20px 0 8px;
+  font-style: italic;
+}
+
+.rv-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #1a1a1a;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.rv-eligible-hint {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #fffbeb;
+  border: 1px solid #f5e6c8;
+  border-radius: 10px;
+}
+
+.rv-thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.rv-thumb-fallback {
+  font-size: 28px;
+  opacity: 0.35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+}
+
+.rv-staff-reply {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #f8f6f0;
+  border-left: 3px solid #c9a84c;
+  border-radius: 0 8px 8px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+.rv-staff-reply strong {
+  display: block;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.rv-staff-reply-date {
+  font-size: 12px;
+  color: #888;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.rv-staff-reply p {
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+.rv-submit-error {
+  color: #b42318;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .rv-sidebar { display: none; }

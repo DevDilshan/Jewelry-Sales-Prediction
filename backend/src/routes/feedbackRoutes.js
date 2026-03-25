@@ -1,18 +1,24 @@
-import express from 'express';
+import express from "express";
 import {
-  createFeedback,
-  getAllFeedback,
-  getFeedbackById,
-  updateFeedback,
-  deleteFeedback
-} from '../controllers/feedbackController.js';
+  createCustomerFeedback,
+  deleteFeedback,
+  getFeedbackStats,
+  getMyCustomerFeedback,
+  listFeedbackForStaff,
+  replyToFeedback,
+} from "../controllers/feedbackController.js";
+import { verifyToken } from "../middlewares/staffAuthMiddleware.js";
+import { verifyCustomerToken } from "../middlewares/customerAuth.js";
+import { allowRoles } from "../middlewares/roleMiddleware.js";
 
 const router = express.Router();
 
-router.post('/', createFeedback);
-router.get('/', getAllFeedback);
-router.get('/:id', getFeedbackById);
-router.put('/:id', updateFeedback);
-router.delete('/:id', deleteFeedback);
+router.post("/create", verifyCustomerToken, createCustomerFeedback);
+router.get("/my", verifyCustomerToken, getMyCustomerFeedback);
+
+router.get("/stats", verifyToken, getFeedbackStats);
+router.get("/", verifyToken, listFeedbackForStaff);
+router.patch("/:id/reply", verifyToken, replyToFeedback);
+router.delete("/:id", verifyToken, allowRoles("admin"), deleteFeedback);
 
 export default router;

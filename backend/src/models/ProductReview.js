@@ -1,29 +1,29 @@
 import mongoose, { Schema } from "mongoose";
 
-const feedbackSchema = new Schema(
+const productReviewSchema = new Schema(
   {
+    product: {
+      type: Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+      index: true,
+    },
     customer: {
       type: Schema.Types.ObjectId,
       ref: "Customer",
       required: true,
     },
-    order: {
-      type: Schema.Types.ObjectId,
-      ref: "Order",
-      required: true,
-      unique: true,
-    },
-    /** Display name when listing (snapshot at submit time) */
     customerName: {
       type: String,
       default: "",
+      trim: true,
     },
     title: {
       type: String,
       default: "",
       trim: true,
     },
-    feedback: {
+    text: {
       type: String,
       required: true,
       trim: true,
@@ -34,20 +34,11 @@ const feedbackSchema = new Schema(
       min: 1,
       max: 5,
     },
-    staffReply: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-    staffReplyAt: {
-      type: Date,
-    },
-    staffRepliedByName: {
-      type: String,
-      trim: true,
-    },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Feedback", feedbackSchema);
+productReviewSchema.index({ product: 1, customer: 1 }, { unique: true });
+productReviewSchema.index({ product: 1, createdAt: -1 });
+
+export default mongoose.model("ProductReview", productReviewSchema);
