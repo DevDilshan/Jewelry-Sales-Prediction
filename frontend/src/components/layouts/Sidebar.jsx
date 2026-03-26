@@ -1,6 +1,14 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import './Sidebar.css'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { setStaffAuth, getStaffInfo } from "../../config/api";
+import "./Sidebar.css";
+
+const ROLE_LABELS = {
+  admin: "ADMIN",
+  productmanager: "PRODUCT MANAGER",
+  sales: "SALES",
+  viewer: "VIEWER",
+};
 
 const icons = {
   dashboard: (
@@ -42,25 +50,33 @@ const icons = {
       <circle cx="10" cy="7" r="3" />
     </svg>
   ),
+};
+
+const ALL_MENU_ITEMS = [
+  { id: "dashboard", label: "Dashboard", path: "/admin" },
+  { id: "products", label: "Products", path: "/admin/products" },
+  { id: "discounts", label: "Discounts", path: "/admin/discounts" },
+  { id: "feedbacks", label: "Feedbacks", path: "/admin/feedbacks" },
+  { id: "orders", label: "Orders", path: "/admin/orders" },
+  { id: "staff", label: "Staff", path: "/admin/staff" },
+];
+
+function avatarInitials(username) {
+  const u = (username || "").trim();
+  return u.length >= 2 ? u.slice(0, 2).toUpperCase() : u.charAt(0).toUpperCase() || "?";
 }
 
 export default function Sidebar({ activePage, setActivePage }) {
-  const navigate = useNavigate()
-  const [showUserMenu, setShowUserMenu] = useState(false)
-
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', path: '/admin/dashboard' },
-    { id: 'products', label: 'Products', path: '/admin/products' },
-    { id: 'discounts', label: 'Discounts', path: '/admin/discounts' },
-    { id: 'feedbacks', label: 'Feedbacks', path: '/admin/feedbacks' },
-    { id: 'orders', label: 'Orders', path: '/admin/orders' },
-    { id: 'staff', label: 'Admin', path: '/admin/staff' },
-  ]
+  const navigate = useNavigate();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const staffInfo = getStaffInfo();
+  const displayName = staffInfo?.username || "Staff";
+  const displayRole = ROLE_LABELS[staffInfo?.role] || (staffInfo?.role || "").toUpperCase() || "—";
 
   const handleNavigate = (item) => {
-    setActivePage(item.id)
-    navigate(item.path)
-  }
+    setActivePage(item.id);
+    navigate(item.path);
+  };
 
   return (
     <aside className="sidebar">
@@ -70,14 +86,14 @@ export default function Sidebar({ activePage, setActivePage }) {
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <span className="logo-text">BECEFF</span>
+        <span className="logo-text">AURELIA</span>
       </div>
 
       <nav className="sidebar-nav">
-        {menuItems.map(item => (
+        {ALL_MENU_ITEMS.map((item) => (
           <button
             key={item.id}
-            className={`nav-item ${activePage === item.id ? 'active' : ''}`}
+            className={`nav-item ${activePage === item.id ? "active" : ""}`}
             onClick={() => handleNavigate(item)}
           >
             <span className="nav-icon">{icons[item.id]}</span>
@@ -88,34 +104,39 @@ export default function Sidebar({ activePage, setActivePage }) {
 
       <div className="sidebar-footer">
         <div className="user-section">
-          <div className="user-avatar-img">
-            <img src="https://i.pravatar.cc/80?img=47" alt="Nayomi Silva" />
+          <div className="user-avatar-text">{avatarInitials(displayName)}</div>
+          <div className="user-info">
+            <p className="user-name">{displayName}</p>
+            <p className="user-role">{displayRole}</p>
           </div>
-          <div className="user-info" >
-            <p className="user-name" onClick={() => navigate('admin/profile')}>Nayomi Silva</p>
-            <p className="user-role">ADMIN</p>
-          </div>
-          <button
-            className="user-menu-btn"
-            onClick={() => setShowUserMenu(!showUserMenu)}
-          >
+          <button className="user-menu-btn" onClick={() => setShowUserMenu(!showUserMenu)}>
             ⋮
           </button>
         </div>
         {showUserMenu && (
           <div className="user-menu">
-            <button onClick={() => {
-              setActivePage('profile')
-              navigate('/admin/profile')
-              setShowUserMenu(false)
-            }}>
+            <button
+              onClick={() => {
+                setActivePage("profile");
+                navigate("/admin/profile");
+                setShowUserMenu(false);
+              }}
+            >
               My Profile
             </button>
-            {/* <button onClick={() => navigate('/')}>Visit Website</button> */}
-            <button onClick={() => alert('Logging out...')}>Logout</button>
+            <button onClick={() => navigate("/")}>Visit Website</button>
+            <button
+              onClick={() => {
+                setStaffAuth(null, null);
+                setShowUserMenu(false);
+                navigate("/admin/login");
+              }}
+            >
+              Logout
+            </button>
           </div>
         )}
       </div>
     </aside>
-  )
+  );
 }

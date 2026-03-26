@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
+
 const staffSchema = new Schema({
     username: {
         type: String,
@@ -22,7 +23,9 @@ const staffSchema = new Schema({
         enum:["admin", "productmanager", "sales", "viewer"],
         default:"viewer"
     }
-}, {timestamps:true})
 
-const Staff = mongoose.model("Staff", staffSchema);
+}, {timestamps: true})
+
+
+const Staff = mongoose.model("Staff", staffSchema)
 export default Staff
