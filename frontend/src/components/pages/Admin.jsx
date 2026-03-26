@@ -1,103 +1,203 @@
-import { useEffect, useState, useRef } from 'react'
-import './Admin.css'
+import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
+import "./Admin.css";
+import { api, getStaffToken } from "../../config/api";
+
+const ROLE_OPTIONS = [
+  { value: "admin", label: "Admin" },
+  { value: "productmanager", label: "Product Manager" },
+  { value: "sales", label: "Sales" },
+  { value: "viewer", label: "Viewer" },
+];
+
+function roleLabel(role) {
+  return ROLE_OPTIONS.find((r) => r.value === role)?.label || role;
+}
+
+function initialsFrom(username, email) {
+  const u = (username || "").trim();
+  if (u.length >= 2) return u.slice(0, 2).toUpperCase();
+  const e = (email || "").split("@")[0] || "";
+  return e.slice(0, 2).toUpperCase() || "?";
+}
 
 export default function Admin({ setActivePage }) {
   useEffect(() => {
-    setActivePage('admin')
-  }, [setActivePage])
+    setActivePage("admin");
+  }, [setActivePage]);
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [editModal, setEditModal] = useState(false)
-  const [removeConfirm, setRemoveConfirm] = useState(false)
-  const [selectedStaff, setSelectedStaff] = useState(null)
-  const [actionMenu, setActionMenu] = useState(null) // id of open menu
-  const menuRef = useRef(null)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editModal, setEditModal] = useState(false);
+  const [removeConfirm, setRemoveConfirm] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [actionMenu, setActionMenu] = useState(null);
+  const menuRef = useRef(null);
 
-  const [staffMembers, setStaffMembers] = useState([
-    { id: 1, initials: 'NS', name: 'Nayomi Silva', username: 'nayomi_silva2020', email: 'nayomi.s@gmail.com', role: 'ADMIN' },
-    { id: 2, initials: 'RP', name: 'Rohan Perera', username: '', email: 'rohan@gmail.com', role: 'PRODUCT MANAGER' },
-    { id: 3, initials: 'NR', name: 'Nimal Ranasinghe', username: 'nimal.ran', email: 'nimal.r@gmail.com', role: 'SALES' },
-    { id: 4, initials: 'CD', name: 'Chamara Dilshan', username: 'chamara5002', email: 'chamara@gmail.com', role: 'VIEWER' },
-  ])
+  const [staffMembers, setStaffMembers] = useState([]);
+  const [loadError, setLoadError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [passwordReveal, setPasswordReveal] = useState(null);
 
-  const [newStaff, setNewStaff] = useState({ name: '', username:'', email: '', role: 'VIEWER' })
-  const [editData, setEditData] = useState({ name: '', email: '', role: 'VIEWER' })
+  const [newStaff, setNewStaff] = useState({ username: "", email: "", role: "viewer" });
+  const [editData, setEditData] = useState({ username: "", email: "", role: "viewer" });
 
-  // Close action menu on outside click
+  const loadStaff = () => {
+    setLoadError("");
+    if (!getStaffToken()) {
+      setLoadError("auth");
+      setStaffMembers([]);
+      return;
+    }
+    api("/staff", { auth: "staff" })
+      .then((rows) => setStaffMembers(Array.isArray(rows) ? rows : []))
+      .catch((e) => {
+        if (e.status === 401 || e.status === 403) setLoadError("forbidden");
+        else setLoadError(e.message || "Could not load staff");
+      });
+  };
+
+  useEffect(() => {
+    loadStaff();
+  }, []);
+
   useEffect(() => {
     const handleClick = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setActionMenu(null)
+        setActionMenu(null);
       }
-    }
+    };
     if (actionMenu !== null) {
-      document.addEventListener('mousedown', handleClick)
+      document.addEventListener("mousedown", handleClick);
     }
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [actionMenu])
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [actionMenu]);
 
-  const filteredStaff = staffMembers.filter(staff =>
-    staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    staff.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredStaff = staffMembers.filter(
+    (staff) =>
+      (staff.username || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (staff.email || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const handleAddStaff = (e) => {
-    e.preventDefault()
-    const initials = newStaff.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-    const member = { id: staffMembers.length + 1, initials, name: newStaff.name, email: newStaff.email, role: newStaff.role }
-    setStaffMembers([member, ...staffMembers])
-    setNewStaff({ name: '', email: '', role: 'VIEWER' })
-    setShowModal(false)
-  }
+  const handleAddStaff = async (e) => {
+    e.preventDefault();
+    if (!getStaffToken()) return;
+    setSaving(true);
+    try {
+      const data = await api("/staff/register", {
+        method: "POST",
+        body: {
+          username: newStaff.username.trim(),
+          email: newStaff.email.trim(),
+          role: newStaff.role,
+        },
+        auth: "staff",
+      });
+      setNewStaff({ username: "", email: "", role: "viewer" });
+      setShowModal(false);
+      setPasswordReveal({
+        username: data.user?.username,
+        temporaryPassword: data.temporaryPassword,
+      });
+      loadStaff();
+    } catch (err) {
+      alert(err.message || "Could not add staff");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const openEdit = (staff) => {
-    setSelectedStaff(staff)
-    setEditData({ name: staff.name, email: staff.email, role: staff.role })
-    setActionMenu(null)
-    setEditModal(true)
-  }
+    setSelectedStaff(staff);
+    setEditData({
+      username: staff.username || "",
+      email: staff.email || "",
+      role: staff.role || "viewer",
+    });
+    setActionMenu(null);
+    setEditModal(true);
+  };
 
-  const handleEdit = (e) => {
-    e.preventDefault()
-    const initials = editData.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-    setStaffMembers(staffMembers.map(s =>
-      s.id === selectedStaff.id ? { ...s, ...editData, initials } : s
-    ))
-    setEditModal(false)
-    setSelectedStaff(null)
-  }
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    if (!selectedStaff?._id || !getStaffToken()) return;
+    setSaving(true);
+    try {
+      await api(`/staff/${selectedStaff._id}`, {
+        method: "PUT",
+        body: {
+          username: editData.username.trim(),
+          email: editData.email.trim(),
+          role: editData.role,
+        },
+        auth: "staff",
+      });
+      setEditModal(false);
+      setSelectedStaff(null);
+      loadStaff();
+    } catch (err) {
+      alert(err.message || "Update failed");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const openRemove = (staff) => {
-    setSelectedStaff(staff)
-    setActionMenu(null)
-    setRemoveConfirm(true)
-  }
+    setSelectedStaff(staff);
+    setActionMenu(null);
+    setRemoveConfirm(true);
+  };
 
-  const handleRemove = () => {
-    setStaffMembers(staffMembers.filter(s => s.id !== selectedStaff.id))
-    setRemoveConfirm(false)
-    setSelectedStaff(null)
-  }
+  const handleRemove = async () => {
+    if (!selectedStaff?._id || !getStaffToken()) return;
+    try {
+      await api(`/staff/${selectedStaff._id}`, { method: "DELETE", auth: "staff" });
+      setRemoveConfirm(false);
+      setSelectedStaff(null);
+      loadStaff();
+    } catch (err) {
+      alert(err.message || "Remove failed");
+    }
+  };
 
   return (
     <div className="admin-page">
       <div className="page-header">
         <div>
           <h1>Admin & Staff Management</h1>
-          <p>Manage your team and platform permissions.</p>
+          <p>Add team members with a default password they can change after signing in.</p>
         </div>
-        <button className="add-staff-btn" onClick={() => setShowModal(true)}>+ ADD STAFF MEMBER</button>
+        <button
+          type="button"
+          className="add-staff-btn"
+          disabled={loadError === "forbidden" || loadError === "auth"}
+          onClick={() => setShowModal(true)}
+        >
+          + ADD STAFF MEMBER
+        </button>
       </div>
+
+      {loadError === "auth" && (
+        <p className="admin-banner">
+          <Link to="/admin/login">Sign in</Link> as staff to manage users.
+        </p>
+      )}
+      {loadError === "forbidden" && (
+        <p className="admin-banner error">Only administrators can view this page.</p>
+      )}
+      {loadError && loadError !== "auth" && loadError !== "forbidden" && (
+        <p className="admin-banner error">{loadError}</p>
+      )}
 
       <div className="staff-controls">
         <div className="search-box">
-          <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
           </svg>
           <input
             type="text"
-            placeholder="Search staff members..."
+            placeholder="Search by username or email..."
             className="search-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -109,39 +209,40 @@ export default function Admin({ setActivePage }) {
         <table className="staff-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>NAME</th>
+              <th>USERNAME</th>
               <th>EMAIL</th>
               <th>ROLE</th>
               <th>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
-            {filteredStaff.map(staff => (
-              <tr key={staff.id}>
-                <td className='id'>{staff.id}</td>
+            {filteredStaff.map((staff) => (
+              <tr key={staff._id}>
                 <td>
                   <div className="staff-info">
-                    <div className="avatar">{staff.initials}</div>
-                    <p className="staff-name">{staff.name}</p>
+                    <div className="avatar">{initialsFrom(staff.username, staff.email)}</div>
+                    <p className="staff-name">{staff.username}</p>
                   </div>
                 </td>
                 <td className="email">{staff.email}</td>
-                <td><span className="role-badge">{staff.role}</span></td>
                 <td>
-                  <div className="action-wrapper" ref={actionMenu === staff.id ? menuRef : null}>
+                  <span className="role-badge">{roleLabel(staff.role)}</span>
+                </td>
+                <td>
+                  <div className="action-wrapper" ref={actionMenu === staff._id ? menuRef : null}>
                     <button
+                      type="button"
                       className="action-icon"
-                      onClick={() => setActionMenu(actionMenu === staff.id ? null : staff.id)}
-                    >⋮</button>
-                    {actionMenu === staff.id && (
+                      onClick={() => setActionMenu(actionMenu === staff._id ? null : staff._id)}
+                    >
+                      ⋮
+                    </button>
+                    {actionMenu === staff._id && (
                       <div className="action-dropdown">
-                        <button className="action-dropdown-item" onClick={() => openEdit(staff)}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <button type="button" className="action-dropdown-item" onClick={() => openEdit(staff)}>
                           Edit
                         </button>
-                        <button className="action-dropdown-item danger" onClick={() => openRemove(staff)}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                        <button type="button" className="action-dropdown-item danger" onClick={() => openRemove(staff)}>
                           Remove
                         </button>
                       </div>
@@ -154,101 +255,173 @@ export default function Admin({ setActivePage }) {
         </table>
       </div>
 
-      {/* Add Staff Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={() => !saving && setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Add Staff Member</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
+              <button type="button" className="modal-close" onClick={() => !saving && setShowModal(false)}>
+                ✕
+              </button>
             </div>
+            <p className="admin-modal-hint">
+              A <strong>temporary default password</strong> is generated automatically. You will see it once after saving — share it with the new user so they can sign in and change it under My Profile.
+            </p>
             <form onSubmit={handleAddStaff}>
               <div className="form-group">
-                <label>Full Name</label>
-                <input type="text" required value={newStaff.name} onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })} placeholder="e.g. Jane Doe" />
-              </div>
-              <div className="form-group">
                 <label>Username</label>
-                <input type="text" required value={newStaff.username} onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })} placeholder="e.g. jane2025" />
+                <input
+                  type="text"
+                  required
+                  value={newStaff.username}
+                  onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
+                  placeholder="e.g. jane_doe"
+                />
               </div>
               <div className="form-group">
                 <label>Email Address</label>
-                <input type="email" required value={newStaff.email} onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })} placeholder="e.g. jane@gmail.com" />
+                <input
+                  type="email"
+                  required
+                  value={newStaff.email}
+                  onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                  placeholder="e.g. jane@aurelia.lk"
+                />
               </div>
               <div className="form-group">
                 <label>Role</label>
                 <select value={newStaff.role} onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}>
-                  <option value="ADMIN">Admin</option>
-                  <option value="PRODUCT MANAGER">Product Manager</option>
-                  <option value="SALES">Sales</option>
-                  <option value="VIEWER">Viewer</option>
+                  {ROLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn-submit">Add Member</button>
+                <button type="button" className="btn-cancel" disabled={saving} onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit" disabled={saving}>
+                  {saving ? "Adding…" : "Add Member"}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Edit Staff Modal */}
+      {passwordReveal && (
+        <div className="modal-overlay" onClick={() => setPasswordReveal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Temporary password</h2>
+              <button type="button" className="modal-close" onClick={() => setPasswordReveal(null)}>
+                ✕
+              </button>
+            </div>
+            <p className="admin-password-reveal-user">
+              User: <strong>{passwordReveal.username}</strong>
+            </p>
+            <div className="admin-password-box">
+              <code>{passwordReveal.temporaryPassword}</code>
+              <button
+                type="button"
+                className="btn-submit"
+                style={{ marginTop: 12 }}
+                onClick={() => {
+                  navigator.clipboard.writeText(passwordReveal.temporaryPassword);
+                }}
+              >
+                Copy password
+              </button>
+            </div>
+            <p className="admin-modal-hint">They should sign in at Staff sign in, then change this under My Profile.</p>
+            <div className="modal-actions">
+              <button type="button" className="btn-submit" onClick={() => setPasswordReveal(null)}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {editModal && (
-        <div className="modal-overlay" onClick={() => setEditModal(false)}>
+        <div className="modal-overlay" onClick={() => !saving && setEditModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Edit Staff Member</h2>
-              <button className="modal-close" onClick={() => setEditModal(false)}>✕</button>
+              <button type="button" className="modal-close" onClick={() => !saving && setEditModal(false)}>
+                ✕
+              </button>
             </div>
             <form onSubmit={handleEdit}>
               <div className="form-group">
-                <label>Full Name</label>
-                <input type="text" required value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} placeholder="e.g. Jane Doe" />
+                <label>Username</label>
+                <input
+                  type="text"
+                  required
+                  value={editData.username}
+                  onChange={(e) => setEditData({ ...editData, username: e.target.value })}
+                />
               </div>
               <div className="form-group">
                 <label>Email Address</label>
-                <input type="email" required value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} placeholder="e.g. jane.d@aurelia.lk" />
+                <input
+                  type="email"
+                  required
+                  value={editData.email}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                />
               </div>
               <div className="form-group">
                 <label>Role</label>
                 <select value={editData.role} onChange={(e) => setEditData({ ...editData, role: e.target.value })}>
-                  <option value="ADMIN">Admin</option>
-                  <option value="PRODUCT MANAGER">Product Manager</option>
-                  <option value="SALES">Sales</option>
-                  <option value="VIEWER">Viewer</option>
+                  {ROLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setEditModal(false)}>Cancel</button>
-                <button type="submit" className="btn-submit">Save Changes</button>
+                <button type="button" className="btn-cancel" disabled={saving} onClick={() => setEditModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit" disabled={saving}>
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Remove Confirmation Modal */}
       {removeConfirm && selectedStaff && (
         <div className="modal-overlay" onClick={() => setRemoveConfirm(false)}>
           <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Remove Staff Member</h2>
-              <button className="modal-close" onClick={() => setRemoveConfirm(false)}>✕</button>
+              <button type="button" className="modal-close" onClick={() => setRemoveConfirm(false)}>
+                ✕
+              </button>
             </div>
             <div className="confirm-body">
-              <div className="confirm-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              </div>
-              <p>Are you sure you want to remove <strong>{selectedStaff.name}</strong> from the team? This action cannot be undone.</p>
+              <p>
+                Remove <strong>{selectedStaff.username}</strong>? They will no longer be able to sign in.
+              </p>
             </div>
             <div className="modal-actions">
-              <button type="button" className="btn-cancel" onClick={() => setRemoveConfirm(false)}>Cancel</button>
-              <button type="button" className="btn-danger" onClick={handleRemove}>Yes, Remove</button>
+              <button type="button" className="btn-cancel" onClick={() => setRemoveConfirm(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-danger" onClick={handleRemove}>
+                Yes, Remove
+              </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
