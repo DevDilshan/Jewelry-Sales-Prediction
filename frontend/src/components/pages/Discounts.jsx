@@ -398,4 +398,4 @@ export default function Discounts({ setActivePage }) {
 
     </div>
   )
-}
+ }
