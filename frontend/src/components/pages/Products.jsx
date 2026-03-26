@@ -1,5 +1,21 @@
 import { useEffect, useState, useRef } from 'react'
 import './Products.css'
+import axios from "axios"
+import { API_BASE, getStaffToken } from '../../config/api'
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
+
+function staffAuthHeaders() {
+  const t = getStaffToken()
+  return t ? { Authorization: `Bearer ${t}` } : {}
+}
 
 export default function Products({ setActivePage }) {
   useEffect(() => {
@@ -17,13 +33,18 @@ export default function Products({ setActivePage }) {
   const [editData, setEditData] = useState({})
   const menuRef = useRef(null)
 
-  const [products, setProducts] = useState([
-    { id: 1, name: 'Solitaire Diamond Ring', sku: 'AUR-RI-001', category: 'Rings', metal: 'Gold', gem: 'Diamond', reorderLevel: 5, stockCount: 12, price: '125,000', image: null, active: true },
-    { id: 2, name: 'Heritage Gold Necklace', sku: 'AUR-NE-042', category: 'Necklace', metal: 'Gold', gem: 'Emerald', reorderLevel: 3, stockCount: 5, price: '225,000', image: null, active: true },
-    { id: 3, name: 'Ocean Pearl Earrings', sku: 'AUR-EA-105', category: 'Earring', metal: 'Silver', gem: 'Diamond', reorderLevel: 5, stockCount: 0, price: '100,000', image: null, active: false },
-  ])
+  const [products, setProducts] = useState([])
 
-  const [newProduct, setNewProduct] = useState({ name: '', sku: '', category: '', metal: '', gem: '', reorderLevel: '', stockCount: '', price: '', description: '', active: false })
+  useEffect(() => {
+    axios.get(`${API_BASE}/product`)
+      .then(res => setProducts(res.data))
+      .catch(err => console.log(err))
+  }, [])
+
+  const [newProduct, setNewProduct] = useState({
+    name: '', sku: '', category: '', metal: '', gem: '',
+    reorderLevel: '', stockCount: '', price: '', description: '', active: false
+  })
   const [mainImage, setMainImage] = useState(null)
   const [additionalImages, setAdditionalImages] = useState([null, null, null, null])
 
@@ -36,60 +57,99 @@ export default function Products({ setActivePage }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [actionMenu])
 
-  const handleMainImageUpload = (e) => {
-    const file = e.target.files[0]
-    if (file) setMainImage(URL.createObjectURL(file))
-  }
-
-  const handleAdditionalImageUpload = (index, e) => {
-    const file = e.target.files[0]
-    if (file) {
-      const updated = [...additionalImages]
-      updated[index] = URL.createObjectURL(file)
-      setAdditionalImages(updated)
-    }
-  }
-
+  // ✅ Fixed: uses correct API field names
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || product.sku.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = categoryFilter === 'All' || product.category === categoryFilter
+    const matchesSearch = product.productName?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = categoryFilter === 'All' || product.productCategory === categoryFilter
     let matchesStock = true
-    if (stockFilter === 'In Stock') matchesStock = product.stockCount > 0
-    if (stockFilter === 'Out Of Stock') matchesStock = product.stockCount === 0
+    if (stockFilter === 'In Stock') matchesStock = product.stockQuantity > 0
+    if (stockFilter === 'Out Of Stock') matchesStock = product.stockQuantity === 0
     return matchesSearch && matchesCategory && matchesStock
   })
 
+  const handleMainImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      setMainImage(dataUrl)
+    } catch (err) {
+      console.error('Could not read image:', err)
+    }
+    e.target.value = ''
+  }
+
+  const handleAdditionalImageUpload = async (index, e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      const updated = [...additionalImages]
+      updated[index] = dataUrl
+      setAdditionalImages(updated)
+    } catch (err) {
+      console.error('Could not read image:', err)
+    }
+    e.target.value = ''
+  }
+
+  const handleEditMainImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      setEditData((prev) => ({ ...prev, productImage: dataUrl }))
+    } catch (err) {
+      console.error('Could not read image:', err)
+    }
+    e.target.value = ''
+  }
+
+  // ✅ Fixed: uses correct field names for stock status
   const getStockStatus = (count, reorderLevel) => {
     if (count === 0) return 'out-of-stock'
     if (count <= reorderLevel) return 'low-stock'
     return 'in-stock'
   }
 
+  // ✅ Fixed: uses _id and isActive
   const toggleActive = (id) => {
-    setProducts(products.map(p => p.id === id ? { ...p, active: !p.active } : p))
+    setProducts(products.map(p => p._id === id ? { ...p, isActive: !p.isActive } : p))
   }
 
-  const handleAddProduct = (e) => {
+  const handleAddProduct = async (e) => {
     e.preventDefault()
-    const count = parseInt(newProduct.stockCount) || 0
-    const prod = {
-      id: products.length + 1,
-      name: newProduct.name,
-      sku: newProduct.sku || `AUR-XX-${String(products.length + 1).padStart(3, '0')}`,
-      category: newProduct.category || 'Rings',
-      metal: newProduct.metal || 'Gold',
-      gem: newProduct.gem || 'None',
-      reorderLevel: parseInt(newProduct.reorderLevel) || 5,
-      stockCount: count,
-      price: newProduct.price,
-      image: mainImage,
-      active: newProduct.active,
+    try {
+      const prod = {
+        productName: newProduct.name,
+        productDescription: newProduct.description || '',
+        productCategory: newProduct.category || 'Rings',
+        productPrice: parseFloat(newProduct.price) || 0,
+        metalMaterial: newProduct.metal?.toLowerCase() || 'gold',
+        gemType: newProduct.gem?.toLowerCase() || 'none',
+        stockQuantity: parseInt(newProduct.stockCount) || 0,
+        reorderLevel: parseInt(newProduct.reorderLevel) || 5,
+        isActive: newProduct.active
+      }
+      if (mainImage && String(mainImage).startsWith('data:')) {
+        prod.productImage = mainImage
+      }
+
+      const res = await axios.post(`${API_BASE}/product/create`, prod, { headers: staffAuthHeaders() })
+
+      // ✅ Fixed: use res.data so the saved doc has _id and timestamps
+      setProducts([res.data, ...products])
+
+      setNewProduct({
+        name: '', sku: '', category: '', metal: '', gem: '',
+        reorderLevel: '', stockCount: '', price: '', description: '', active: false
+      })
+      setMainImage(null)
+      setAdditionalImages([null, null, null, null])
+      setShowModal(false)
+    } catch (error) {
+      console.error('Error saving product:', error.response?.data || error.message)
     }
-    setProducts([prod, ...products])
-    setNewProduct({ name: '', sku: '', category: '', metal: '', gem: '', reorderLevel: 0, stockCount: 0, price: '', description: '', active: false })
-    setMainImage(null)
-    setAdditionalImages([null, null, null, null])
-    setShowModal(false)
   }
 
   const openEdit = (product) => {
@@ -99,11 +159,34 @@ export default function Products({ setActivePage }) {
     setEditModal(true)
   }
 
-  const handleEdit = (e) => {
+  const handleEdit = async (e) => {
     e.preventDefault()
-    setProducts(products.map(p => p.id === selectedProduct.id ? { ...p, ...editData, stockCount: parseInt(editData.stockCount) || 0, reorderLevel: parseInt(editData.reorderLevel) || 0 } : p))
-    setEditModal(false)
-    setSelectedProduct(null)
+    try {
+      const updatedProduct = {
+        productName: editData.productName,
+        productDescription: editData.productDescription || '',
+        productCategory: editData.productCategory || 'Rings',
+        productPrice: parseFloat(editData.productPrice) || 0,
+        metalMaterial: editData.metalMaterial?.toLowerCase() || 'gold',
+        gemType: editData.gemType?.toLowerCase() || 'none',
+        stockQuantity: parseInt(editData.stockQuantity) || 0,
+        productImage: editData.productImage || selectedProduct.productImage,
+        reorderLevel: parseInt(editData.reorderLevel) || 5,
+        isActive: editData.isActive
+      }
+
+      const res = await axios.put(`${API_BASE}/product/${selectedProduct._id}`, updatedProduct, {
+        headers: staffAuthHeaders(),
+      })
+      console.log(res.data)
+
+      // ✅ Fixed: uses _id to match, spreads updatedProduct fields
+      setProducts(products.map(p => p._id === selectedProduct._id ? { ...p, ...updatedProduct } : p))
+      setEditModal(false)
+      setSelectedProduct(null)
+    } catch (error) {
+      console.log("Error updating the product", error)
+    }
   }
 
   const openDelete = (product) => {
@@ -112,8 +195,14 @@ export default function Products({ setActivePage }) {
     setDeleteConfirm(true)
   }
 
-  const handleDelete = () => {
-    setProducts(products.filter(p => p.id !== selectedProduct.id))
+  // ✅ Fixed: uses _id
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`${API_BASE}/product/${selectedProduct._id}`, { headers: staffAuthHeaders() })
+      setProducts(products.filter(p => p._id !== selectedProduct._id))
+    } catch (error) {
+      console.error('Error deleting product:', error.response?.data || error.message)
+    }
     setDeleteConfirm(false)
     setSelectedProduct(null)
   }
@@ -167,47 +256,50 @@ export default function Products({ setActivePage }) {
             </tr>
           </thead>
           <tbody>
+            {/* ✅ Fixed: filteredProducts + correct field names throughout */}
             {filteredProducts.map(product => {
-              const stockStatus = getStockStatus(product.stockCount, product.reorderLevel)
+              const stockStatus = getStockStatus(product.stockQuantity, product.reorderLevel)
               return (
-                <tr key={product.id}>
+                <tr key={product._id}>
                   <td>
                     <div className="product-image">
-                      {product.image ? <img src={product.image} alt={product.name} /> : <div className="product-image-placeholder" />}
+                      {product.productImage
+                        ? <img src={product.productImage} alt={product.productName} />
+                        : <div className="product-image-placeholder" />}
                     </div>
                   </td>
                   <td>
                     <div className="product-info">
-                      <p className="product-name">{product.name}</p>
+                      <p className="product-name">{product.productName}</p>
                     </div>
                   </td>
-                  <td><span className="category-tag">{product.category}</span></td>
-                  <td className="cell-text">{product.metal}</td>
-                  <td className="cell-text">{product.gem}</td>
-                  <td className="price">{product.price}</td>
+                  <td><span className="category-tag">{product.productCategory}</span></td>
+                  <td className="cell-text">{product.metalMaterial}</td>
+                  <td className="cell-text">{product.gemType}</td>
+                  <td className="price">{product.productPrice?.toLocaleString()}</td>
                   <td className="cell-text">{product.reorderLevel}</td>
                   <td>
                     <div className={`stock-badge ${stockStatus}`}>
-                      <span className="stock-dot">●</span> {product.stockCount} in stock
+                      <span className="stock-dot">●</span> {product.stockQuantity} in stock
                     </div>
                   </td>
                   <td>
                     <label className="toggle-switch">
-                      <input type="checkbox" checked={product.active} onChange={() => toggleActive(product.id)} />
-                      <span className={`toggle-slider ${product.active ? 'active' : 'inactive'}`}></span>
+                      <input type="checkbox" checked={product.isActive} onChange={() => toggleActive(product._id)} />
+                      <span className={`toggle-slider ${product.isActive ? 'active' : 'inactive'}`}></span>
                     </label>
                   </td>
                   <td>
-                    <div className="action-wrapper" ref={actionMenu === product.id ? menuRef : null}>
-                      <button className="action-icon" onClick={() => setActionMenu(actionMenu === product.id ? null : product.id)}>⋮</button>
-                      {actionMenu === product.id && (
+                    <div className="action-wrapper" ref={actionMenu === product._id ? menuRef : null}>
+                      <button className="action-icon" onClick={() => setActionMenu(actionMenu === product._id ? null : product._id)}>⋮</button>
+                      {actionMenu === product._id && (
                         <div className="action-dropdown">
                           <button className="action-dropdown-item" onClick={() => openEdit(product)}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                             Edit
                           </button>
                           <button className="action-dropdown-item danger" onClick={() => openDelete(product)}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
                             Delete
                           </button>
                         </div>
@@ -355,28 +447,28 @@ export default function Products({ setActivePage }) {
               <div className="modal-body">
                 <div className="modal-left">
                   <p className="section-label">PRODUCT MAIN IMAGE</p>
-                  <div className="main-image-upload" style={{ cursor: 'default' }}>
-                    {editData.image ? <img src={editData.image} alt="Main" className="uploaded-main-img" /> : (
+                  <label className="main-image-upload">
+                    <input type="file" accept="image/*" onChange={handleEditMainImageUpload} style={{ display: 'none' }} />
+                    {editData.productImage ? <img src={editData.productImage} alt="Main" className="uploaded-main-img" /> : (
                       <div className="main-image-placeholder">
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#aab" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
-                        <span>No image</span>
+                        <span>Click to upload / replace</span>
                       </div>
                     )}
-                  </div>
-                  <div className="form-group" style={{ marginTop: 8 }}>
-                    <label>SKU</label>
-                    <input type="text" value={editData.sku} onChange={(e) => setEditData({ ...editData, sku: e.target.value })} />
-                  </div>
+                  </label>
+                  {editData.productImage && (
+                    <p className="section-label" style={{ marginTop: 8, fontWeight: 500 }}>Click image to replace</p>
+                  )}
                 </div>
                 <div className="modal-right">
                   <div className="form-group">
                     <label>PRODUCT NAME</label>
-                    <input type="text" required value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
+                    <input type="text" required value={editData.productName || ''} onChange={(e) => setEditData({ ...editData, productName: e.target.value })} />
                   </div>
                   <div className="form-row">
                     <div className="form-group">
                       <label>CATEGORY</label>
-                      <select value={editData.category} onChange={(e) => setEditData({ ...editData, category: e.target.value })}>
+                      <select value={editData.productCategory || ''} onChange={(e) => setEditData({ ...editData, productCategory: e.target.value })}>
                         <option value="Rings">Rings</option>
                         <option value="Necklace">Necklace</option>
                         <option value="Earring">Earring</option>
@@ -386,28 +478,28 @@ export default function Products({ setActivePage }) {
                     </div>
                     <div className="form-group">
                       <label>STOCK QUANTITY</label>
-                      <input type="number" min="0" value={editData.stockCount} onChange={(e) => setEditData({ ...editData, stockCount: e.target.value })} />
+                      <input type="number" min="0" value={editData.stockQuantity || 0} onChange={(e) => setEditData({ ...editData, stockQuantity: e.target.value })} />
                     </div>
                   </div>
                   <div className="form-row">
                     <div className="form-group">
                       <label>METAL MATERIAL</label>
-                      <select value={editData.metal} onChange={(e) => setEditData({ ...editData, metal: e.target.value })}>
-                        <option value="Gold">Gold</option>
-                        <option value="Silver">Silver</option>
-                        <option value="Platinum">Platinum</option>
-                        <option value="Rose Gold">Rose Gold</option>
+                      <select value={editData.metalMaterial || ''} onChange={(e) => setEditData({ ...editData, metalMaterial: e.target.value })}>
+                        <option value="gold">Gold</option>
+                        <option value="silver">Silver</option>
+                        <option value="platinum">Platinum</option>
+                        <option value="rose gold">Rose Gold</option>
                       </select>
                     </div>
                     <div className="form-group">
                       <label>GEM TYPE</label>
-                      <select value={editData.gem} onChange={(e) => setEditData({ ...editData, gem: e.target.value })}>
-                        <option value="Diamond">Diamond</option>
-                        <option value="Emerald">Emerald</option>
-                        <option value="Ruby">Ruby</option>
-                        <option value="Sapphire">Sapphire</option>
-                        <option value="Pearl">Pearl</option>
-                        <option value="None">None</option>
+                      <select value={editData.gemType || ''} onChange={(e) => setEditData({ ...editData, gemType: e.target.value })}>
+                        <option value="diamond">Diamond</option>
+                        <option value="emerald">Emerald</option>
+                        <option value="ruby">Ruby</option>
+                        <option value="sapphire">Sapphire</option>
+                        <option value="pearl">Pearl</option>
+                        <option value="none">None</option>
                       </select>
                     </div>
                   </div>
@@ -415,19 +507,23 @@ export default function Products({ setActivePage }) {
                     <label>PRICE (LKR)</label>
                     <div className="price-input-wrap">
                       <span className="price-prefix">Rs.</span>
-                      <input type="text" required value={editData.price} onChange={(e) => setEditData({ ...editData, price: e.target.value })} className="price-input" />
+                      <input type="text" required value={editData.productPrice || ''} onChange={(e) => setEditData({ ...editData, productPrice: e.target.value })} className="price-input" />
                     </div>
+                  </div>
+                  <div className="form-group">
+                    <label>DESCRIPTION</label>
+                    <textarea value={editData.productDescription || ''} onChange={(e) => setEditData({ ...editData, productDescription: e.target.value })} rows={3} />
                   </div>
                   <div className="form-row">
                     <div className="form-group">
                       <label>REORDER LEVEL</label>
-                      <input type="number" min="0" value={editData.reorderLevel} onChange={(e) => setEditData({ ...editData, reorderLevel: e.target.value })} />
+                      <input type="number" min="0" value={editData.reorderLevel || 0} onChange={(e) => setEditData({ ...editData, reorderLevel: e.target.value })} />
                     </div>
                     <div className="form-group active-status-group">
                       <label>ACTIVE STATUS</label>
                       <label className="toggle-switch">
-                        <input type="checkbox" checked={editData.active} onChange={(e) => setEditData({ ...editData, active: e.target.checked })} />
-                        <span className={`toggle-slider ${editData.active ? 'active' : 'inactive'}`}></span>
+                        <input type="checkbox" checked={editData.isActive || false} onChange={(e) => setEditData({ ...editData, isActive: e.target.checked })} />
+                        <span className={`toggle-slider ${editData.isActive ? 'active' : 'inactive'}`}></span>
                       </label>
                     </div>
                   </div>
@@ -452,9 +548,9 @@ export default function Products({ setActivePage }) {
             </div>
             <div className="confirm-body">
               <div className="confirm-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
               </div>
-              <p>Are you sure you want to delete <strong>{selectedProduct.name}</strong>? This action cannot be undone.</p>
+              <p>Are you sure you want to delete <strong>{selectedProduct.productName}</strong>? This action cannot be undone.</p>
             </div>
             <div className="modal-actions">
               <button type="button" className="btn-cancel" onClick={() => setDeleteConfirm(false)}>Cancel</button>
