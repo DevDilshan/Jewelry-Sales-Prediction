@@ -54,11 +54,10 @@ function AppContent() {
 
           <Route path="/" element={<LandingPage />} />
 
-          <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/dashboard" element={<UserDashboard />} /> 
           <Route path="/dashboard/orders" element={<UserOrders />} />
           <Route path="/dashboard/address" element={<AddressBook />} />
           <Route path="/dashboard/profile" element={<ProfileSettings />} />
-          {/* <Route path="/dashboard/feedback" element={<MyReviews />} /> */}
 
         </Routes>
       </main>
