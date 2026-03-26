@@ -1,98 +1,172 @@
 import Discount from "../models/Discount.js";
+import { evaluateDiscount } from "../utils/discountMath.js";
 
-function generateCouponCode(name){
-    const randomCode = Math.floor(1000+Math.random()*9000);
-    return name.toUpperCase().replace(/\s/g,"")+randomCode;
+function normalizeCoupon(code) {
+  return String(code || "")
+    .trim()
+    .toUpperCase();
 }
-export async function createDiscount(req,res) {
-    try{
-        const{
-            discountName,
-            disType,
-            disPercentage,
-            startDate,
-            endDate
-        }= req.body;
 
-         if (!discountName || !disType || !disPercentage || !startDate || !endDate) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-        
-           if (new Date(endDate) <= new Date(startDate)) { //extra
-            return res.status(400).json({message: "End date must be after start date"});
-        }
-        let couponCode =null;
-             if(disType==="coupon"){
-                couponCode = generateCouponCode(discountName);
-             }
+function generateSiteWideCode() {
+  const t = Date.now().toString(36).toUpperCase();
+  const r = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `SW-${t}-${r}`;
+}
 
-        const discount = await Discount.create({
-            discountName,
-            disType,
-            disPercentage,
-            couponCode,
-            startDate,
-            endDate
-        });
-        res.status(201).json(discount);
+export async function createDiscount(req, res) {
+  try {
+    const body = { ...req.body };
+    const scope = body.promoScope === "site_wide" ? "site_wide" : "coupon";
+    body.promoScope = scope;
+
+    if (scope === "coupon") {
+      if (!body.discountCoupon || !String(body.discountCoupon).trim()) {
+        return res.status(400).json({ message: "Promo code is required for coupon discounts." });
+      }
+      body.discountCoupon = normalizeCoupon(body.discountCoupon);
+    } else {
+      body.discountCoupon = generateSiteWideCode();
     }
 
-    catch(error){
-        res.status(500).json({
-            message:"Internal server error",error:error.message });
-    }
- 
+    const discount = await Discount.create(body);
+    res.status(201).json(discount);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: error.message || "Could not create discount" });
+  }
 }
-export async function getAllDiscounts(req, res) {
-    try {
 
-        const discounts = await Discount.find();
-        res.status(200).json(discounts);
-
-    } 
-    catch (error) {
-        res.status(500).json({
-             message: "Internal server error",error: error.message});
-    }
+export async function viewDiscount(req, res) {
+  try {
+    const discounts = await Discount.find({}).sort({ createdAt: -1 });
+    res.status(200).json(discounts);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: error.message });
+  }
 }
+
+export async function validateCoupon(req, res) {
+  try {
+    const { code, subtotal } = req.body;
+    const coupon = normalizeCoupon(code);
+    if (!coupon) {
+      return res.status(400).json({ valid: false, message: "Enter a promo code" });
+    }
+
+    const sub = Math.max(0, Number(subtotal) || 0);
+    const discount = await Discount.findOne({ discountCoupon: coupon });
+    if (!discount || discount.promoScope === "site_wide") {
+      return res.status(200).json({ valid: false, message: "Invalid promo code" });
+    }
+
+    const result = evaluateDiscount(discount, sub);
+
+    if (!result.ok) {
+      return res.status(200).json({ valid: false, message: result.message });
+    }
+
+    const totalAfter = Math.max(0, Math.round((sub - result.discountAmount) * 100) / 100);
+    res.status(200).json({
+      valid: true,
+      discountType: discount.discountType,
+      discountAmount: result.discountAmount,
+      subtotal: sub,
+      totalAfter,
+      code: discount.discountCoupon,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ valid: false, message: error.message });
+  }
+}
+
+function parseOptionalDate(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
 export async function updateDiscount(req, res) {
-    try {
-
-        const updated = await Discount.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        );
-
-        if (!updated) {
-            return res.status(404).json({ message: "Discount not found" });
-        }
-
-        res.status(200).json(updated);
-
-    } catch (error) {
-        res.status(500).json({
-            message: "Internal server error",
-            error: error.message
-        });
+  try {
+    const existing = await Discount.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Discount not found" });
     }
 
+    const {
+      discountName,
+      promoScope: scopeRaw,
+      discountType,
+      discountAmount,
+      discountCoupon: couponRaw,
+    } = req.body;
+
+    const promoScope = scopeRaw === "site_wide" ? "site_wide" : "coupon";
+
+    const update = {
+      promoScope,
+      discountType:
+        discountType === "percentage" || discountType === "fixed" ? discountType : existing.discountType,
+      discountAmount:
+        discountAmount != null && !Number.isNaN(Number(discountAmount))
+          ? Number(discountAmount)
+          : existing.discountAmount,
+    };
+
+    if (discountName != null && String(discountName).trim()) {
+      update.discountName = String(discountName).trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "startDate")) {
+      update.startDate = parseOptionalDate(req.body.startDate);
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "endDate")) {
+      update.endDate = parseOptionalDate(req.body.endDate);
+    }
+
+    let coupon = existing.discountCoupon;
+
+    if (promoScope === "site_wide") {
+      if (existing.promoScope !== "site_wide") {
+        coupon = generateSiteWideCode();
+      }
+    } else {
+      const trimmed = couponRaw != null ? String(couponRaw).trim() : "";
+      if (!trimmed) {
+        if (existing.promoScope !== "coupon") {
+          return res.status(400).json({ message: "Promo code is required when switching to a coupon discount." });
+        }
+        coupon = existing.discountCoupon;
+      } else {
+        coupon = normalizeCoupon(trimmed);
+        const clash = await Discount.findOne({
+          discountCoupon: coupon,
+          _id: { $ne: existing._id },
+        });
+        if (clash) {
+          return res.status(400).json({ message: "Another discount already uses this code." });
+        }
+      }
+    }
+
+    update.discountCoupon = coupon;
+
+    const discount = await Discount.findByIdAndUpdate(req.params.id, update, { new: true });
+    res.status(200).json(discount);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
 }
+
 export async function deleteDiscount(req, res) {
-    try {
+  try {
+    const discount = await Discount.findByIdAndDelete(req.params.id);
+    if (!discount) return res.status(404).json({ message: "Discount not found" });
 
-        const deleted = await Discount.findByIdAndDelete(req.params.id);
-
-        if (!deleted) {
-            return res.status(404).json({ message: "Discount not found" });
-        }
-
-        res.status(200).json({ message: "Discount deleted successfully" });
-
-    } catch (error) {
-        res.status(500).json({
-            message: "Internal server error",error: error.message
-        });
-    }
+    res.status(200).json({ message: "Discount deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
 }
-
