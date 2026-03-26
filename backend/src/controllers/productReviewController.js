@@ -3,7 +3,7 @@ import Product from "../models/Product.js";
 import Customer from "../models/Customer.js";
 import Feedback from "../models/Feedback.js";
 import Order from "../models/Order.js";
-import { getActiveSiteWideDiscount, applySiteWideToProductPlain } from "../utils/siteWidePricing.js";
+import { getActiveSiteWideDiscount, applySiteWideToProductPlain } from "../utils/sideWidePricing.js";
 
 function customerDisplayName(customer) {
   if (!customer) return "";

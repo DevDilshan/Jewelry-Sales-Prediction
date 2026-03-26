@@ -1,5 +1,5 @@
 import Product from "../models/Product.js";
-import { getActiveSiteWideDiscount, applySiteWideToProductPlain } from "../utils/siteWidePricing.js";
+import { getActiveSiteWideDiscount, applySiteWideToProductPlain } from "../utils/sideWidePricing.js";
 
 function wantsShopPricing(req) {
   const q = req.query.forShop;
