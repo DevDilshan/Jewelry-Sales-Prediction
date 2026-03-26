@@ -1,7 +1,7 @@
 import express from "express";
 import {changeOwnPassword,deleteStaff,getStaffMe,listStaff,loginStaff,registerStaff,setupFirstStaff,updateStaff} from "../controllers/staffController.js";
 import { verifyToken } from "../middlewares/staffAuthMiddleware.js";
-import { allowRoles } from "../middlewares/roleMiddleware.js";
+import { allowRoles } from "../middlewares/staffRoleMiddleware.js"
 
 const router = express.Router();
 
