@@ -1,8 +1,6 @@
-//Es6 
 import mongoose, { Schema } from 'mongoose';
 
 const productSchema = new Schema({
-
 
   productName :{
     type:String,
