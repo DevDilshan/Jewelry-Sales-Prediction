@@ -1,110 +1,101 @@
-import { useNavigate } from 'react-router-dom'
-import './UserDashboard.css'
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { api, getCustomerInfo, getCustomerToken } from "../../config/api";
+import "./UserDashboard.css";
 
 export default function UserDashboard() {
-    const navigate = useNavigate()
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loadError, setLoadError] = useState("");
 
-    const recentOrders = [
-        { id: '#AUR-8921', item: 'Solitaire Diamond Ring', date: 'Oct 12, 2023', status: 'DELIVERED', amount: 'LKR 1,250,000' },
-        { id: '#AUR-8918', item: 'Heritage Gold Necklace', date: 'Oct 08, 2023', status: 'SHIPPED', amount: 'LKR 650,000' },
-        { id: '#AUR-8915', item: 'Ocean Pearl Earrings', date: 'Sep 28, 2023', status: 'DELIVERED', amount: 'LKR 280,000' },
-    ]
+  const customer = getCustomerInfo();
+  const displayName = customer?.firstname || customer?.email || "there";
 
-    const wishlistItems = [
-        { id: 1, name: 'Starlight Platinum Watch', price: 'LKR 5,800,000', icon: '⌚' },
-        { id: 2, name: 'Ruby Heart Pendant', price: 'LKR 420,000', icon: '❤️' },
-    ]
+  useEffect(() => {
+    if (!getCustomerToken()) {
+      setLoadError("signin");
+      setOrders([]);
+      return;
+    }
+    api("/order/my", { auth: "customer" })
+      .then((res) => setOrders(res.data || []))
+      .catch(() => setLoadError("Could not load orders."));
+  }, []);
 
-    return (
-        <div className="user-dashboard">
-            <div className="ud-header">
-                <div>
-                    <h1>Welcome back, Sarah!</h1>
-                    <p>Here's an overview of your account and recent activity.</p>
-                </div>
-            </div>
+  const recent = orders.slice(0, 5);
+  const totalOrders = orders.length;
 
-            <div className="ud-stats">
-                <div className="ud-stat-card">
-                    <div className="ud-stat-icon">📦</div>
-                    <div>
-                        <p className="ud-stat-value">8</p>
-                        <p className="ud-stat-label">Total Orders</p>
-                    </div>
-                </div>
-                <div className="ud-stat-card">
-                    <div className="ud-stat-icon">❤️</div>
-                    <div>
-                        <p className="ud-stat-value">2</p>
-                        <p className="ud-stat-label">Wishlist Items</p>
-                    </div>
-                </div>
-                <div className="ud-stat-card">
-                    <div className="ud-stat-icon">⭐</div>
-                    <div>
-                        <p className="ud-stat-value">3</p>
-                        <p className="ud-stat-label">Reviews Given</p>
-                    </div>
-                </div>
-                <div className="ud-stat-card">
-                    <div className="ud-stat-icon">🏆</div>
-                    <div>
-                        <p className="ud-stat-value">Gold</p>
-                        <p className="ud-stat-label">Member Tier</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="ud-grid">
-                <div className="ud-section">
-                    <div className="ud-section-header">
-                        <h2>Recent Orders</h2>
-                        <button className="ud-view-all" onClick={() => navigate('/dashboard/orders')}>View All →</button>
-                    </div>
-                    <table className="ud-table">
-                        <thead>
-                            <tr>
-                                <th>ORDER ID</th>
-                                <th>ITEM</th>
-                                <th>DATE</th>
-                                <th>STATUS</th>
-                                <th>AMOUNT</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {recentOrders.map(order => (
-                                <tr key={order.id}>
-                                    <td className="ud-order-id">{order.id}</td>
-                                    <td>{order.item}</td>
-                                    <td className="ud-text-light">{order.date}</td>
-                                    <td>
-                                        <span className={`ud-status ${order.status.toLowerCase()}`}>{order.status}</span>
-                                    </td>
-                                    <td className="ud-amount">{order.amount}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="ud-section">
-                    <div className="ud-section-header">
-                        <h2>Your Wishlist</h2>
-                        <button className="ud-view-all" onClick={() => navigate('/dashboard/wishlist')}>View All →</button>
-                    </div>
-                    <div className="ud-wishlist-items">
-                        {wishlistItems.map(item => (
-                            <div key={item.id} className="ud-wishlist-item">
-                                <div className="ud-wishlist-icon">{item.icon}</div>
-                                <div className="ud-wishlist-info">
-                                    <p className="ud-wishlist-name">{item.name}</p>
-                                    <p className="ud-wishlist-price">{item.price}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="user-dashboard">
+      <div className="ud-header">
+        <div>
+          <h1>Welcome back, {displayName}!</h1>
+          <p>Here is an overview of your account and recent orders.</p>
+          {loadError === "signin" && (
+            <p className="ud-note">
+              <button type="button" className="ud-linkish" onClick={() => navigate("/login?return=/dashboard")}>
+                Sign in
+              </button>{" "}
+              to see your orders.
+            </p>
+          )}
+          {loadError && loadError !== "signin" && <p className="ud-note error">{loadError}</p>}
         </div>
-    )
+      </div>
+
+
+      <div className="ud-grid">
+        <div className="ud-section ud-section-full">
+          <div className="ud-section-header">
+            <h2>Recent Orders</h2>
+            <button type="button" className="ud-view-all" onClick={() => navigate("/dashboard/orders")}>
+              View All →
+            </button>
+          </div>
+          <table className="ud-table">
+            <thead>
+              <tr>
+                <th>ORDER</th>
+                <th>ITEMS</th>
+                <th>DATE</th>
+                <th>STATUS</th>
+                <th>AMOUNT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="ud-text-light" style={{ padding: "24px" }}>
+                    {getCustomerToken() ? "No orders yet. Browse the shop to place a takeaway order." : "—"}
+                  </td>
+                </tr>
+              ) : (
+                recent.map((order) => {
+                  const first = order.items?.[0]?.product?.productName || "Items";
+                  const extra = (order.items?.length || 0) > 1 ? ` +${order.items.length - 1}` : "";
+                  const date = order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "—";
+                  return (
+                    <tr key={order._id}>
+                      <td className="ud-order-id">{String(order._id).slice(-8).toUpperCase()}</td>
+                      <td>
+                        {first}
+                        {extra}
+                      </td>
+                      <td className="ud-text-light">{date}</td>
+                      <td>
+                        <span className={`ud-status ${(order.orderStatus || "").toLowerCase()}`}>
+                          {(order.orderStatus || "").toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="ud-amount">LKR {Number(order.totalAmount).toLocaleString()}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 }
