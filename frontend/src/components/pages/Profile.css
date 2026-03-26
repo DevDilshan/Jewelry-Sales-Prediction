@@ -3,6 +3,44 @@
   margin: 0 auto;
 }
 
+.profile-banner {
+  background: #fffbf0;
+  border: 1px solid #e5d7c3;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: #444;
+}
+
+.profile-banner.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b42318;
+}
+
+.profile-banner a {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.profile-pwd-error {
+  color: #b42318;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.profile-pwd-success {
+  color: #2e7d32;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -193,7 +231,7 @@
 .save-btn {
   background: #fffbf0;
   border: 1px solid #e5d7c3;
-  padding: 7px 8px;
+  padding: 12px 24px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
@@ -202,7 +240,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: all 0.2s;
-  margin-top: 3px;
+  margin-top: 8px;
 }
 
 .save-btn:hover {
