@@ -110,7 +110,7 @@
   background: white;
   border: 1px solid #eeebe4;
   border-radius: 12px;
-  overflow: hidden;
+  /* overflow: hidden; */
   margin-bottom: 20px;
 }
 
