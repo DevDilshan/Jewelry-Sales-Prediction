@@ -11,8 +11,8 @@ import Admin from './components/pages/Admin'
 import Profile from './components/pages/Profile'
 import './App.css'
 import LandingPage from './components/website/LandingPage'
-// import Shop from './components/website/Shop'
-// import ShopProductPage from './components/website/ShopProductPage'
+import Shop from './components/website/Shop'
+import ShopProductPage from './components/website/ShopProductPage'
 import Login from './components/pages/Login'
 import Register from './components/pages/Register'
 import StaffLogin from './components/pages/StaffLogin'
@@ -94,8 +94,8 @@ function AppContent() {
 
           {/* Public */}
           <Route path="/" element={<LandingPage />} />
-          {/* <Route path="/shop/product/:productId" element={<ShopProductPage />} /> */}
-          {/* <Route path="/shop" element={<Shop />} /> */}
+          <Route path="/shop/product/:productId" element={<ShopProductPage />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
