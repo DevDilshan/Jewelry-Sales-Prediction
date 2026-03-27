@@ -15,17 +15,13 @@ export function useShopCheckout() {
 
   const cartCount = useMemo(() => cart.reduce((n, line) => n + line.quantity, 0), [cart]);
 
-  useEffect(() => {
-    saveCart(cart);
-  }, [cart]);
+  useEffect(() => { saveCart(cart); }, [cart]);
 
   useEffect(() => {
     if (!cartOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e) => {
-      if (e.key === "Escape") setCartOpen(false);
-    };
+    const onKey = (e) => { if (e.key === "Escape") setCartOpen(false); };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
@@ -33,15 +29,32 @@ export function useShopCheckout() {
     };
   }, [cartOpen]);
 
-  const subtotal = useMemo(() => {
+  // --- BEST DEAL ALGORITHM UI MATH ---
+  // 1. Calculate the TRUE original price of the cart (e.g., LKR 100,000)
+  const baseSubtotal = useMemo(() => {
     return cart.reduce((sum, line) => {
       const p = line.product;
-      return sum + (p?.productPrice || 0) * line.quantity;
+      const originalPrice = (p?.compareAtPrice && p.compareAtPrice > p.productPrice) ? p.compareAtPrice : (p?.productPrice || 0);
+      return sum + (originalPrice * line.quantity);
     }, 0);
   }, [cart]);
 
-  const discountAmount = promo?.valid ? promo.discountAmount : 0;
-  const total = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
+  // 2. Calculate how much the active site-wide sale is saving them right now (e.g., LKR 20,000)
+  const siteWideSavings = useMemo(() => {
+    return cart.reduce((sum, line) => {
+      const p = line.product;
+      if (p?.compareAtPrice && p.compareAtPrice > p.productPrice) {
+        return sum + ((p.compareAtPrice - p.productPrice) * line.quantity);
+      }
+      return sum;
+    }, 0);
+  }, [cart]);
+
+  // 3. The Active Discount is EITHER the Coupon (if valid) OR the Site-Wide sale. They never stack.
+  const activeDiscountAmount = promo?.valid ? promo.discountAmount : siteWideSavings;
+  
+  // 4. Final Total is simply the True Original Price minus the Active Discount
+  const total = Math.max(0, Math.round((baseSubtotal - activeDiscountAmount) * 100) / 100);
 
   const addToCart = (product) => {
     setPromo(null);
@@ -80,11 +93,15 @@ export function useShopCheckout() {
     try {
       const data = await api("/discount/validate", {
         method: "POST",
-        body: { code: promoInput, subtotal },
+        body: { 
+          code: promoInput, 
+          baseSubtotal,         // Send the 100k
+          siteWideSavings       // Send the 20k
+        },
       });
       if (data.valid) {
         setPromo(data);
-        setPromoMessage("Promo applied.");
+        setPromoMessage(data.message || "Promo applied.");
       } else {
         setPromo(null);
         setPromoMessage(data.message || "Invalid code");
@@ -133,24 +150,12 @@ export function useShopCheckout() {
   };
 
   return {
-    cart,
-    setCart,
-    cartOpen,
-    setCartOpen,
-    cartCount,
-    addToCart,
-    setQty,
-    subtotal,
-    discountAmount,
-    total,
-    promoInput,
-    setPromoInput,
-    promo,
-    setPromo,
-    promoMessage,
-    busy,
-    checkoutMsg,
-    applyPromo,
-    placeOrder,
+    cart, setCart, cartOpen, setCartOpen, cartCount, addToCart, setQty,
+    // We export the exact values the Drawer needs to display the beautiful math
+    subtotal: baseSubtotal, 
+    discountAmount: activeDiscountAmount, 
+    total, 
+    promoInput, setPromoInput,
+    promo, setPromo, promoMessage, busy, checkoutMsg, applyPromo, placeOrder,
   };
 }

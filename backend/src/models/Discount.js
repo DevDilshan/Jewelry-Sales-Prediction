@@ -7,7 +7,13 @@ const discountSchema = new Schema(
       required: true,
       trim: true,
     },
-    /** 'percentage' = discountAmount is 0–100; 'fixed' = discountAmount is LKR (off subtotal for coupons, off each unit for site-wide) */
+    // Used to group recurring discounts for statistics/analytics (e.g., "New Year")
+    campaignTheme: {
+      type: String,
+      default: "None",
+      trim: true,
+    },
+    /** 'percentage' = discountAmount is 0–100; 'fixed' = discountAmount is LKR */
     discountType: {
       type: String,
       enum: ["percentage", "fixed"],
@@ -18,13 +24,13 @@ const discountSchema = new Schema(
       required: true,
       min: 0,
     },
-    /** coupon = code at checkout; site_wide = all shop product prices reduced (no customer code) */
+    /** coupon = code at checkout; site_wide = all shop product prices reduced */
     promoScope: {
       type: String,
       enum: ["coupon", "site_wide"],
       default: "coupon",
     },
-    /** Unique; site-wide rows get an auto-generated code (e.g. SW…) for storage */
+    /** Unique; site-wide rows get an auto-generated code (e.g. SW…) */
     discountCoupon: {
       type: String,
       required: true,
@@ -48,4 +54,11 @@ const discountSchema = new Schema(
 );
 
 const Discount = mongoose.model("Discount", discountSchema);
+
+// FIX: This tells MongoDB to check this schema against the database 
+// and automatically delete any old "ghost" indexes (like the "Coupen" typo).
+Discount.syncIndexes()
+  .then(() => console.log("Discount indexes synced successfully! Ghost indexes removed."))
+  .catch((err) => console.error("Error syncing discount indexes:", err));
+
 export default Discount;
