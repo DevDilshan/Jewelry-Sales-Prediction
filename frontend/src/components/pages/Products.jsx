@@ -17,6 +17,13 @@ function staffAuthHeaders() {
   return t ? { Authorization: `Bearer ${t}` } : {}
 }
 
+const errorStyle = {
+  color: '#e53e3e',
+  fontSize: '0.78rem',
+  marginTop: '4px',
+  display: 'block'
+}
+
 export default function Products({ setActivePage }) {
   useEffect(() => {
     setActivePage('products')
@@ -31,6 +38,8 @@ export default function Products({ setActivePage }) {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [editData, setEditData] = useState({})
+  const [addErrors, setAddErrors] = useState({})
+  const [editErrors, setEditErrors] = useState({})
   const menuRef = useRef(null)
 
   const [products, setProducts] = useState([])
@@ -57,7 +66,6 @@ export default function Products({ setActivePage }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [actionMenu])
 
-  // ✅ Fixed: uses correct API field names
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.productName?.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = categoryFilter === 'All' || product.productCategory === categoryFilter
@@ -105,87 +113,147 @@ export default function Products({ setActivePage }) {
     e.target.value = ''
   }
 
-  // ✅ Fixed: uses correct field names for stock status
   const getStockStatus = (count, reorderLevel) => {
     if (count === 0) return 'out-of-stock'
     if (count <= reorderLevel) return 'low-stock'
     return 'in-stock'
   }
 
-  // ✅ Fixed: uses _id and isActive
-  const toggleActive = (id) => {
-    setProducts(products.map(p => p._id === id ? { ...p, isActive: !p.isActive } : p))
+  const toggleActive = async (id) => {
+    const product = products.find(p => p._id === id)
+    if (!product) return
+    const updatedStatus = !product.isActive
+    try {
+      await axios.put(
+        `${API_BASE}/product/${id}`,
+        { isActive: updatedStatus },
+        { headers: staffAuthHeaders() }
+      )
+      setProducts(products.map(p => p._id === id ? { ...p, isActive: updatedStatus } : p))
+    } catch (error) {
+      console.error('Failed to update active status:', error.response?.data || error.message)
+    }
+  }
+
+  // ── Validate Add form, returns error object ──
+  const validateAdd = () => {
+    const errs = {}
+    if (!newProduct.name.trim())
+      errs.name = 'Product name is required.'
+    if (!newProduct.category)
+      errs.category = 'Please select a category.'
+    if (!newProduct.metal)
+      errs.metal = 'Please select a metal material.'
+    if (!newProduct.gem)
+      errs.gem = 'Please select a gem type.'
+    if (!newProduct.price || isNaN(newProduct.price) || parseFloat(newProduct.price) <= 0)
+      errs.price = 'Please enter a valid price greater than 0.'
+    if (newProduct.stockCount === '' || isNaN(newProduct.stockCount) || parseInt(newProduct.stockCount) < 0)
+      errs.stockCount = 'Please enter a valid stock quantity (0 or more).'
+    return errs
+  }
+
+  // ── Validate Edit form, returns error object ──
+  const validateEdit = () => {
+    const errs = {}
+    if (!editData.productName?.trim())
+      errs.productName = 'Product name is required.'
+    if (!editData.productCategory)
+      errs.productCategory = 'Please select a category.'
+    if (!editData.productPrice || isNaN(editData.productPrice) || parseFloat(editData.productPrice) <= 0)
+      errs.productPrice = 'Please enter a valid price greater than 0.'
+    if (editData.stockQuantity === '' || isNaN(editData.stockQuantity) || parseInt(editData.stockQuantity) < 0)
+      errs.stockQuantity = 'Please enter a valid stock quantity (0 or more).'
+    return errs
   }
 
   const handleAddProduct = async (e) => {
     e.preventDefault()
+    const errs = validateAdd()
+    if (Object.keys(errs).length > 0) {
+      setAddErrors(errs)
+      return
+    }
+    setAddErrors({})
+
+    const stockQty = parseInt(newProduct.stockCount)
+
     try {
       const prod = {
-        productName: newProduct.name,
+        productName: newProduct.name.trim(),
         productDescription: newProduct.description || '',
-        productCategory: newProduct.category || 'Rings',
-        productPrice: parseFloat(newProduct.price) || 0,
-        metalMaterial: newProduct.metal?.toLowerCase() || 'gold',
-        gemType: newProduct.gem?.toLowerCase() || 'none',
-        stockQuantity: parseInt(newProduct.stockCount) || 0,
-        reorderLevel: parseInt(newProduct.reorderLevel) || 5,
-        isActive: newProduct.active
+        productCategory: newProduct.category,
+        productPrice: parseFloat(newProduct.price),
+        metalMaterial: newProduct.metal.toLowerCase(),
+        gemType: newProduct.gem.toLowerCase(),
+        stockQuantity: stockQty,
+        reorderLevel: parseInt(newProduct.reorderLevel) || 3,
+        isActive: stockQty === 0 ? false : newProduct.active
       }
       if (mainImage && String(mainImage).startsWith('data:')) {
         prod.productImage = mainImage
       }
 
       const res = await axios.post(`${API_BASE}/product/create`, prod, { headers: staffAuthHeaders() })
-
-      // ✅ Fixed: use res.data so the saved doc has _id and timestamps
       setProducts([res.data, ...products])
-
       setNewProduct({
         name: '', sku: '', category: '', metal: '', gem: '',
         reorderLevel: '', stockCount: '', price: '', description: '', active: false
       })
       setMainImage(null)
       setAdditionalImages([null, null, null, null])
+      setAddErrors({})
       setShowModal(false)
     } catch (error) {
-      console.error('Error saving product:', error.response?.data || error.message)
+      const msg = error.response?.data?.message || 'Failed to save product. Please try again.'
+      setAddErrors({ server: msg })
     }
   }
 
   const openEdit = (product) => {
     setSelectedProduct(product)
     setEditData({ ...product })
+    setEditErrors({})
     setActionMenu(null)
     setEditModal(true)
   }
 
   const handleEdit = async (e) => {
     e.preventDefault()
+    const errs = validateEdit()
+    if (Object.keys(errs).length > 0) {
+      setEditErrors(errs)
+      return
+    }
+    setEditErrors({})
+
+    const stockQty = parseInt(editData.stockQuantity)
+
     try {
       const updatedProduct = {
-        productName: editData.productName,
+        productName: editData.productName.trim(),
         productDescription: editData.productDescription || '',
-        productCategory: editData.productCategory || 'Rings',
-        productPrice: parseFloat(editData.productPrice) || 0,
+        productCategory: editData.productCategory,
+        productPrice: parseFloat(editData.productPrice),
         metalMaterial: editData.metalMaterial?.toLowerCase() || 'gold',
         gemType: editData.gemType?.toLowerCase() || 'none',
-        stockQuantity: parseInt(editData.stockQuantity) || 0,
+        stockQuantity: stockQty,
         productImage: editData.productImage || selectedProduct.productImage,
-        reorderLevel: parseInt(editData.reorderLevel) || 5,
-        isActive: editData.isActive
+        reorderLevel: parseInt(editData.reorderLevel) || 3,
+        isActive: stockQty === 0 ? false : (selectedProduct.stockQuantity === 0 ? true : editData.isActive)
       }
 
-      const res = await axios.put(`${API_BASE}/product/${selectedProduct._id}`, updatedProduct, {
+      await axios.put(`${API_BASE}/product/${selectedProduct._id}`, updatedProduct, {
         headers: staffAuthHeaders(),
       })
-      console.log(res.data)
 
-      // ✅ Fixed: uses _id to match, spreads updatedProduct fields
       setProducts(products.map(p => p._id === selectedProduct._id ? { ...p, ...updatedProduct } : p))
+      setEditErrors({})
       setEditModal(false)
       setSelectedProduct(null)
     } catch (error) {
-      console.log("Error updating the product", error)
+      const msg = error.response?.data?.message || 'Failed to update product. Please try again.'
+      setEditErrors({ server: msg })
     }
   }
 
@@ -195,7 +263,6 @@ export default function Products({ setActivePage }) {
     setDeleteConfirm(true)
   }
 
-  // ✅ Fixed: uses _id
   const handleDelete = async () => {
     try {
       await axios.delete(`${API_BASE}/product/${selectedProduct._id}`, { headers: staffAuthHeaders() })
@@ -214,7 +281,7 @@ export default function Products({ setActivePage }) {
           <h1>Product Management</h1>
           <p>Manage your luxury jewelry collection and inventory.</p>
         </div>
-        <button className="add-btn" onClick={() => setShowModal(true)}>+ Add New Product</button>
+        <button className="add-btn" onClick={() => { setShowModal(true); setAddErrors({}) }}>+ Add New Product</button>
       </div>
 
       <div className="products-controls">
@@ -256,7 +323,6 @@ export default function Products({ setActivePage }) {
             </tr>
           </thead>
           <tbody>
-            {/* ✅ Fixed: filteredProducts + correct field names throughout */}
             {filteredProducts.map(product => {
               const stockStatus = getStockStatus(product.stockQuantity, product.reorderLevel)
               return (
@@ -324,13 +390,13 @@ export default function Products({ setActivePage }) {
         </div>
       </div>
 
-      {/* Add Product Modal */}
+      {/* ── Add Product Modal ── */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={() => { setShowModal(false); setAddErrors({}) }}>
           <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Add New Product</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
+              <button className="modal-close" onClick={() => { setShowModal(false); setAddErrors({}) }}>✕</button>
             </div>
             <form onSubmit={handleAddProduct}>
               <div className="modal-body">
@@ -355,14 +421,25 @@ export default function Products({ setActivePage }) {
                   </div>
                 </div>
                 <div className="modal-right">
+
                   <div className="form-group">
                     <label>PRODUCT NAME</label>
-                    <input type="text" required value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="e.g. Diamond Eternity Band" />
+                    <input
+                      type="text"
+                      value={newProduct.name}
+                      onChange={(e) => { setNewProduct({ ...newProduct, name: e.target.value }); setAddErrors(p => ({ ...p, name: '' })) }}
+                      placeholder="e.g. Diamond Eternity Band"
+                    />
+                    {addErrors.name && <span style={errorStyle}>{addErrors.name}</span>}
                   </div>
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>CATEGORY</label>
-                      <select value={newProduct.category} onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}>
+                      <select
+                        value={newProduct.category}
+                        onChange={(e) => { setNewProduct({ ...newProduct, category: e.target.value }); setAddErrors(p => ({ ...p, category: '' })) }}
+                      >
                         <option value="" disabled>Select Category</option>
                         <option value="Rings">Rings</option>
                         <option value="Necklace">Necklace</option>
@@ -370,26 +447,42 @@ export default function Products({ setActivePage }) {
                         <option value="Bracelet">Bracelet</option>
                         <option value="Watch">Watch</option>
                       </select>
+                      {addErrors.category && <span style={errorStyle}>{addErrors.category}</span>}
                     </div>
                     <div className="form-group">
                       <label>STOCK QUANTITY</label>
-                      <input type="number" min="0" value={newProduct.stockCount} onChange={(e) => setNewProduct({ ...newProduct, stockCount: e.target.value })} placeholder="0" />
+                      <input
+                        type="number"
+                        min="0"
+                        value={newProduct.stockCount}
+                        onChange={(e) => { setNewProduct({ ...newProduct, stockCount: e.target.value }); setAddErrors(p => ({ ...p, stockCount: '' })) }}
+                        placeholder="0"
+                      />
+                      {addErrors.stockCount && <span style={errorStyle}>{addErrors.stockCount}</span>}
                     </div>
                   </div>
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>METAL MATERIAL</label>
-                      <select value={newProduct.metal} onChange={(e) => setNewProduct({ ...newProduct, metal: e.target.value })}>
+                      <select
+                        value={newProduct.metal}
+                        onChange={(e) => { setNewProduct({ ...newProduct, metal: e.target.value }); setAddErrors(p => ({ ...p, metal: '' })) }}
+                      >
                         <option value="" disabled>Select Metal</option>
                         <option value="Gold">Gold</option>
                         <option value="Silver">Silver</option>
                         <option value="Platinum">Platinum</option>
                         <option value="Rose Gold">Rose Gold</option>
                       </select>
+                      {addErrors.metal && <span style={errorStyle}>{addErrors.metal}</span>}
                     </div>
                     <div className="form-group">
                       <label>GEM TYPE</label>
-                      <select value={newProduct.gem} onChange={(e) => setNewProduct({ ...newProduct, gem: e.target.value })}>
+                      <select
+                        value={newProduct.gem}
+                        onChange={(e) => { setNewProduct({ ...newProduct, gem: e.target.value }); setAddErrors(p => ({ ...p, gem: '' })) }}
+                      >
                         <option value="" disabled>Select Gem</option>
                         <option value="Diamond">Diamond</option>
                         <option value="Emerald">Emerald</option>
@@ -398,23 +491,45 @@ export default function Products({ setActivePage }) {
                         <option value="Pearl">Pearl</option>
                         <option value="None">None</option>
                       </select>
+                      {addErrors.gem && <span style={errorStyle}>{addErrors.gem}</span>}
                     </div>
                   </div>
+
                   <div className="form-group">
                     <label>PRICE (LKR)</label>
                     <div className="price-input-wrap">
                       <span className="price-prefix">Rs.</span>
-                      <input type="text" required value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} placeholder="0.00" className="price-input" />
+                      <input
+                        type="text"
+                        value={newProduct.price}
+                        onChange={(e) => { setNewProduct({ ...newProduct, price: e.target.value }); setAddErrors(p => ({ ...p, price: '' })) }}
+                        placeholder="0.00"
+                        className="price-input"
+                      />
                     </div>
+                    {addErrors.price && <span style={errorStyle}>{addErrors.price}</span>}
                   </div>
+
                   <div className="form-group">
                     <label>DESCRIPTION</label>
-                    <textarea value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} placeholder="Describe the craftsmanship and materials..." rows={3} />
+                    <textarea
+                      value={newProduct.description}
+                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                      placeholder="Describe the craftsmanship and materials..."
+                      rows={3}
+                    />
                   </div>
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>REORDER LEVEL</label>
-                      <input type="number" min="0" value={newProduct.reorderLevel} onChange={(e) => setNewProduct({ ...newProduct, reorderLevel: e.target.value })} placeholder="0" />
+                      <input
+                        type="number"
+                        min="0"
+                        value={newProduct.reorderLevel}
+                        onChange={(e) => setNewProduct({ ...newProduct, reorderLevel: e.target.value })}
+                        placeholder="3"
+                      />
                     </div>
                     <div className="form-group active-status-group">
                       <label>ACTIVE STATUS</label>
@@ -424,10 +539,15 @@ export default function Products({ setActivePage }) {
                       </label>
                     </div>
                   </div>
+
+                  {addErrors.server && (
+                    <div style={{ ...errorStyle, marginTop: '8px', textAlign: 'center' }}>{addErrors.server}</div>
+                  )}
+
                 </div>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="button" className="btn-cancel" onClick={() => { setShowModal(false); setAddErrors({}) }}>Cancel</button>
                 <button type="submit" className="btn-submit">Save Product</button>
               </div>
             </form>
@@ -435,13 +555,13 @@ export default function Products({ setActivePage }) {
         </div>
       )}
 
-      {/* Edit Product Modal */}
+      {/* ── Edit Product Modal ── */}
       {editModal && selectedProduct && (
-        <div className="modal-overlay" onClick={() => setEditModal(false)}>
+        <div className="modal-overlay" onClick={() => { setEditModal(false); setEditErrors({}) }}>
           <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Edit Product</h2>
-              <button className="modal-close" onClick={() => setEditModal(false)}>✕</button>
+              <button className="modal-close" onClick={() => { setEditModal(false); setEditErrors({}) }}>✕</button>
             </div>
             <form onSubmit={handleEdit}>
               <div className="modal-body">
@@ -461,30 +581,51 @@ export default function Products({ setActivePage }) {
                   )}
                 </div>
                 <div className="modal-right">
+
                   <div className="form-group">
                     <label>PRODUCT NAME</label>
-                    <input type="text" required value={editData.productName || ''} onChange={(e) => setEditData({ ...editData, productName: e.target.value })} />
+                    <input
+                      type="text"
+                      value={editData.productName || ''}
+                      onChange={(e) => { setEditData({ ...editData, productName: e.target.value }); setEditErrors(p => ({ ...p, productName: '' })) }}
+                    />
+                    {editErrors.productName && <span style={errorStyle}>{editErrors.productName}</span>}
                   </div>
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>CATEGORY</label>
-                      <select value={editData.productCategory || ''} onChange={(e) => setEditData({ ...editData, productCategory: e.target.value })}>
+                      <select
+                        value={editData.productCategory || ''}
+                        onChange={(e) => { setEditData({ ...editData, productCategory: e.target.value }); setEditErrors(p => ({ ...p, productCategory: '' })) }}
+                      >
                         <option value="Rings">Rings</option>
                         <option value="Necklace">Necklace</option>
                         <option value="Earring">Earring</option>
                         <option value="Bracelet">Bracelet</option>
                         <option value="Watch">Watch</option>
                       </select>
+                      {editErrors.productCategory && <span style={errorStyle}>{editErrors.productCategory}</span>}
                     </div>
                     <div className="form-group">
                       <label>STOCK QUANTITY</label>
-                      <input type="number" min="0" value={editData.stockQuantity || 0} onChange={(e) => setEditData({ ...editData, stockQuantity: e.target.value })} />
+                      <input
+                        type="number"
+                        min="0"
+                        value={editData.stockQuantity || 0}
+                        onChange={(e) => { setEditData({ ...editData, stockQuantity: e.target.value }); setEditErrors(p => ({ ...p, stockQuantity: '' })) }}
+                      />
+                      {editErrors.stockQuantity && <span style={errorStyle}>{editErrors.stockQuantity}</span>}
                     </div>
                   </div>
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>METAL MATERIAL</label>
-                      <select value={editData.metalMaterial || ''} onChange={(e) => setEditData({ ...editData, metalMaterial: e.target.value })}>
+                      <select
+                        value={editData.metalMaterial || ''}
+                        onChange={(e) => setEditData({ ...editData, metalMaterial: e.target.value })}
+                      >
                         <option value="gold">Gold</option>
                         <option value="silver">Silver</option>
                         <option value="platinum">Platinum</option>
@@ -493,7 +634,10 @@ export default function Products({ setActivePage }) {
                     </div>
                     <div className="form-group">
                       <label>GEM TYPE</label>
-                      <select value={editData.gemType || ''} onChange={(e) => setEditData({ ...editData, gemType: e.target.value })}>
+                      <select
+                        value={editData.gemType || ''}
+                        onChange={(e) => setEditData({ ...editData, gemType: e.target.value })}
+                      >
                         <option value="diamond">Diamond</option>
                         <option value="emerald">Emerald</option>
                         <option value="ruby">Ruby</option>
@@ -503,21 +647,39 @@ export default function Products({ setActivePage }) {
                       </select>
                     </div>
                   </div>
+
                   <div className="form-group">
                     <label>PRICE (LKR)</label>
                     <div className="price-input-wrap">
                       <span className="price-prefix">Rs.</span>
-                      <input type="text" required value={editData.productPrice || ''} onChange={(e) => setEditData({ ...editData, productPrice: e.target.value })} className="price-input" />
+                      <input
+                        type="text"
+                        value={editData.productPrice || ''}
+                        onChange={(e) => { setEditData({ ...editData, productPrice: e.target.value }); setEditErrors(p => ({ ...p, productPrice: '' })) }}
+                        className="price-input"
+                      />
                     </div>
+                    {editErrors.productPrice && <span style={errorStyle}>{editErrors.productPrice}</span>}
                   </div>
+
                   <div className="form-group">
                     <label>DESCRIPTION</label>
-                    <textarea value={editData.productDescription || ''} onChange={(e) => setEditData({ ...editData, productDescription: e.target.value })} rows={3} />
+                    <textarea
+                      value={editData.productDescription || ''}
+                      onChange={(e) => setEditData({ ...editData, productDescription: e.target.value })}
+                      rows={3}
+                    />
                   </div>
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>REORDER LEVEL</label>
-                      <input type="number" min="0" value={editData.reorderLevel || 0} onChange={(e) => setEditData({ ...editData, reorderLevel: e.target.value })} />
+                      <input
+                        type="number"
+                        min="0"
+                        value={editData.reorderLevel || 0}
+                        onChange={(e) => setEditData({ ...editData, reorderLevel: e.target.value })}
+                      />
                     </div>
                     <div className="form-group active-status-group">
                       <label>ACTIVE STATUS</label>
@@ -527,10 +689,15 @@ export default function Products({ setActivePage }) {
                       </label>
                     </div>
                   </div>
+
+                  {editErrors.server && (
+                    <div style={{ ...errorStyle, marginTop: '8px', textAlign: 'center' }}>{editErrors.server}</div>
+                  )}
+
                 </div>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setEditModal(false)}>Cancel</button>
+                <button type="button" className="btn-cancel" onClick={() => { setEditModal(false); setEditErrors({}) }}>Cancel</button>
                 <button type="submit" className="btn-submit">Save Changes</button>
               </div>
             </form>
@@ -538,7 +705,7 @@ export default function Products({ setActivePage }) {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* ── Delete Confirmation Modal ── */}
       {deleteConfirm && selectedProduct && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(false)}>
           <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
