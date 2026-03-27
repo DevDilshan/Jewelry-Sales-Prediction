@@ -46,8 +46,10 @@ function toDateInputValue(iso) {
   return `${y}-${m}-${day}`;
 }
 
+// NEW: Added campaignTheme to the empty form state
 const EMPTY_DISCOUNT_FORM = {
   discountName: "",
+  campaignTheme: "", 
   promoScope: "coupon",
   discountCoupon: "",
   discountType: "percentage",
@@ -114,6 +116,25 @@ export default function Discounts({ setActivePage }) {
     return discounts.map((d) => ({ ...d, _status: statusForDiscount(d) }));
   }, [discounts]);
 
+  // NEW: Calculate statistics grouped by campaignTheme
+  const campaignStats = useMemo(() => {
+    const stats = {};
+    rows.forEach(d => {
+      const theme = d.campaignTheme && d.campaignTheme !== "None" ? d.campaignTheme : null;
+      if (theme) {
+        if (!stats[theme]) stats[theme] = { totalApplied: 0, count: 0, campaigns: new Set() };
+        stats[theme].totalApplied += (d.timesApplied || 0);
+        stats[theme].count += 1;
+        stats[theme].campaigns.add(d.discountName);
+      }
+    });
+    return Object.entries(stats).map(([theme, data]) => ({
+      theme,
+      totalApplied: data.totalApplied,
+      campaigns: Array.from(data.campaigns)
+    }));
+  }, [rows]);
+
   const filteredDiscounts = rows.filter((discount) => {
     const name = (discount.discountName || "").toLowerCase();
     const code = (discount.discountCoupon || "").toLowerCase();
@@ -155,6 +176,7 @@ export default function Discounts({ setActivePage }) {
     setEditingId(d._id);
     setNewDiscount({
       discountName: d.discountName || "",
+      campaignTheme: d.campaignTheme === "None" ? "" : (d.campaignTheme || ""), // NEW: Load theme
       promoScope: scope,
       discountCoupon: scope === "site_wide" ? "" : (d.discountCoupon || ""),
       discountType: d.discountType === "fixed" ? "fixed" : "percentage",
@@ -171,6 +193,17 @@ export default function Discounts({ setActivePage }) {
       setLoadError("staff_auth");
       return;
     }
+
+    // NEW FRONTEND VALIDATION: Edge case handling for dates
+    if (newDiscount.startDate && newDiscount.endDate) {
+      const start = new Date(newDiscount.startDate);
+      const end = new Date(newDiscount.endDate);
+      if (end < start) {
+        alert("Validation Error: End date cannot be set before the start date.");
+        return;
+      }
+    }
+
     const amount = parseFloat(newDiscount.discountAmount);
     if (Number.isNaN(amount)) {
       alert("Enter a valid discount amount.");
@@ -181,6 +214,7 @@ export default function Discounts({ setActivePage }) {
       if (editingId) {
         const body = {
           discountName: newDiscount.discountName.trim(),
+          campaignTheme: newDiscount.campaignTheme.trim() || "None", // NEW: Save theme
           promoScope: newDiscount.promoScope,
           discountType: newDiscount.discountType,
           discountAmount: amount,
@@ -194,6 +228,7 @@ export default function Discounts({ setActivePage }) {
       } else {
         const body = {
           discountName: newDiscount.discountName.trim(),
+          campaignTheme: newDiscount.campaignTheme.trim() || "None", // NEW: Save theme
           promoScope: newDiscount.promoScope,
           discountType: newDiscount.discountType,
           discountAmount: amount,
@@ -252,6 +287,33 @@ export default function Discounts({ setActivePage }) {
         </div>
       )}
       {loadError && loadError !== "staff_auth" && <p className="discounts-banner error">{loadError}</p>}
+
+      {/* NEW STATISTICS DASHBOARD */}
+      {campaignStats.length > 0 && (
+        <div className="discounts-banner" style={{ display: 'block', padding: '18px 24px' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '15px', color: '#1a1a1a' }}>
+            📊 Campaign Performance (Comparison)
+          </h3>
+          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #e5d7c3', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>
+                <th style={{ paddingBottom: '8px' }}>Theme</th>
+                <th style={{ paddingBottom: '8px' }}>Total Times Applied</th>
+                <th style={{ paddingBottom: '8px' }}>Included Promos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {campaignStats.map((stat) => (
+                <tr key={stat.theme} style={{ borderBottom: '1px solid #f5f0e8' }}>
+                  <td style={{ padding: '10px 0', fontWeight: '600', color: '#444' }}>{stat.theme}</td>
+                  <td style={{ padding: '10px 0', color: '#22c55e', fontWeight: '700' }}>{stat.totalApplied} uses</td>
+                  <td style={{ padding: '10px 0', fontSize: '12px', color: '#777' }}>{stat.campaigns.join(" vs ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="discounts-controls">
         <div className="search-box">
@@ -317,6 +379,12 @@ export default function Discounts({ setActivePage }) {
                         <>Code: {discount.discountCoupon}</>
                       )}
                     </p>
+                    {/* NEW: Show the campaign theme under the code if it exists */}
+                    {discount.campaignTheme && discount.campaignTheme !== "None" && (
+                      <span style={{fontSize: '10px', color: '#888', marginTop: '2px', textTransform: 'uppercase'}}>
+                        Theme: {discount.campaignTheme}
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td>
@@ -414,15 +482,27 @@ export default function Discounts({ setActivePage }) {
               item). Only one active site-wide rule is used (the newest).
             </div>
             <form onSubmit={handleSaveDiscount}>
-              <div className="form-group">
-                <label>Internal name (for staff)</label>
-                <input
-                  type="text"
-                  required
-                  value={newDiscount.discountName}
-                  onChange={(e) => setNewDiscount({ ...newDiscount, discountName: e.target.value })}
-                  placeholder="e.g. New Year 2025"
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Internal name (for staff)</label>
+                  <input
+                    type="text"
+                    required
+                    value={newDiscount.discountName}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, discountName: e.target.value })}
+                    placeholder="e.g. New Year 2025"
+                  />
+                </div>
+                {/* NEW: Campaign Theme Input */}
+                <div className="form-group">
+                  <label>Campaign Theme (Optional)</label>
+                  <input
+                    type="text"
+                    value={newDiscount.campaignTheme}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, campaignTheme: e.target.value })}
+                    placeholder="e.g. New Year (Groups stats)"
+                  />
+                </div>
               </div>
               <div className="form-group">
                 <label>Promo type</label>

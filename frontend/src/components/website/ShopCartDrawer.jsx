@@ -20,6 +20,7 @@ export default function ShopCartDrawer({
   total,
   placeOrder,
 }) {
+
   return (
     <>
       <div
@@ -81,7 +82,12 @@ export default function ShopCartDrawer({
                 }}
                 placeholder="e.g. WELCOME10"
               />
-              <button type="button" className="shop-btn-outline" disabled={busy || subtotal <= 0} onClick={applyPromo}>
+              <button 
+                type="button" 
+                className="shop-btn-outline" 
+                disabled={busy || subtotal <= 0} 
+                onClick={() => applyPromo()}
+              >
                 Apply
               </button>
             </div>
