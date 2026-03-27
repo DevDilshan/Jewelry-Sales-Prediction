@@ -23,6 +23,17 @@ const icons = {
             <path d="M10 17s-7-4.35-7-8.65C3 5.55 5.24 3.5 7.5 3.5c1.54 0 2.5.99 2.5.99S11.96 3.5 12.5 3.5C14.76 3.5 17 5.55 17 8.35 17 12.65 10 17 10 17z" />
         </svg>
     ),
+    address: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z" />
+            <circle cx="12" cy="10" r="2.5" />
+        </svg>
+    ),
+    feedback: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z" />
+        </svg>
+    ),
     profile: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 17v-1a3 3 0 00-3-3H8a3 3 0 00-3 3v1" />
@@ -39,6 +50,8 @@ export default function UserSidebar() {
         if (location.pathname.includes('/orders')) return 'orders'
         if (location.pathname.includes('/wishlist')) return 'wishlist'
         if (location.pathname.includes('/profile')) return 'profile'
+        if (location.pathname.includes('/address')) return 'address'
+        if (location.pathname.includes('/feedback')) return 'feedback'
         return 'overview'
     }
 
@@ -48,6 +61,8 @@ export default function UserSidebar() {
         { id: 'overview', label: 'Overview', path: '/dashboard' },
         { id: 'orders', label: 'My Orders', path: '/dashboard/orders' },
         { id: 'wishlist', label: 'Wishlist', path: '/dashboard/wishlist' },
+        { id: 'address', label: 'Address Book', path: '/dashboard/address' },
+        { id: 'feedback', label: 'Feedback', path: '/dashboard/feedback' },
         { id: 'profile', label: 'Profile', path: '/dashboard/profile' },
     ]
 
@@ -59,7 +74,7 @@ export default function UserSidebar() {
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                 </div>
-                <span>AURELIA</span>
+                <span>BECEFF</span>
             </div>
 
             <nav className="user-sidebar-nav">
