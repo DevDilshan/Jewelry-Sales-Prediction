@@ -9,7 +9,7 @@ import {
 } from "../controllers/feedbackController.js";
 import { verifyToken } from "../middlewares/staffAuthMiddleware.js";
 import { verifyCustomerToken } from "../middlewares/customerAuth.js";
-import { allowRoles } from "../middlewares/roleMiddleware.js";
+import { allowRoles } from "../middlewares/staffRoleMiddleware.js";
 
 const router = express.Router();
 

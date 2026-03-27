@@ -7,7 +7,7 @@ import {
   validateCoupon,
 } from "../controllers/discountController.js";
 import { verifyToken } from "../middlewares/staffAuthMiddleware.js";
-import { allowRoles } from "../middlewares/roleMiddleware.js";
+import { allowRoles } from "../middlewares/staffRoleMiddleware.js";
 
 const router = express.Router();
 

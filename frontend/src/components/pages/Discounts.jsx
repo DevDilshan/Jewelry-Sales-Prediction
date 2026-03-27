@@ -1,209 +1,290 @@
-import { useEffect, useState, useRef } from 'react'
-import './Discounts.css'
+import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import "./Discounts.css";
+import { api, getStaffToken } from "../../config/api";
+
+function statusForDiscount(d) {
+  const now = new Date();
+  if (d.endDate && new Date(d.endDate) < now) return "EXPIRED";
+  if (d.startDate && new Date(d.startDate) > now) return "SCHEDULED";
+  return "ACTIVE";
+}
+
+function formatWhatCustomersGet(d) {
+  const amt = Number(d.discountAmount);
+  const scope = d.promoScope === "site_wide" ? "site_wide" : "coupon";
+  if (scope === "site_wide") {
+    if (d.discountType === "percentage") {
+      return `${amt}% off every product’s listed price in the shop`;
+    }
+    return `LKR ${amt.toLocaleString()} off each product’s listed price (minimum LKR 0)`;
+  }
+  if (d.discountType === "percentage") {
+    return `${amt}% off the cart subtotal (with promo code)`;
+  }
+  return `LKR ${amt.toLocaleString()} off the cart subtotal (capped at subtotal; promo code)`;
+}
+
+function promoScopeLabel(d) {
+  return d.promoScope === "site_wide" ? "Site-wide" : "Coupon";
+}
+
+function formatValidRange(d) {
+  if (!d.startDate && !d.endDate) return "No date limits";
+  const s = d.startDate ? new Date(d.startDate).toLocaleDateString() : "—";
+  const e = d.endDate ? new Date(d.endDate).toLocaleDateString() : "—";
+  return `${s} → ${e}`;
+}
+
+function toDateInputValue(iso) {
+  if (!iso) return "";
+  const x = new Date(iso);
+  if (Number.isNaN(x.getTime())) return "";
+  const y = x.getFullYear();
+  const m = String(x.getMonth() + 1).padStart(2, "0");
+  const day = String(x.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const EMPTY_DISCOUNT_FORM = {
+  discountName: "",
+  promoScope: "coupon",
+  discountCoupon: "",
+  discountType: "percentage",
+  discountAmount: "",
+  startDate: "",
+  endDate: "",
+};
 
 export default function Discounts({ setActivePage }) {
+  useEffect(() => {
+    setActivePage("discounts");
+  }, [setActivePage]);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All");
+  const [scopeFilter, setScopeFilter] = useState("All");
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [discounts, setDiscounts] = useState([]);
+  const [loadError, setLoadError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const [newDiscount, setNewDiscount] = useState({ ...EMPTY_DISCOUNT_FORM });
+  const [actionsMenuOpenId, setActionsMenuOpenId] = useState(null);
 
   useEffect(() => {
-    setActivePage('discounts')
-  }, [setActivePage])
+    if (!actionsMenuOpenId) return;
+    const onDoc = (e) => {
+      if (e.target.closest?.("[data-discount-actions]")) return;
+      setActionsMenuOpenId(null);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setActionsMenuOpenId(null);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [actionsMenuOpenId]);
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
-  const [typeFilter, setTypeFilter] = useState('All')
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showViewModal, setShowViewModal] = useState(false)
-  const [showUpdateModal, setShowUpdateModal] = useState(false)
-  const [selectedDiscount, setSelectedDiscount] = useState(null)
-  const [openMenuId, setOpenMenuId] = useState(null)
-  const menuRef = useRef(null)
-
-  const [discounts, setDiscounts] = useState([
-    {
-      id: 1,
-      name: 'New Year Gift',
-      code: 'NEWYEAR09820',
-      type: 'Coupon',
-      value: '15%',
-      status: 'EXPIRED',
-      duration: 'Jan 01 - Jan 15',
-      startDate: '2026-01-01',
-      endDate: '2026-01-15',
-    },
-    {
-      id: 2,
-      name: 'Valentine Sale 2026',
-      code: 'VALENTINE0001',
-      type: 'Coupon',
-      value: '20%',
-      status: 'ACTIVE',
-      duration: 'Feb 13 - Feb 28',
-      startDate: '2026-02-13',
-      endDate: '2026-02-28',
-    },
-    {
-      id: 3,
-      name: 'Christmas Bonus',
-      code: 'Christmas1234',
-      type: 'Coupon',
-      value: '15%',
-      status: 'SCHEDULED',
-      duration: 'Dec 12 - Dec 26',
-      startDate: '2026-12-12',
-      endDate: '2026-12-26',
-    },
-    {
-      id: 4,
-      name: 'Wedding Celebration',
-      code: '',
-      type: 'Discount',
-      value: '35%',
-      status: 'SCHEDULED',
-      duration: 'Apr 28 - May 31',
-      startDate: '2026-04-28',
-      endDate: '2026-05-31',
-    },
-  ])
-
-  const [newDiscount, setNewDiscount] = useState({
-    name: '',
-    type: 'Coupon',
-    value: '',
-    startDate: '',
-    endDate: '',
-  })
-
-  const [updateForm, setUpdateForm] = useState({
-    name: '',
-    type: '',
-    value: '',
-    startDate: '',
-    endDate: '',
-    status: '',
-  })
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpenMenuId(null)
-      }
+  const load = () => {
+    setLoadError("");
+    if (!getStaffToken()) {
+      setLoadError("staff_auth");
+      setDiscounts([]);
+      return;
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    api("/discount", { auth: "staff" })
+      .then((rows) => setDiscounts(Array.isArray(rows) ? rows : []))
+      .catch((e) => {
+        if (e.status === 401) setLoadError("staff_auth");
+        else setLoadError(e.message || "Could not load discounts");
+      });
+  };
 
-  const filteredDiscounts = discounts.filter(discount => {
+  useEffect(() => {
+    load();
+  }, []);
+
+  const rows = useMemo(() => {
+    return discounts.map((d) => ({ ...d, _status: statusForDiscount(d) }));
+  }, [discounts]);
+
+  const filteredDiscounts = rows.filter((discount) => {
+    const name = (discount.discountName || "").toLowerCase();
+    const code = (discount.discountCoupon || "").toLowerCase();
     const matchesSearch =
-      discount.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (discount.code && discount.code.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesStatus = statusFilter === 'All' || discount.status === statusFilter
-    const matchesType = typeFilter === 'All' || discount.type === typeFilter
-    return matchesSearch && matchesStatus && matchesType
-  })
+      name.includes(searchQuery.toLowerCase()) || code.includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "All" || discount._status === statusFilter;
+    const typeLabel = discount.discountType === "percentage" ? "Percentage" : "Fixed amount";
+    const matchesType = typeFilter === "All" || typeLabel === typeFilter;
+    const sc = discount.promoScope === "site_wide" ? "site_wide" : "coupon";
+    const matchesScope =
+      scopeFilter === "All" ||
+      (scopeFilter === "Coupon" && sc === "coupon") ||
+      (scopeFilter === "Site-wide" && sc === "site_wide");
+    return matchesSearch && matchesStatus && matchesType && matchesScope;
+  });
 
   const getStatusColor = (status) => {
-    if (status === 'ACTIVE') return 'active'
-    if (status === 'SCHEDULED') return 'scheduled'
-    if (status === 'EXPIRED') return 'expired'
-    return 'active'
-  }
+    if (status === "ACTIVE") return "active";
+    if (status === "SCHEDULED") return "scheduled";
+    if (status === "EXPIRED") return "expired";
+    return "active";
+  };
 
-  const handleAddDiscount = (e) => {
-    e.preventDefault()
-    const disc = {
-      id: discounts.length + 1,
-      name: newDiscount.name,
-      code: newDiscount.type === 'Coupon' ? 'AUTO-GENERATED' : '',
-      type: newDiscount.type,
-      value: `${newDiscount.value}%`,
-      status: 'ACTIVE',
-      duration: newDiscount.startDate && newDiscount.endDate
-        ? `${newDiscount.startDate} - ${newDiscount.endDate}`
-        : 'Always On',
-      startDate: newDiscount.startDate,
-      endDate: newDiscount.endDate,
+  const closeModal = () => {
+    if (saving) return;
+    setEditingId(null);
+    setNewDiscount({ ...EMPTY_DISCOUNT_FORM });
+    setShowModal(false);
+  };
+
+  const openCreateModal = () => {
+    setEditingId(null);
+    setNewDiscount({ ...EMPTY_DISCOUNT_FORM });
+    setShowModal(true);
+  };
+
+  const openEditModal = (d) => {
+    const scope = d.promoScope === "site_wide" ? "site_wide" : "coupon";
+    setEditingId(d._id);
+    setNewDiscount({
+      discountName: d.discountName || "",
+      promoScope: scope,
+      discountCoupon: scope === "site_wide" ? "" : (d.discountCoupon || ""),
+      discountType: d.discountType === "fixed" ? "fixed" : "percentage",
+      discountAmount: d.discountAmount != null && d.discountAmount !== "" ? String(d.discountAmount) : "",
+      startDate: toDateInputValue(d.startDate),
+      endDate: toDateInputValue(d.endDate),
+    });
+    setShowModal(true);
+  };
+
+  const handleSaveDiscount = async (e) => {
+    e.preventDefault();
+    if (!getStaffToken()) {
+      setLoadError("staff_auth");
+      return;
     }
-    setDiscounts([disc, ...discounts])
-    setNewDiscount({ name: '', type: 'Coupon', value: '', startDate: '', endDate: '' })
-    setShowCreateModal(false)
-  }
+    const amount = parseFloat(newDiscount.discountAmount);
+    if (Number.isNaN(amount)) {
+      alert("Enter a valid discount amount.");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editingId) {
+        const body = {
+          discountName: newDiscount.discountName.trim(),
+          promoScope: newDiscount.promoScope,
+          discountType: newDiscount.discountType,
+          discountAmount: amount,
+          startDate: newDiscount.startDate ? new Date(newDiscount.startDate).toISOString() : null,
+          endDate: newDiscount.endDate ? new Date(newDiscount.endDate).toISOString() : null,
+        };
+        if (newDiscount.promoScope === "coupon") {
+          body.discountCoupon = newDiscount.discountCoupon.trim();
+        }
+        await api(`/discount/${editingId}`, { method: "PUT", body, auth: "staff" });
+      } else {
+        const body = {
+          discountName: newDiscount.discountName.trim(),
+          promoScope: newDiscount.promoScope,
+          discountType: newDiscount.discountType,
+          discountAmount: amount,
+        };
+        if (newDiscount.promoScope === "coupon") {
+          body.discountCoupon = newDiscount.discountCoupon.trim();
+        }
+        if (newDiscount.startDate) body.startDate = new Date(newDiscount.startDate).toISOString();
+        if (newDiscount.endDate) body.endDate = new Date(newDiscount.endDate).toISOString();
 
-  const handleView = (discount) => {
-    setSelectedDiscount(discount)
-    setOpenMenuId(null)
-    setShowViewModal(true)
-  }
+        await api("/discount/create", { method: "POST", body, auth: "staff" });
+      }
+      setEditingId(null);
+      setNewDiscount({ ...EMPTY_DISCOUNT_FORM });
+      setShowModal(false);
+      load();
+    } catch (err) {
+      alert(err.message || (editingId ? "Could not update discount" : "Could not create discount"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  const handleUpdateOpen = (discount) => {
-    setSelectedDiscount(discount)
-    setUpdateForm({
-      name: discount.name,
-      type: discount.type,
-      value: discount.value.replace('%', ''),
-      startDate: discount.startDate,
-      endDate: discount.endDate,
-      status: discount.status,
-    })
-    setOpenMenuId(null)
-    setShowUpdateModal(true)
-  }
-
-  const handleUpdateSubmit = () => {
-    setDiscounts(discounts.map(d =>
-      d.id === selectedDiscount.id
-        ? {
-            ...d,
-            name: updateForm.name,
-            type: updateForm.type,
-            value: `${updateForm.value}%`,
-            startDate: updateForm.startDate,
-            endDate: updateForm.endDate,
-            status: updateForm.status,
-            duration: `${updateForm.startDate} - ${updateForm.endDate}`,
-          }
-        : d
-    ))
-    setShowUpdateModal(false)
-  }
-
-  const handleDelete = (id) => {
-    setDiscounts(discounts.filter(d => d.id !== id))
-    setOpenMenuId(null)
-  }
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this discount? Past orders are unchanged.")) return;
+    try {
+      await api(`/discount/${id}`, { method: "DELETE", auth: "staff" });
+      load();
+    } catch (err) {
+      alert(err.message || "Delete failed");
+    }
+  };
 
   return (
     <div className="discounts-page">
-
       <div className="page-header">
         <div>
-          <h1>Discounts & Promotions</h1>
-          <p>Manage seasonal offers, promo codes, and luxury rewards.</p>
+          <h1>Discounts &amp; promo codes</h1>
+          <p>
+            <strong>Coupon</strong> discounts use a code at checkout (off the cart subtotal). <strong>Site-wide</strong>{" "}
+            discounts lower every active product’s price in the shop for all visitors—no code. If several site-wide rules
+            exist, the newest active one applies. <strong>Times applied</strong> counts coupon checkouts only.
+          </p>
         </div>
-        <button className="create-btn" onClick={() => setShowCreateModal(true)}>
-          + Create New Discount
+        <button className="create-btn" type="button" onClick={openCreateModal} disabled={!getStaffToken()}>
+          + New discount
         </button>
       </div>
 
+      {loadError === "staff_auth" && (
+        <div className="discounts-banner">
+          <p>
+            Staff session required to manage discounts.{" "}
+            <Link to="/admin/login">Sign in here</Link>, then return to this page.
+          </p>
+        </div>
+      )}
+      {loadError && loadError !== "staff_auth" && <p className="discounts-banner error">{loadError}</p>}
+
       <div className="discounts-controls">
         <div className="search-box">
+          <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
           <input
             type="text"
-            placeholder="Search by discount name or code..."
+            placeholder="Search by name or code…"
             className="search-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
         <select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="All">Status: All</option>
           <option value="ACTIVE">Active</option>
           <option value="SCHEDULED">Scheduled</option>
           <option value="EXPIRED">Expired</option>
         </select>
-        <select className="filter-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-          <option value="All">Type: All</option>
+
+        <select className="filter-select" value={scopeFilter} onChange={(e) => setScopeFilter(e.target.value)}>
+          <option value="All">Promo: All</option>
           <option value="Coupon">Coupon</option>
-          <option value="Discount">Discount</option>
+          <option value="Site-wide">Site-wide</option>
+        </select>
+
+        <select className="filter-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+          <option value="All">Amount: All</option>
+          <option value="Percentage">Percentage</option>
+          <option value="Fixed amount">Fixed amount</option>
         </select>
       </div>
 
@@ -211,47 +292,100 @@ export default function Discounts({ setActivePage }) {
         <table className="discounts-table">
           <thead>
             <tr>
-              <th>DISCOUNT NAME</th>
-              <th>TYPE</th>
-              <th>VALUE</th>
-              <th>STATUS</th>
-              <th>DURATION</th>
-              <th>ACTIONS</th>
+              <th>Name &amp; code</th>
+              <th>Promo type</th>
+              <th>Amount type</th>
+              <th>What customers get</th>
+              <th>Valid dates</th>
+              <th>Status</th>
+              <th>Times applied</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {filteredDiscounts.map((discount) => (
-              <tr key={discount.id}>
+              <tr key={discount._id} className={discount._status === "EXPIRED" ? "row-expired" : ""}>
                 <td>
                   <div className="discount-info">
-                    <p className="discount-name">{discount.name}</p>
-                    {discount.type === 'Coupon' && (
-                      <p className="discount-code">CODE: {discount.code}</p>
-                    )}
+                    <p className="discount-name">{discount.discountName}</p>
+                    <p className="discount-code">
+                      {discount.promoScope === "site_wide" ? (
+                        <>
+                          <span className="discount-code-auto">System code</span> {discount.discountCoupon}
+                        </>
+                      ) : (
+                        <>Code: {discount.discountCoupon}</>
+                      )}
+                    </p>
                   </div>
                 </td>
-                <td>{discount.type}</td>
-                <td>{discount.value}</td>
                 <td>
-                  <span className={`status-badge ${getStatusColor(discount.status)}`}>
-                    {discount.status}
+                  <span className={`scope-badge ${discount.promoScope === "site_wide" ? "scope-site" : "scope-coupon"}`}>
+                    {promoScopeLabel(discount)}
                   </span>
                 </td>
-                <td>{discount.duration}</td>
-                <td style={{ position: 'relative' }}>
-                  <button
-                    className="action-icon"
-                    onClick={() => setOpenMenuId(openMenuId === discount.id ? null : discount.id)}
-                  >
-                    ⋮
-                  </button>
-                  {openMenuId === discount.id && (
-                    <div className="action-menu" ref={menuRef}>
-                      <button onClick={() => handleView(discount)}>View</button>
-                      <button onClick={() => handleUpdateOpen(discount)}>Update</button>
-                      <button className="delete-option" onClick={() => handleDelete(discount.id)}>Delete</button>
-                    </div>
-                  )}
+                <td>
+                  <span className="type-label">
+                    {discount.discountType === "percentage" ? "Percentage" : "Fixed LKR"}
+                  </span>
+                </td>
+                <td className="value-cell discount-explain">{formatWhatCustomersGet(discount)}</td>
+                <td>
+                  <div className="duration-info">
+                    <p className="duration-range">{formatValidRange(discount)}</p>
+                  </div>
+                </td>
+                <td>
+                  <span className={`status-badge ${getStatusColor(discount._status)}`}>{discount._status}</span>
+                </td>
+                <td className="applies-cell">{discount.timesApplied ?? 0}</td>
+                <td className="discount-actions-cell">
+                  <div className="discount-actions-wrap" data-discount-actions>
+                    <button
+                      type="button"
+                      className="discount-actions-trigger"
+                      aria-label="Discount actions"
+                      aria-expanded={actionsMenuOpenId === discount._id}
+                      aria-haspopup="menu"
+                      disabled={!getStaffToken()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActionsMenuOpenId((id) => (id === discount._id ? null : discount._id));
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                        <circle cx="12" cy="6" r="1.75" />
+                        <circle cx="12" cy="12" r="1.75" />
+                        <circle cx="12" cy="18" r="1.75" />
+                      </svg>
+                    </button>
+                    {actionsMenuOpenId === discount._id && (
+                      <div className="discount-actions-dropdown" role="menu">
+                        <button
+                          type="button"
+                          className="discount-actions-item"
+                          role="menuitem"
+                          onClick={() => {
+                            setActionsMenuOpenId(null);
+                            openEditModal(discount);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="discount-actions-item discount-actions-item--danger"
+                          role="menuitem"
+                          onClick={() => {
+                            setActionsMenuOpenId(null);
+                            handleDelete(discount._id);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -259,143 +393,122 @@ export default function Discounts({ setActivePage }) {
         </table>
       </div>
 
-      {/* CREATE MODAL */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="pagination">
+        <span>
+          SHOWING {filteredDiscounts.length} OF {discounts.length} DISCOUNTS
+        </span>
+      </div>
+
+      {showModal && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Create New Discount</h2>
-              <button className="modal-close" onClick={() => setShowCreateModal(false)}>✕</button>
+              <h2>{editingId ? "Edit discount" : "New discount"}</h2>
+              <button type="button" className="modal-close" onClick={closeModal} disabled={saving}>
+                ✕
+              </button>
             </div>
-            <form onSubmit={handleAddDiscount}>
+            <div className="discount-modal-help">
+              <strong>Coupon:</strong> customers enter a code at checkout; discount applies to cart subtotal after site-wide
+              prices. <strong>Site-wide:</strong> all shop product prices update automatically (percentage or fixed LKR per
+              item). Only one active site-wide rule is used (the newest).
+            </div>
+            <form onSubmit={handleSaveDiscount}>
               <div className="form-group">
-                <label>Discount Name</label>
-                <input type="text" required value={newDiscount.name}
-                  onChange={(e) => setNewDiscount({ ...newDiscount, name: e.target.value })} />
+                <label>Internal name (for staff)</label>
+                <input
+                  type="text"
+                  required
+                  value={newDiscount.discountName}
+                  onChange={(e) => setNewDiscount({ ...newDiscount, discountName: e.target.value })}
+                  placeholder="e.g. New Year 2025"
+                />
               </div>
               <div className="form-group">
-                <label>Type</label>
-                <select value={newDiscount.type}
-                  onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value })}>
-                  <option value="Coupon">Coupon</option>
-                  <option value="Discount">Discount</option>
+                <label>Promo type</label>
+                <select
+                  value={newDiscount.promoScope}
+                  onChange={(e) =>
+                    setNewDiscount({ ...newDiscount, promoScope: e.target.value, discountCoupon: "" })
+                  }
+                >
+                  <option value="coupon">Coupon (code at checkout)</option>
+                  <option value="site_wide">Site-wide (all product prices in shop)</option>
+                </select>
+              </div>
+              {newDiscount.promoScope === "coupon" && (
+                <div className="form-group">
+                  <label>Promo code (what customers type)</label>
+                  <input
+                    type="text"
+                    required
+                    value={newDiscount.discountCoupon}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, discountCoupon: e.target.value })}
+                    placeholder="e.g. NY2025"
+                  />
+                </div>
+              )}
+              <div className="form-group">
+                <label>Amount type</label>
+                <select
+                  value={newDiscount.discountType}
+                  onChange={(e) => setNewDiscount({ ...newDiscount, discountType: e.target.value })}
+                >
+                  <option value="percentage">
+                    {newDiscount.promoScope === "site_wide" ? "Percentage off each price" : "Percentage off cart subtotal"}
+                  </option>
+                  <option value="fixed">
+                    {newDiscount.promoScope === "site_wide" ? "Fixed LKR off each price" : "Fixed LKR off cart subtotal"}
+                  </option>
                 </select>
               </div>
               <div className="form-group">
-                <label>Discount Percentage</label>
-                <input type="number" required placeholder="e.g. 15" value={newDiscount.value}
-                  onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })} />
+                <label>
+                  {newDiscount.discountType === "percentage"
+                    ? "Percent (1–100)"
+                    : "Amount (LKR)"}
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={0}
+                  max={newDiscount.discountType === "percentage" ? 100 : undefined}
+                  step={newDiscount.discountType === "percentage" ? 1 : 0.01}
+                  value={newDiscount.discountAmount}
+                  onChange={(e) => setNewDiscount({ ...newDiscount, discountAmount: e.target.value })}
+                  placeholder={newDiscount.discountType === "percentage" ? "e.g. 15" : "e.g. 5000"}
+                />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Start Date</label>
-                  <input type="text" value={newDiscount.startDate}
-                    onChange={(e) => setNewDiscount({ ...newDiscount, startDate: e.target.value })} />
+                  <label>Valid from (optional)</label>
+                  <input
+                    type="date"
+                    value={newDiscount.startDate}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, startDate: e.target.value })}
+                  />
                 </div>
                 <div className="form-group">
-                  <label>End Date</label>
-                  <input type="text" value={newDiscount.endDate}
-                    onChange={(e) => setNewDiscount({ ...newDiscount, endDate: e.target.value })} />
+                  <label>Valid until (optional)</label>
+                  <input
+                    type="date"
+                    value={newDiscount.endDate}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, endDate: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Cancel</button>
-                <button type="submit" className="btn-submit">Create Discount</button>
+                <button type="button" className="btn-cancel" disabled={saving} onClick={closeModal}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit" disabled={saving}>
+                  {saving ? "Saving…" : editingId ? "Save changes" : "Create discount"}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* VIEW MODAL */}
-      {showViewModal && selectedDiscount && (
-        <div className="modal-overlay" onClick={() => setShowViewModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>View Discounts</h2>
-              <button className="modal-close" onClick={() => setShowViewModal(false)}>✕</button>
-            </div>
-            <div className="view-body">
-              <div className="view-row"><span className="view-label">Discount Name :</span> {selectedDiscount.name}</div>
-              <div className="view-row"><span className="view-label">Discount Type :</span> {selectedDiscount.type}</div>
-              <div className="view-row"><span className="view-label">Percentage :</span> {selectedDiscount.value}</div>
-              <div className="view-row"><span className="view-label">Start Date :</span> {selectedDiscount.startDate}</div>
-              <div className="view-row"><span className="view-label">End Date :</span> {selectedDiscount.endDate}</div>
-              <div className="view-row">
-                <span className="view-label">Status</span>
-                <div style={{ marginTop: '6px' }}>
-                  <span className={`status-badge ${getStatusColor(selectedDiscount.status)}`}>
-                    {selectedDiscount.status.charAt(0) + selectedDiscount.status.slice(1).toLowerCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="modal-actions" style={{ padding: '0 28px 24px' }}>
-              <button
-                className="btn-delete"
-                onClick={() => { handleDelete(selectedDiscount.id); setShowViewModal(false) }}
-              >
-                DELETE
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* UPDATE MODAL */}
-      {showUpdateModal && selectedDiscount && (
-        <div className="modal-overlay" onClick={() => setShowUpdateModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Update Discount</h2>
-              <button className="modal-close" onClick={() => setShowUpdateModal(false)}>✕</button>
-            </div>
-            <div className="view-body">
-              <div className="view-row edit-row">
-                <span className="view-label">New Discount Name :</span>
-                <input className="update-input" value={updateForm.name}
-                  onChange={(e) => setUpdateForm({ ...updateForm, name: e.target.value })} />
-              </div>
-              <div className="view-row edit-row">
-                <span className="view-label">New Discount Type :</span>
-                <select className="update-input" value={updateForm.type}
-                  onChange={(e) => setUpdateForm({ ...updateForm, type: e.target.value })}>
-                  <option value="Coupon">Coupon</option>
-                  <option value="Discount">Discount</option>
-                </select>
-              </div>
-              <div className="view-row edit-row">
-                <span className="view-label">New Percentage :</span>
-                <input className="update-input" type="number" value={updateForm.value}
-                  onChange={(e) => setUpdateForm({ ...updateForm, value: e.target.value })} />
-              </div>
-              <div className="view-row edit-row">
-                <span className="view-label">New Start Date :</span>
-                <input className="update-input" value={updateForm.startDate}
-                  onChange={(e) => setUpdateForm({ ...updateForm, startDate: e.target.value })} />
-              </div>
-              <div className="view-row edit-row">
-                <span className="view-label">New End Date :</span>
-                <input className="update-input" value={updateForm.endDate}
-                  onChange={(e) => setUpdateForm({ ...updateForm, endDate: e.target.value })} />
-              </div>
-              <div className="view-row edit-row">
-                <span className="view-label">Status</span>
-                <select className="update-input" value={updateForm.status}
-                  onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}>
-                  <option value="ACTIVE">Active</option>
-                  <option value="SCHEDULED">Scheduled</option>
-                  <option value="EXPIRED">Expired</option>
-                </select>
-              </div>
-            </div>
-            <div className="modal-actions" style={{ padding: '0 28px 24px' }}>
-              <button className="btn-submit" onClick={handleUpdateSubmit}>UPDATE</button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
-  )
+  );
 }

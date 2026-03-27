@@ -48,3 +48,8 @@
   color: #22c55e;
   font-weight: 500;
 }
+
+.stat-change.neutral {
+  color: #b45309;
+  font-weight: 500;
+}

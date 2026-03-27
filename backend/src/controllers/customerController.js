@@ -1,4 +1,4 @@
-import { Customer } from "../models/Customer.js";
+import Customer from "../models/Customer.js";
 import jwt from 'jsonwebtoken'
 
 const generateToken = (customerId) =>{
@@ -16,11 +16,14 @@ export async function registerCustomer(req,res){
             return res.status(400).json({message: "Invalid email"})
         }
         const customer = await Customer.create(req.body);
+        const accesstoken = generateToken(customer._id);
         res.status(201).json({
-            firstname: customer.firstName, 
-            lastname: customer.lastName, 
-            email: customer.email, 
-            address: customer.address
+            id: customer._id,
+            firstname: customer.firstName,
+            lastname: customer.lastName,
+            email: customer.email,
+            address: customer.address,
+            token: accesstoken,
         })
 
     } catch (error) {
@@ -36,17 +39,18 @@ export async function loginCustomer(req,res){
         }
 
         const customer = await Customer.findOne({email})
-        if(!customer) return res.status(400).json({message:"Invalid customer"});
+        if(!customer) return res.status(400).json({message:"Invlaid customer"});
         
         const isMatch = (email === customer.email && password === customer.password)
-        if(!isMatch) return res.status(400).json({message:"Invalid credentials!"});
+        if(!isMatch) return res.status(400).json({message:"Invalid credentials"});
 
         const accesstoken = generateToken(customer._id);
         res.json({
-            id: customer.id,
+            id: customer._id,
             firstname: customer.firstName,
+            lastname: customer.lastName,
             email: customer.email,
-            token: accesstoken
+            token: accesstoken,
         })
 
     } catch (error) {

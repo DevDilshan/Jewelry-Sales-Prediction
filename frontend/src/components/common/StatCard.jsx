@@ -8,7 +8,7 @@ export default function StatCard({ title, value, change, changeType, extra }) {
         <h3 className="stat-value">{value}</h3>
         {extra && <span className="stat-extra">{extra}</span>}
       </div>
-      <p className={`stat-change ${changeType}`}>
+      <p className={changeType ? `stat-change ${changeType}` : "stat-change"}>
         {change}
       </p>
     </div>
