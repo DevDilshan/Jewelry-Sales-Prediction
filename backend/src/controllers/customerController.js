@@ -1,5 +1,6 @@
 import Customer from "../models/Customer.js";
-import jwt from 'jsonwebtoken'
+import jwt from "jsonwebtoken";
+import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 
 const generateToken = (customerId) =>{
     return jwt.sign({id: customerId}, process.env.CUSTOMER_ACCESS_TOKEN, {expiresIn:"7d"})
@@ -14,6 +15,10 @@ export async function registerCustomer(req,res){
         }
         if(!email.includes("@")){
             return res.status(400).json({message: "Invalid email"})
+        }
+        const policy = validatePasswordStrength(password);
+        if (!policy.ok) {
+            return res.status(400).json({ message: policy.message });
         }
         const customer = await Customer.create(req.body);
         const accesstoken = generateToken(customer._id);
