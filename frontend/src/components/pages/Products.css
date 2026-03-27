@@ -223,15 +223,18 @@
 }
 
 .stock-badge.in-stock {
-  color: #16a34a;
+  background-color: #c6f6d5;
+  color: #276749;
 }
 
 .stock-badge.low-stock {
-  color: #d97706;
+  background-color: #fefcbf;
+  color: #975a16;
 }
 
 .stock-badge.out-of-stock {
-  color: #dc2626;
+  background-color: #fed7d7;
+  color: #9b2c2c;
 }
 
 /* Toggle Switch */
