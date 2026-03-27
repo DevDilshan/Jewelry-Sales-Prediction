@@ -11,7 +11,6 @@ const feedbackSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Order",
       required: true,
-      unique: true,
     },
     /** Display name when listing (snapshot at submit time) */
     customerName: {
@@ -49,5 +48,7 @@ const feedbackSchema = new Schema(
   },
   { timestamps: true }
 );
+
+feedbackSchema.index({ order: 1, customer: 1 }, { unique: true }); //unique review fixed
 
 export default mongoose.model("Feedback", feedbackSchema);
