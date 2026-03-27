@@ -1,21 +1,40 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api, setStaffAuth } from "../../config/api";
+import PasswordToggleButton from "../PasswordToggleButton";
 import "./AuthPages.css";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function StaffLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [busy, setBusy] = useState(false);
+
+  const validate = () => {
+    const next = {};
+    const em = email.trim();
+    if (!em) next.email = "Email is required.";
+    else if (!EMAIL_RE.test(em)) next.email = "Enter a valid email address.";
+    if (!password) next.password = "Password is required.";
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!validate()) return;
     setBusy(true);
     try {
-      const data = await api("/staff/login", { method: "POST", body: { email, password } });
+      const data = await api("/staff/login", {
+        method: "POST",
+        body: { email: email.trim(), password },
+      });
       setStaffAuth(data.accesstoken, {
         username: data.username,
         email: data.email,
@@ -35,11 +54,40 @@ export default function StaffLogin() {
         <div className="auth-card">
           <h1>Staff sign in</h1>
           <p className="auth-lead">Sign in to manage products, discounts, and orders.</p>
-          <form onSubmit={onSubmit}>
-            <label className="auth-label">Work email</label>
-            <input className="auth-input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            <label className="auth-label">Password</label>
-            <input className="auth-input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <form onSubmit={onSubmit} noValidate>
+            <label className="auth-label" htmlFor="staff-login-email">
+              Work email
+            </label>
+            <input
+              id="staff-login-email"
+              className="auth-input"
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
+              }}
+            />
+            {fieldErrors.email && <p className="auth-field-error">{fieldErrors.email}</p>}
+            <label className="auth-label" htmlFor="staff-login-password">
+              Password
+            </label>
+            <div className="auth-password-wrap">
+              <input
+                id="staff-login-password"
+                className="auth-input"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
+                }}
+              />
+              <PasswordToggleButton visible={showPassword} onToggle={() => setShowPassword((v) => !v)} disabled={busy} />
+            </div>
+            {fieldErrors.password && <p className="auth-field-error">{fieldErrors.password}</p>}
             {error && <p className="auth-error">{error}</p>}
             <button type="submit" className="auth-submit" disabled={busy}>
               {busy ? "Signing in…" : "Sign in to admin"}
