@@ -52,6 +52,7 @@ export default function MyReviews() {
   const [loadError, setLoadError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [editingReviewId, setEditingReviewId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [dataLoading, setDataLoading] = useState(() => !!getCustomerToken());
@@ -96,7 +97,33 @@ export default function MyReviews() {
   const openAdd = () => {
     setForm(EMPTY_FORM);
     setSubmitError("");
+    setEditingReviewId(null);
     setShowModal(true);
+  };
+
+  const openEdit = (review) => {
+    setForm({
+      orderId: review.order?._id || review.order,
+      rating: review.rating,
+      title: review.title || "",
+      body: review.feedback || "",
+    });
+    setSubmitError("");
+    setEditingReviewId(review._id);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
+    try {
+      await api(`/feedback/my/${id}`, {
+        method: "DELETE",
+        auth: "customer",
+      });
+      load();
+    } catch (err) {
+      alert(err.message || "Could not delete review.");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -105,18 +132,31 @@ export default function MyReviews() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      await api("/feedback/create", {
-        method: "POST",
-        body: {
-          orderId: form.orderId,
-          title: form.title.trim(),
-          feedback: form.body.trim(),
-          rating: form.rating,
-        },
-        auth: "customer",
-      });
+      if (editingReviewId) {
+        await api(`/feedback/my/${editingReviewId}`, {
+          method: "PATCH",
+          body: {
+            title: form.title.trim(),
+            feedback: form.body.trim(),
+            rating: form.rating,
+          },
+          auth: "customer",
+        });
+      } else {
+        await api("/feedback/create", {
+          method: "POST",
+          body: {
+            orderId: form.orderId,
+            title: form.title.trim(),
+            feedback: form.body.trim(),
+            rating: form.rating,
+          },
+          auth: "customer",
+        });
+      }
       setShowModal(false);
       setForm(EMPTY_FORM);
+      setEditingReviewId(null);
       load();
     } catch (err) {
       setSubmitError(err.message || "Could not submit feedback");
@@ -248,6 +288,12 @@ export default function MyReviews() {
                           <p>{review.staffReply}</p>
                         </div>
                       )}
+                      {!review.staffReply && (
+                        <div className="rv-card-actions">
+                          <button type="button" className="rv-action-btn edit" onClick={() => openEdit(review)}>Edit</button>
+                          <button type="button" className="rv-action-btn delete" onClick={() => handleDelete(review._id)}>Delete</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -261,7 +307,7 @@ export default function MyReviews() {
         <div className="rv-overlay" onClick={() => !submitting && setShowModal(false)}>
           <div className="rv-modal" onClick={(e) => e.stopPropagation()}>
             <div className="rv-modal-header">
-              <h2>Write a Review</h2>
+              <h2>{editingReviewId ? "Edit Review" : "Write a Review"}</h2>
               <button type="button" className="rv-modal-close" onClick={() => !submitting && setShowModal(false)}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -271,34 +317,36 @@ export default function MyReviews() {
             </div>
 
             <form onSubmit={handleSubmit} className="rv-modal-form">
-              <div className="rv-field">
-                <label>SELECT DELIVERED ORDER</label>
-                <div className="rv-product-grid">
-                  {eligibleOrders.map((o) => {
-                    const selected = form.orderId === o._id;
-                    return (
-                      <button
-                        key={o._id}
-                        type="button"
-                        className={`rv-product-option ${selected ? "selected" : ""}`}
-                        onClick={() => setForm({ ...form, orderId: o._id })}
-                      >
-                        <span className="rv-option-name">{orderItemsSummary(o)}</span>
-                        <span className="rv-option-cat">LKR {Number(o.totalAmount).toLocaleString()}</span>
-                        <span className="rv-option-cat">#{String(o._id).slice(-8).toUpperCase()}</span>
-                        {selected && (
-                          <span className="rv-check">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+              {!editingReviewId && (
+                <div className="rv-field">
+                  <label>SELECT DELIVERED ORDER</label>
+                  <div className="rv-product-grid">
+                    {eligibleOrders.map((o) => {
+                      const selected = form.orderId === o._id;
+                      return (
+                        <button
+                          key={o._id}
+                          type="button"
+                          className={`rv-product-option ${selected ? "selected" : ""}`}
+                          onClick={() => setForm({ ...form, orderId: o._id })}
+                        >
+                          <span className="rv-option-name">{orderItemsSummary(o)}</span>
+                          <span className="rv-option-cat">LKR {Number(o.totalAmount).toLocaleString()}</span>
+                          <span className="rv-option-cat">#{String(o._id).slice(-8).toUpperCase()}</span>
+                          {selected && (
+                            <span className="rv-check">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {!form.orderId && <span className="rv-field-hint">Choose the order you want to review</span>}
                 </div>
-                {!form.orderId && <span className="rv-field-hint">Choose the order you want to review</span>}
-              </div>
+              )}
 
               <div className="rv-field">
                 <label>YOUR RATING</label>
@@ -310,7 +358,10 @@ export default function MyReviews() {
               </div>
 
               <div className="rv-field">
-                <label>REVIEW TITLE</label>
+                <label>
+                  REVIEW TITLE 
+                  <span style={{ textTransform: "lowercase", fontWeight: "normal", color: "#aaa" }}> (optional)</span>
+                </label>
                 <input
                   type="text"
                   maxLength={80}
@@ -340,7 +391,7 @@ export default function MyReviews() {
                   Cancel
                 </button>
                 <button type="submit" className="rv-btn-submit" disabled={!form.orderId || !form.rating || submitting}>
-                  {submitting ? "Submitting…" : "Submit Review"}
+                  {submitting ? "Submitting…" : (editingReviewId ? "Update Review" : "Submit Review")}
                 </button>
               </div>
             </form>
