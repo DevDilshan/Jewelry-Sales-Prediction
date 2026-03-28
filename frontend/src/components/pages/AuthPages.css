@@ -92,6 +92,37 @@
   margin-top: 14px;
 }
 
+.auth-success {
+  color: #2e7d32;
+  font-size: 14px;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+.auth-label--first {
+  margin-top: 0;
+}
+
+.auth-policy-list {
+  margin: 8px 0 0;
+  padding-left: 1.25em;
+  font-size: 13px;
+  color: #b42318;
+  line-height: 1.45;
+}
+
+.auth-forgot-inline {
+  margin-top: 10px;
+  margin-bottom: 0;
+  font-size: 14px;
+  text-align: right;
+}
+
+.auth-forgot-inline a {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
 .auth-submit {
   width: 100%;
   margin-top: 24px;

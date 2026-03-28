@@ -15,6 +15,11 @@ export function discountIsScheduleActive(discount) {
   return !discountScheduleMessage(discount);
 }
 
+function isCouponScope(discount) {
+  const s = discount?.promoScope;
+  return s !== "site_wide";
+}
+
 /** @param discount Mongoose doc or plain object; @param subtotal cart subtotal in LKR */
 export function evaluateDiscount(discount, subtotal) {
   if (!discount) {
@@ -24,6 +29,29 @@ export function evaluateDiscount(discount, subtotal) {
   const sched = discountScheduleMessage(discount);
   if (sched) {
     return { ok: false, message: sched };
+  }
+
+  if (isCouponScope(discount)) {
+    const maxUses = discount.maxUses;
+    if (maxUses != null && maxUses > 0) {
+      const used = Number(discount.timesApplied) || 0;
+      if (used >= maxUses) {
+        return { ok: false, message: "This promo code has reached its usage limit." };
+      }
+    }
+
+    const minSub = discount.minSubtotalLkr;
+    if (minSub != null && minSub > 0) {
+      const sub = Math.max(0, Number(subtotal) || 0);
+      if (sub < minSub) {
+        const subStr = sub.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        const minStr = minSub.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        return {
+          ok: false,
+          message: `This code needs a minimum order of LKR ${minStr}. Your cart subtotal is LKR ${subStr}.`,
+        };
+      }
+    }
   }
 
   const type = discount.discountType || "fixed";

@@ -11,6 +11,20 @@ function generateSiteWideCode() {
   return `SW-${t}-${r}`;
 }
 
+function parseOptionalPositiveNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  if (Number.isNaN(n) || n <= 0) return null;
+  return n;
+}
+
+function parseOptionalMaxUses(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = parseInt(String(value), 10);
+  if (Number.isNaN(n) || n < 1) return null;
+  return n;
+}
+
 export async function createDiscount(req, res) {
   try {
     const body = { ...req.body };
@@ -41,6 +55,14 @@ export async function createDiscount(req, res) {
       if (end < start) {
         return res.status(400).json({ message: "End date cannot be before the start date." });
       }
+    }
+
+    if (scope === "coupon") {
+      body.minSubtotalLkr = parseOptionalPositiveNumber(body.minSubtotalLkr);
+      body.maxUses = parseOptionalMaxUses(body.maxUses);
+    } else {
+      body.minSubtotalLkr = null;
+      body.maxUses = null;
     }
 
     const discount = await Discount.create(body);
@@ -124,8 +146,16 @@ export async function updateDiscount(req, res) {
     if (!existing) return res.status(404).json({ message: "Discount not found" });
 
     const {
-      discountName, campaignTheme, promoScope: scopeRaw, discountType,
-      discountAmount, discountCoupon: couponRaw, startDate: startDateRaw, endDate: endDateRaw      
+      discountName,
+      campaignTheme,
+      promoScope: scopeRaw,
+      discountType,
+      discountAmount,
+      discountCoupon: couponRaw,
+      startDate: startDateRaw,
+      endDate: endDateRaw,
+      minSubtotalLkr: minSubtotalRaw,
+      maxUses: maxUsesRaw,
     } = req.body;
 
     const promoScope = scopeRaw === "site_wide" ? "site_wide" : "coupon";
@@ -172,6 +202,18 @@ export async function updateDiscount(req, res) {
     }
 
     update.discountCoupon = coupon;
+
+    if (promoScope === "coupon") {
+      if (Object.prototype.hasOwnProperty.call(req.body, "minSubtotalLkr")) {
+        update.minSubtotalLkr = parseOptionalPositiveNumber(minSubtotalRaw);
+      }
+      if (Object.prototype.hasOwnProperty.call(req.body, "maxUses")) {
+        update.maxUses = parseOptionalMaxUses(maxUsesRaw);
+      }
+    } else {
+      update.minSubtotalLkr = null;
+      update.maxUses = null;
+    }
 
     const discount = await Discount.findByIdAndUpdate(req.params.id, update, { new: true });
     res.status(200).json(discount);

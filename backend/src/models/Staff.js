@@ -8,23 +8,33 @@ const staffSchema = new Schema({
         unique: true,
         trim: true
     },
-    email:{
+    email: {
         type: String,
         required: true,
         unique: true,
-        lowercase:true,
+        lowercase: true,
     },
     password: {
         type: String,
         required: true
     },
-    role:{
-        type:String,
-        enum:["admin", "productmanager", "sales", "viewer"],
-        default:"viewer"
-    }
+    role: {
+        type: String,
+        enum: ["admin", "productmanager", "sales", "viewer"],
+        default: "viewer"
+    },
+    resetToken: {
+        type: String,
+        default: null,
+        sparse: true,
+        index: true,
+    },
+    resetTokenExpiry: {
+        type: Date,
+        default: null,
+    },
 
-}, {timestamps: true})
+}, { timestamps: true })
 
 
 const Staff = mongoose.model("Staff", staffSchema)

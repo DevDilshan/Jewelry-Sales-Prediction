@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import Staff from "../models/Staff.js";
 import { validatePasswordStrength } from "../utils/passwordPolicy.js";
+import { hashPassword, verifyPasswordMigrateLegacy, verifyStoredPassword } from "../utils/passwordHash.js";
+import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
 
 const DEFAULT_STAFF_PASSWORD = () =>
   process.env.DEFAULT_STAFF_PASSWORD?.trim() || "ChangeMe@123";
@@ -16,8 +18,12 @@ const generateToken = (user) => {
 function sanitizeStaff(doc) {
   const o = doc.toObject ? doc.toObject() : { ...doc };
   delete o.password;
+  delete o.resetToken;
+  delete o.resetTokenExpiry;
   return o;
 }
+
+const STAFF_SAFE_SELECT = "-password -resetToken -resetTokenExpiry";
 
 /** Only when there are zero staff documents — creates first admin */
 export async function setupFirstStaff(req, res) {
@@ -34,15 +40,16 @@ export async function setupFirstStaff(req, res) {
       return res.status(400).json({ message: "Invalid email" });
     }
     const customPwd = req.body.password?.trim();
-    const password = customPwd || DEFAULT_STAFF_PASSWORD();
+    const plainPassword = customPwd || DEFAULT_STAFF_PASSWORD();
     if (customPwd) {
-      const v = validatePasswordStrength(password);
+      const v = validatePasswordStrength(plainPassword);
       if (!v.ok) return res.status(400).json({ message: v.message });
     }
+    const passwordHash = await hashPassword(plainPassword);
     const user = await Staff.create({
       username: username.trim(),
       email: email.trim().toLowerCase(),
-      password,
+      password: passwordHash,
       role: "admin",
     });
     const accesstoken = generateToken(user);
@@ -50,7 +57,7 @@ export async function setupFirstStaff(req, res) {
       message: "First administrator created. Sign in with this account.",
       user: sanitizeStaff(user),
       accesstoken,
-      temporaryPassword: password,
+      temporaryPassword: plainPassword,
     });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -70,22 +77,23 @@ export async function registerStaff(req, res) {
     const allowed = ["admin", "productmanager", "sales", "viewer"];
     const r = allowed.includes(role) ? role : "viewer";
     const customPwd = req.body.password?.trim();
-    const password = customPwd || DEFAULT_STAFF_PASSWORD();
+    const plainPassword = customPwd || DEFAULT_STAFF_PASSWORD();
     if (customPwd) {
-      const v = validatePasswordStrength(password);
+      const v = validatePasswordStrength(plainPassword);
       if (!v.ok) return res.status(400).json({ message: v.message });
     }
+    const passwordHash = await hashPassword(plainPassword);
     const user = await Staff.create({
       username: username.trim(),
       email: email.trim().toLowerCase(),
-      password,
+      password: passwordHash,
       role: r,
     });
     res.status(201).json({
       message:
         "Staff member created. Share the temporary password with them; they should change it after signing in.",
       user: sanitizeStaff(user),
-      temporaryPassword: password,
+      temporaryPassword: plainPassword,
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -105,7 +113,8 @@ export async function loginStaff(req, res) {
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-    if (password !== user.password) {
+    const passwordOk = await verifyPasswordMigrateLegacy(user, password);
+    if (!passwordOk) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
     const accesstoken = generateToken(user);
@@ -122,7 +131,7 @@ export async function loginStaff(req, res) {
 
 export async function listStaff(req, res) {
   try {
-    const staff = await Staff.find().select("-password").sort({ createdAt: -1 });
+    const staff = await Staff.find().select(STAFF_SAFE_SELECT).sort({ createdAt: -1 });
     res.json(staff);
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -131,7 +140,7 @@ export async function listStaff(req, res) {
 
 export async function getStaffMe(req, res) {
   try {
-    const user = await Staff.findById(req.user.id).select("-password");
+    const user = await Staff.findById(req.user.id).select(STAFF_SAFE_SELECT);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -152,12 +161,65 @@ export async function changeOwnPassword(req, res) {
       return res.status(400).json({ message: policy.message });
     }
     const user = await Staff.findById(req.user.id);
-    if (!user || user.password !== currentPassword) {
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    const currentOk = await verifyStoredPassword(currentPassword, user.password);
+    if (!currentOk) {
       return res.status(401).json({ message: "Current password is incorrect." });
     }
-    user.password = newPassword;
+    user.password = await hashPassword(newPassword);
     await user.save();
     res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
+const STAFF_FORGOT_PASSWORD_MESSAGE =
+  "If a staff account exists for that email, password reset instructions have been sent.";
+
+export async function forgotStaffPassword(req, res) {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ message: "A valid email is required." });
+    }
+    const user = await Staff.findOne({ email });
+    if (user) {
+      const token = generatePasswordResetToken();
+      user.resetToken = token;
+      user.resetTokenExpiry = passwordResetExpiryDate();
+      await user.save();
+      const base = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+      const link = `${base}/admin/reset-password?token=${encodeURIComponent(token)}`;
+      console.log("[Staff password reset]", { email: user.email, resetLink: link });
+    }
+    res.json({ message: STAFF_FORGOT_PASSWORD_MESSAGE });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
+export async function resetStaffPasswordWithToken(req, res) {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token and new password are required." });
+    }
+    const policy = validatePasswordStrength(newPassword);
+    if (!policy.ok) {
+      return res.status(400).json({ message: policy.message });
+    }
+    const user = await Staff.findOne({ resetToken: String(token).trim() });
+    if (!user?.resetTokenExpiry || new Date(user.resetTokenExpiry) <= new Date()) {
+      return res.status(400).json({ message: "Invalid or expired reset link. Request a new one." });
+    }
+    user.password = await hashPassword(newPassword);
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+    res.json({ message: "Password has been reset. You can sign in with your new password." });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
@@ -167,7 +229,9 @@ export async function updateStaff(req, res) {
   try {
     const body = { ...req.body };
     delete body.password;
-    const user = await Staff.findByIdAndUpdate(req.params.id, body, { new: true }).select("-password");
+    delete body.resetToken;
+    delete body.resetTokenExpiry;
+    const user = await Staff.findByIdAndUpdate(req.params.id, body, { new: true }).select(STAFF_SAFE_SELECT);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

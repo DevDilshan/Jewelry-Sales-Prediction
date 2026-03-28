@@ -49,6 +49,16 @@ const discountSchema = new Schema(
       default: 0,
       min: 0,
     },
+    /** Coupon only: cart subtotal must be at least this (LKR) to use the code. null = no minimum */
+    minSubtotalLkr: {
+      type: Number,
+      default: null,
+    },
+    /** Coupon only: max successful checkouts; null / unset = unlimited */
+    maxUses: {
+      type: Number,
+      default: null,
+    },
   },
   { timestamps: true }
 );
