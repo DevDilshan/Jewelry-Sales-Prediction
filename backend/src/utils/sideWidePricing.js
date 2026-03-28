@@ -1,13 +1,10 @@
 import Discount from "../models/Discount.js";
 import { discountIsScheduleActive } from "./discountMath.js";
 
-/** Newest site-wide discount whose schedule is active (only one effective rule for the storefront) */
+/** Returns ALL active site-wide discounts so we can evaluate the best one per product */
 export async function getActiveSiteWideDiscount() {
-  const docs = await Discount.find({ promoScope: "site_wide" }).sort({ createdAt: -1 }).lean();
-  for (const d of docs) {
-    if (discountIsScheduleActive(d)) return d;
-  }
-  return null;
+  const docs = await Discount.find({ promoScope: "site_wide" }).lean();
+  return docs.filter(d => discountIsScheduleActive(d));
 }
 
 /**
@@ -41,11 +38,28 @@ export function effectiveUnitPrice(originalPrice, siteWideDoc) {
   return { unitPrice: u, compareAtPrice: onSale ? Math.round(original * 100) / 100 : null };
 }
 
-export function applySiteWideToProductPlain(productPlain, siteWideDoc) {
+// --- DISCOUNT BEST DEAL IDENTIFIER ---
+export function applySiteWideToProductPlain(productPlain, siteWideData) {
   const copy = { ...productPlain };
-  const { unitPrice, compareAtPrice } = effectiveUnitPrice(copy.productPrice, siteWideDoc);
-  copy.productPrice = unitPrice;
-  if (compareAtPrice != null) copy.compareAtPrice = compareAtPrice;
-  else delete copy.compareAtPrice;
+  let bestUnitPrice = Number(copy.productPrice);
+  let isDiscounted = false;
+
+  // We loop through ALL active site-wide sales to find the lowest possible price
+  const docs = Array.isArray(siteWideData) ? siteWideData : (siteWideData ? [siteWideData] : []);
+
+  for (const doc of docs) {
+    const { unitPrice } = effectiveUnitPrice(copy.productPrice, doc);
+    if (unitPrice < bestUnitPrice) {
+      bestUnitPrice = unitPrice;
+      isDiscounted = true;
+    }
+  }
+
+  if (isDiscounted) {
+    copy.compareAtPrice = Number(copy.productPrice);
+    copy.productPrice = bestUnitPrice;
+  } else {
+    delete copy.compareAtPrice;
+  }
   return copy;
 }

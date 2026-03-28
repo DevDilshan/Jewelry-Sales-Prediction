@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import Staff from "../models/Staff.js";
+import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 
 const DEFAULT_STAFF_PASSWORD = () =>
   process.env.DEFAULT_STAFF_PASSWORD?.trim() || "ChangeMe@123";
@@ -32,8 +33,12 @@ export async function setupFirstStaff(req, res) {
     if (!String(email).includes("@")) {
       return res.status(400).json({ message: "Invalid email" });
     }
-    const password =
-      req.body.password?.trim() || DEFAULT_STAFF_PASSWORD();
+    const customPwd = req.body.password?.trim();
+    const password = customPwd || DEFAULT_STAFF_PASSWORD();
+    if (customPwd) {
+      const v = validatePasswordStrength(password);
+      if (!v.ok) return res.status(400).json({ message: v.message });
+    }
     const user = await Staff.create({
       username: username.trim(),
       email: email.trim().toLowerCase(),
@@ -64,8 +69,12 @@ export async function registerStaff(req, res) {
     }
     const allowed = ["admin", "productmanager", "sales", "viewer"];
     const r = allowed.includes(role) ? role : "viewer";
-    const password =
-      req.body.password?.trim() || DEFAULT_STAFF_PASSWORD();
+    const customPwd = req.body.password?.trim();
+    const password = customPwd || DEFAULT_STAFF_PASSWORD();
+    if (customPwd) {
+      const v = validatePasswordStrength(password);
+      if (!v.ok) return res.status(400).json({ message: v.message });
+    }
     const user = await Staff.create({
       username: username.trim(),
       email: email.trim().toLowerCase(),
@@ -138,8 +147,9 @@ export async function changeOwnPassword(req, res) {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: "Current and new password are required." });
     }
-    if (String(newPassword).length < 6) {
-      return res.status(400).json({ message: "New password must be at least 6 characters." });
+    const policy = validatePasswordStrength(newPassword);
+    if (!policy.ok) {
+      return res.status(400).json({ message: policy.message });
     }
     const user = await Staff.findById(req.user.id);
     if (!user || user.password !== currentPassword) {

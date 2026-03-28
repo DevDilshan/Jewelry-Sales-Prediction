@@ -25,6 +25,85 @@ function initials(name) {
 
 const COLORS = ["#e8d5f5", "#fde8d0", "#d5eef5", "#d5f5e3"];
 
+const DONUT_COLORS = {
+  5: "#cca538ff",
+  4: "#d4b95e",
+  3: "#ddc97a",
+  2: "#c5c0b0",
+  1: "#b0aca2",
+};
+
+const STAR_LABELS = { 5: "5 Stars", 4: "4 Stars", 3: "3 Stars", 2: "2 Stars", 1: "1 Star" };
+
+function RatingDonut({ counts, total }) {
+  const SIZE = 120;
+  const STROKE = 18;
+  const RADIUS = (SIZE - STROKE) / 2;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  const CENTER = SIZE / 2;
+
+  const segments = [];
+  let offset = 0;
+
+  [5, 4, 3, 2, 1].forEach((star) => {
+    const count = counts[star] || 0;
+    const pct = total > 0 ? count / total : 0;
+    const dash = pct * CIRCUMFERENCE;
+    segments.push({ star, count, pct, dash, offset });
+    offset += dash;
+  });
+
+  return (
+    <div className="rating-donut-card">
+      <p className="stat-title">Rating Distribution</p>
+      <div className="rating-donut-body">
+        <div className="rating-donut-chart">
+          <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+            {/* background ring */}
+            <circle
+              cx={CENTER} cy={CENTER} r={RADIUS}
+              fill="none" stroke="#f0f0ee" strokeWidth={STROKE}
+            />
+            {total > 0 && segments.map((seg) => (
+              seg.pct > 0 && (
+                <circle
+                  key={seg.star}
+                  cx={CENTER} cy={CENTER} r={RADIUS}
+                  fill="none"
+                  stroke={DONUT_COLORS[seg.star]}
+                  strokeWidth={STROKE}
+                  strokeDasharray={`${seg.dash} ${CIRCUMFERENCE - seg.dash}`}
+                  strokeDashoffset={-seg.offset}
+                  strokeLinecap="butt"
+                  style={{ transform: "rotate(-90deg)", transformOrigin: "center", transition: "stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease" }}
+                />
+              )
+            ))}
+          </svg>
+          <div className="rating-donut-center">
+            <span className="rating-donut-total">{total}</span>
+            <span className="rating-donut-label">reviews</span>
+          </div>
+        </div>
+        <div className="rating-donut-legend">
+          {[5, 4, 3, 2, 1].map((star) => {
+            const count = counts[star] || 0;
+            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+            return (
+              <div key={star} className="rating-donut-legend-row">
+                <span className="rating-donut-dot" style={{ background: DONUT_COLORS[star] }} />
+                <span className="rating-donut-star-label">{STAR_LABELS[star]}</span>
+                <span className="rating-donut-pct">{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function Feedbacks({ setActivePage }) {
   useEffect(() => {
     setActivePage("feedbacks");
@@ -71,6 +150,15 @@ export default function Feedbacks({ setActivePage }) {
     if (list.length === 0) return "—";
     const s = list.reduce((a, r) => a + (r.rating || 0), 0);
     return (s / list.length).toFixed(1);
+  }, [list]);
+
+  const ratingDistribution = useMemo(() => {
+    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    list.forEach((r) => {
+      const v = r.rating;
+      if (v >= 1 && v <= 5) counts[v]++;
+    });
+    return counts;
   }, [list]);
 
   const filteredReviews = list.filter((review) => {
@@ -124,7 +212,7 @@ export default function Feedbacks({ setActivePage }) {
       <div className="page-header">
         <div>
           <h1>Customer Feedbacks &amp; Reviews</h1>
-          <p>Read feedback from delivered orders and reply to customers.</p>
+          <p>Read feedback from customers after orders are ready and reply when needed.</p>
         </div>
       </div>
 
@@ -150,7 +238,7 @@ export default function Feedbacks({ setActivePage }) {
           change={`${stats.pendingReply} awaiting reply`}
           changeType="positive"
         />
-        <StatCard title="Response rate" value={stats.total ? `${Math.round(((stats.total - stats.pendingReply) / stats.total) * 100)}%` : "—"} change="Replied vs pending" changeType="positive" />
+        <RatingDonut counts={ratingDistribution} total={list.length} />
       </div>
 
       <div className="feedbacks-section">

@@ -8,7 +8,7 @@ function customerDisplayName(customer) {
   return n || customer.email || "";
 }
 
-/** Customer: submit feedback only for their own Delivered order, once per order */
+/** Customer: submit feedback only for their own Ready order (or legacy Delivered/Shipped), once per order */
 export async function createCustomerFeedback(req, res) {
   try {
     const { orderId, title, feedback, rating } = req.body;
@@ -27,13 +27,14 @@ export async function createCustomerFeedback(req, res) {
     if (String(order.customer) !== String(req.customerId)) {
       return res.status(403).json({ message: "This order does not belong to your account." });
     }
-    if (order.orderStatus !== "Delivered") {
+    const canReview = ["Ready", "Delivered", "Shipped"].includes(order.orderStatus);
+    if (!canReview) {
       return res.status(400).json({
-        message: "You can leave feedback only after your order is marked as delivered.",
+        message: "You can leave feedback only after your order is marked as ready for pickup.",
       });
     }
 
-    const existing = await Feedback.findOne({ order: order._id });
+    const existing = await Feedback.findOne({ order: order._id, customer: req.customerId }); //unique review fixed
     if (existing) {
       return res.status(400).json({ message: "You have already submitted feedback for this order." });
     }
@@ -154,6 +155,59 @@ export async function deleteFeedback(req, res) {
     const feedback = await Feedback.findByIdAndDelete(req.params.id);
     if (!feedback) return res.status(404).json({ message: "feedback not found" });
     res.status(200).json({ message: "Feedback deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
+/** Customer: update their own feedback */
+export async function updateCustomerFeedback(req, res) {
+  try {
+    const { title, feedback, rating } = req.body;
+    
+    const existing = await Feedback.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Feedback not found." });
+    
+    if (String(existing.customer) !== String(req.customerId)) {
+      return res.status(403).json({ message: "This feedback does not belong to you." });
+    }
+
+    if (title !== undefined) existing.title = String(title).trim();
+    if (feedback !== undefined) existing.feedback = String(feedback).trim();
+    if (rating !== undefined) {
+      const r = Number(rating);
+      if (r < 1 || r > 5 || !Number.isInteger(r)) {
+        return res.status(400).json({ message: "Rating must be a whole number from 1 to 5." });
+      }
+      existing.rating = r;
+    }
+    
+    await existing.save();
+
+    const populated = await Feedback.findById(existing._id).populate({
+      path: "order",
+      select: "orderStatus totalAmount createdAt",
+      populate: { path: "items.product", select: "productName productCategory productImage" },
+    });
+
+    res.status(200).json(populated);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
+/** Customer: delete their own feedback */
+export async function deleteCustomerFeedback(req, res) {
+  try {
+    const existing = await Feedback.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Feedback not found." });
+    
+    if (String(existing.customer) !== String(req.customerId)) {
+      return res.status(403).json({ message: "This feedback does not belong to you." });
+    }
+
+    await Feedback.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Feedback deleted successfully." });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });
   }

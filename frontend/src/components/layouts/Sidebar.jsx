@@ -86,7 +86,7 @@ export default function Sidebar({ activePage, setActivePage }) {
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <span className="logo-text">AURELIA</span>
+        <span className="logo-text">Beceff</span>
       </div>
 
       <nav className="sidebar-nav">

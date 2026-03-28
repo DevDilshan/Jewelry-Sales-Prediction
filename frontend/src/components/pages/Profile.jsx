@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import PasswordToggleButton from "../PasswordToggleButton";
 import "./Profile.css";
 import { api, getStaffToken } from "../../config/api";
+import {
+  getPasswordPolicyIssues,
+  isPasswordPolicyValid,
+  PASSWORD_REQUIREMENTS_HINT,
+} from "../../utils/passwordPolicy";
 
 const ROLE_LABEL = {
   admin: "Admin",
@@ -42,10 +48,23 @@ export default function Profile({ setActivePage }) {
       .catch((e) => setLoadError(e.message || "Could not load profile"));
   }, []);
 
+  const newPolicyIssues = getPasswordPolicyIssues(newPassword);
+  const confirmMismatch =
+    confirmPassword.length > 0 && newPassword.length > 0 && newPassword !== confirmPassword;
+
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setPwdMessage("");
     setPwdError("");
+    if (!currentPassword) {
+      setPwdError("Enter your current password.");
+      return;
+    }
+    if (!isPasswordPolicyValid(newPassword)) {
+      const issues = getPasswordPolicyIssues(newPassword);
+      setPwdError(issues[0] || "Choose a stronger password.");
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setPwdError("New passwords do not match.");
       return;
@@ -120,80 +139,99 @@ export default function Profile({ setActivePage }) {
           </div>
         </div>
 
-        <div className="profile-section">
-          <div className="section-content">
-            <h2>Change Password</h2>
-            <p>If you were given a temporary password when your account was created, replace it here.</p>
+        <div className="profile-section profile-section-password">
+          <div className="section-content change-password-layout">
+            <div>
+              <h2>Change password</h2>
+              <p className="change-password-lead">Update your password if you still use a temporary one.</p>
+            </div>
 
-            <form onSubmit={handleChangePassword}>
+            <form className="change-password-form" onSubmit={handleChangePassword} noValidate>
               <div className="form-group">
-                <label>CURRENT PASSWORD</label>
+                <label htmlFor="profile-current-password">Current password</label>
                 <div className="password-input-group">
                   <input
+                    id="profile-current-password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••••••"
                     className="form-input"
+                    autoComplete="current-password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    required
                   />
-                  <button type="button" className="toggle-password" onClick={() => setShowPassword(!showPassword)}>
-                    {showPassword ? "🙈" : "👁️"}
-                  </button>
+                  <PasswordToggleButton
+                    visible={showPassword}
+                    onToggle={() => setShowPassword((v) => !v)}
+                    disabled={pwdBusy || loadError === "auth"}
+                  />
                 </div>
               </div>
 
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>NEW PASSWORD</label>
-                  <div className="password-input-group">
-                    <input
-                      type={showNewPassword ? "text" : "password"}
-                      placeholder="At least 6 characters"
-                      className="form-input"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
-                    <button
-                      type="button"
-                      className="toggle-password"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                    >
-                      {showNewPassword ? "🙈" : "👁️"}
-                    </button>
-                  </div>
+              <div className="form-group">
+                <label htmlFor="profile-new-password">New password</label>
+                <div className="password-input-group">
+                  <input
+                    id="profile-new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    className="form-input"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <PasswordToggleButton
+                    visible={showNewPassword}
+                    onToggle={() => setShowNewPassword((v) => !v)}
+                    disabled={pwdBusy || loadError === "auth"}
+                  />
                 </div>
+                <p className="form-field-hint">{PASSWORD_REQUIREMENTS_HINT}</p>
+                {newPassword.length > 0 && newPolicyIssues.length > 0 && (
+                  <ul className="form-field-error-list" role="alert">
+                    {newPolicyIssues.map((msg) => (
+                      <li key={msg}>{msg}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
-                <div className="form-group">
-                  <label>CONFIRM NEW PASSWORD</label>
-                  <div className="password-input-group">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Repeat new password"
-                      className="form-input"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
-                    <button
-                      type="button"
-                      className="toggle-password"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? "🙈" : "👁️"}
-                    </button>
-                  </div>
+              <div className="form-group">
+                <label htmlFor="profile-confirm-password">Confirm new password</label>
+                <div className="password-input-group">
+                  <input
+                    id="profile-confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    className="form-input"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                  <PasswordToggleButton
+                    visible={showConfirmPassword}
+                    onToggle={() => setShowConfirmPassword((v) => !v)}
+                    disabled={pwdBusy || loadError === "auth"}
+                  />
                 </div>
+                {confirmMismatch && (
+                  <p className="form-field-error" role="alert">
+                    Does not match the new password.
+                  </p>
+                )}
               </div>
 
               {pwdError && <p className="profile-pwd-error">{pwdError}</p>}
               {pwdMessage && <p className="profile-pwd-success">{pwdMessage}</p>}
 
-              <button type="submit" className="save-btn" disabled={pwdBusy || loadError === "auth"}>
-                {pwdBusy ? "UPDATING…" : "UPDATE PASSWORD"}
+              <button
+                type="submit"
+                className="save-btn"
+                disabled={
+                  pwdBusy ||
+                  loadError === "auth" ||
+                  !currentPassword ||
+                  !isPasswordPolicyValid(newPassword) ||
+                  newPassword !== confirmPassword
+                }
+              >
+                {pwdBusy ? "Updating…" : "Update password"}
               </button>
             </form>
           </div>

@@ -72,7 +72,7 @@ export default function Dashboard({ setActivePage }) {
       <div className="dashboard-header">
         <div>
           <h1>Dashboard Overview</h1>
-          <p>Refined luxury management for Aurelia Fine Jewelry.</p>
+          <p>Refined luxury management for Beceff.</p>
           {authNote && <p className="dashboard-auth-note">{authNote}</p>}
         </div>
         <div className="header-actions">
@@ -110,7 +110,7 @@ export default function Dashboard({ setActivePage }) {
                   ? `${feedbackStats.pendingReply} awaiting staff reply`
                   : feedbackStats.total > 0
                     ? "All reviews have a reply"
-                    : "Reviews appear after delivered orders"
+                    : "Reviews appear after orders are ready"
               }
               changeType={feedbackStats.pendingReply > 0 ? "neutral" : "positive"}
             />
@@ -167,7 +167,7 @@ export default function Dashboard({ setActivePage }) {
             VIEW ALL FEEDBACK
           </a>
         </div>
-        <p className="featured-hint">From customers whose orders were delivered.</p>
+        <p className="featured-hint">From customers whose orders are ready or completed.</p>
         <table className="orders-table dash-feedback-table">
           <thead>
             <tr>
