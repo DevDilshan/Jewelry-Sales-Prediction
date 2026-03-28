@@ -3,6 +3,44 @@
   margin: 0 auto;
 }
 
+.profile-banner {
+  background: #fffbf0;
+  border: 1px solid #e5d7c3;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: #444;
+}
+
+.profile-banner.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b42318;
+}
+
+.profile-banner a {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.profile-pwd-error {
+  color: #b42318;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.profile-pwd-success {
+  color: #2e7d32;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -164,23 +202,72 @@
 }
 
 .password-input-group .form-input {
-  padding-right: 40px;
+  padding-right: 44px;
 }
 
-.toggle-password {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  transition: all 0.2s;
+.change-password-layout {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  max-width: 420px;
 }
 
-.toggle-password:hover {
-  transform: translateY(-50%) scale(1.1);
+.profile-section-password {
+  padding: 24px 28px;
+}
+
+.profile-section-password h2 {
+  margin-bottom: 6px;
+}
+
+.change-password-lead {
+  color: #777;
+  font-size: 13px;
+  margin: 0 0 16px;
+  line-height: 1.45;
+  text-transform: none;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.change-password-form .form-group {
+  margin-bottom: 16px;
+}
+
+.change-password-form .form-group label {
+  text-transform: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: 0;
+}
+
+.form-field-hint {
+  font-size: 12px;
+  color: #888;
+  margin: 6px 0 0;
+}
+
+.form-field-error {
+  font-size: 13px;
+  color: #b42318;
+  margin: 6px 0 0;
+}
+
+.form-field-error-list {
+  margin: 6px 0 0;
+  padding-left: 1.25em;
+  font-size: 13px;
+  color: #b42318;
+  line-height: 1.45;
+}
+
+.change-password-form .save-btn {
+  text-transform: none;
+  font-size: 14px;
+  letter-spacing: 0;
+  margin-top: 12px;
+  align-self: flex-start;
 }
 
 .form-grid {
@@ -193,7 +280,7 @@
 .save-btn {
   background: #fffbf0;
   border: 1px solid #e5d7c3;
-  padding: 7px 8px;
+  padding: 12px 24px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
@@ -202,7 +289,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: all 0.2s;
-  margin-top: 3px;
+  margin-top: 8px;
 }
 
 .save-btn:hover {

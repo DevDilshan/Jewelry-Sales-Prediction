@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { setCustomerAuth } from '../../config/api'
 import './UserSidebar.css'
 
 const icons = {
@@ -18,9 +18,15 @@ const icons = {
             <path d="M8 3v5" />
         </svg>
     ),
-    wishlist: (
+    feedback: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 17s-7-4.35-7-8.65C3 5.55 5.24 3.5 7.5 3.5c1.54 0 2.5.99 2.5.99S11.96 3.5 12.5 3.5C14.76 3.5 17 5.55 17 8.35 17 12.65 10 17 10 17z" />
+            <path d="M10 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L10 14.9 5.2 16.9l.9-5.4L2.2 7.7l5.4-.8L10 2z" />
+        </svg>
+    ),
+    shop: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 4h14l-1 10H4L3 4z" />
+            <path d="M7 4V3a1 1 0 011-1h4a1 1 0 011 1v1" />
         </svg>
     ),
     profile: (
@@ -37,7 +43,8 @@ export default function UserSidebar() {
 
     const getActive = () => {
         if (location.pathname.includes('/orders')) return 'orders'
-        if (location.pathname.includes('/wishlist')) return 'wishlist'
+        if (location.pathname.includes('/feedback')) return 'feedback'
+        if (location.pathname.includes('/shop')) return 'shop'
         if (location.pathname.includes('/profile')) return 'profile'
         return 'overview'
     }
@@ -47,7 +54,8 @@ export default function UserSidebar() {
     const menuItems = [
         { id: 'overview', label: 'Overview', path: '/dashboard' },
         { id: 'orders', label: 'My Orders', path: '/dashboard/orders' },
-        { id: 'wishlist', label: 'Wishlist', path: '/dashboard/wishlist' },
+        { id: 'feedback', label: 'My Reviews', path: '/dashboard/feedback' },
+        { id: 'shop', label: 'Shop', path: '/shop' },
         { id: 'profile', label: 'Profile', path: '/dashboard/profile' },
     ]
 
@@ -59,7 +67,7 @@ export default function UserSidebar() {
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                 </div>
-                <span>AURELIA</span>
+                <span>Beceff</span>
             </div>
 
             <nav className="user-sidebar-nav">
@@ -83,7 +91,14 @@ export default function UserSidebar() {
                     </svg>
                     <span>Back to Website</span>
                 </button>
-                <button className="user-nav-item logout" onClick={() => alert('Logging out...')}>
+                <button
+                    type="button"
+                    className="user-nav-item logout"
+                    onClick={() => {
+                        setCustomerAuth(null, null)
+                        navigate('/')
+                    }}
+                >
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M7 17H4a1 1 0 01-1-1V4a1 1 0 011-1h3" />
                         <polyline points="11,14 15,10 11,6" />

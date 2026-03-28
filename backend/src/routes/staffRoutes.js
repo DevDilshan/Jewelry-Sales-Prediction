@@ -1,11 +1,19 @@
-import express from 'express'
-import { deleteStaff, loginStaff, registerUser, updateStaff } from '../controllers/staffController.js'
+import express from "express";
+import {changeOwnPassword,deleteStaff,getStaffMe,listStaff,loginStaff,registerStaff,setupFirstStaff,updateStaff} from "../controllers/staffController.js";
+import { verifyToken } from "../middlewares/staffAuthMiddleware.js";
+import { allowRoles } from "../middlewares/staffRoleMiddleware.js"
 
-const router = express.Router()
+const router = express.Router();
 
-router.post('/register', registerUser)
-router.post('/login', loginStaff)
-router.put('/:id', updateStaff)
-router.delete('/:id', deleteStaff)
+router.post("/setup-first", setupFirstStaff);
+router.post("/login", loginStaff);
 
-export default router
+router.get("/me", verifyToken, getStaffMe);
+router.post("/me/password", verifyToken, changeOwnPassword);
+
+router.post("/register", verifyToken, allowRoles("admin"), registerStaff);
+router.get("/", verifyToken, allowRoles("admin"), listStaff);
+router.put("/:id", verifyToken, allowRoles("admin"), updateStaff);
+router.delete("/:id", verifyToken, allowRoles("admin"), deleteStaff);
+
+export default router;

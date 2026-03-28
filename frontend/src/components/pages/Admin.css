@@ -3,6 +3,58 @@
   margin: 0 auto;
 }
 
+.admin-banner {
+  background: #fffbf0;
+  border: 1px solid #e5d7c3;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #444;
+}
+
+.admin-banner.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b42318;
+}
+
+.admin-banner a {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.admin-modal-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #666;
+  padding: 0 24px 16px;
+  margin: -8px 0 0;
+}
+
+.admin-password-reveal-user {
+  padding: 0 24px 8px;
+  font-size: 14px;
+}
+
+.admin-password-box {
+  padding: 0 24px 16px;
+}
+
+.admin-password-box code {
+  display: block;
+  padding: 14px 16px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 15px;
+  word-break: break-all;
+}
+
+.add-staff-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

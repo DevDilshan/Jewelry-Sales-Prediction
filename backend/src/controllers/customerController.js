@@ -1,5 +1,6 @@
-import { Customer } from "../models/Customer.js";
-import jwt from 'jsonwebtoken'
+import Customer from "../models/Customer.js";
+import jwt from "jsonwebtoken";
+import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 
 const generateToken = (customerId) =>{
     return jwt.sign({id: customerId}, process.env.CUSTOMER_ACCESS_TOKEN, {expiresIn:"7d"})
@@ -15,12 +16,19 @@ export async function registerCustomer(req,res){
         if(!email.includes("@")){
             return res.status(400).json({message: "Invalid email"})
         }
+        const policy = validatePasswordStrength(password);
+        if (!policy.ok) {
+            return res.status(400).json({ message: policy.message });
+        }
         const customer = await Customer.create(req.body);
+        const accesstoken = generateToken(customer._id);
         res.status(201).json({
-            firstname: customer.firstName, 
-            lastname: customer.lastName, 
-            email: customer.email, 
-            address: customer.address
+            id: customer._id,
+            firstname: customer.firstName,
+            lastname: customer.lastName,
+            email: customer.email,
+            address: customer.address,
+            token: accesstoken,
         })
 
     } catch (error) {
@@ -36,16 +44,18 @@ export async function loginCustomer(req,res){
         }
 
         const customer = await Customer.findOne({email})
-        if(!customer) return res.status(400).json({message:"Invalid customer"});
+        if(!customer) return res.status(400).json({message:"Invlaid customer"});
         
         const isMatch = (email === customer.email && password === customer.password)
-        if(!isMatch) return res.status(400).json({message:"Invalid credentials!"});
+        if(!isMatch) return res.status(400).json({message:"Invalid credentials"});
 
         const accesstoken = generateToken(customer._id);
         res.json({
+            id: customer._id,
             firstname: customer.firstName,
+            lastname: customer.lastName,
             email: customer.email,
-            token: accesstoken
+            token: accesstoken,
         })
 
     } catch (error) {
