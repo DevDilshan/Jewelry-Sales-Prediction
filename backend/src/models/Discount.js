@@ -49,13 +49,22 @@ const discountSchema = new Schema(
       default: 0,
       min: 0,
     },
+    /**
+     * Optional minimum cart subtotal (LKR) required before this coupon can be applied.
+     * If null or 0, there is no minimum — coupon works on any subtotal.
+     */
+    minSubtotal: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
   },
   { timestamps: true }
 );
 
 const Discount = mongoose.model("Discount", discountSchema);
 
-// FIX: This tells MongoDB to check this schema against the database 
+// FIX: This tells MongoDB to check this schema against the database
 // and automatically delete any old "ghost" indexes (like the "Coupen" typo).
 Discount.syncIndexes()
   .then(() => console.log("Discount indexes synced successfully! Ghost indexes removed."))
