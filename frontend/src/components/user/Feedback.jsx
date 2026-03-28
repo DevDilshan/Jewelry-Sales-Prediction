@@ -272,12 +272,6 @@ export default function MyReviews() {
                           <span className="rv-rating-label">{RATING_LABELS[review.rating]}</span>
                           <span className="rv-date">{formatDate(review.createdAt)}</span>
                         </div>
-                        {!review.staffReply && (
-                          <div className="rv-card-actions">
-                            <button type="button" className="rv-action-btn edit" onClick={() => openEdit(review)}>Edit</button>
-                            <button type="button" className="rv-action-btn delete" onClick={() => handleDelete(review._id)}>Delete</button>
-                          </div>
-                        )}
                       </div>
                       {review.title && <h4 className="rv-review-title">{review.title}</h4>}
                       <p className="rv-review-body">{review.feedback}</p>
@@ -288,6 +282,12 @@ export default function MyReviews() {
                             <span className="rv-staff-reply-date">{formatDate(review.staffReplyAt)}</span>
                           )}
                           <p>{review.staffReply}</p>
+                        </div>
+                      )}
+                      {!review.staffReply && (
+                        <div className="rv-card-actions">
+                          <button type="button" className="rv-action-btn edit" onClick={() => openEdit(review)}>Edit</button>
+                          <button type="button" className="rv-action-btn delete" onClick={() => handleDelete(review._id)}>Delete</button>
                         </div>
                       )}
                     </div>
@@ -313,7 +313,7 @@ export default function MyReviews() {
             </div>
 
             <form onSubmit={handleSubmit} className="rv-modal-form">
-              {!editingReviewId ? (
+              {!editingReviewId && (
                 <div className="rv-field">
                   <label>SELECT DELIVERED ORDER</label>
                   <div className="rv-product-grid">
@@ -341,13 +341,6 @@ export default function MyReviews() {
                     })}
                   </div>
                   {!form.orderId && <span className="rv-field-hint">Choose the order you want to review</span>}
-                </div>
-              ) : (
-                <div className="rv-field">
-                  <label>EDITING REVIEW FOR</label>
-                  <div className="rv-editing-hint">
-                    You cannot change the order associated with this review.
-                  </div>
                 </div>
               )}
 
