@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api, setStaffAuth } from "../../config/api";
+import { isPasswordPolicyValid, PASSWORD_REQUIREMENTS_HINT } from "../../utils/passwordPolicy";
 import "./AuthPages.css";
 
 export default function StaffSetup() {
@@ -15,6 +16,17 @@ export default function StaffSetup() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (useCustomPassword) {
+      const p = password.trim();
+      if (!p) {
+        setError("Enter a password or turn off custom password to use the default.");
+        return;
+      }
+      if (!isPasswordPolicyValid(p)) {
+        setError(PASSWORD_REQUIREMENTS_HINT);
+        return;
+      }
+    }
     setBusy(true);
     try {
       const body = { username: username.trim(), email: email.trim() };
@@ -82,8 +94,9 @@ export default function StaffSetup() {
                   required={useCustomPassword}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  minLength={6}
+                  autoComplete="new-password"
                 />
+                <p className="auth-field-hint">{PASSWORD_REQUIREMENTS_HINT}</p>
               </>
             )}
             {error && <p className="auth-error">{error}</p>}

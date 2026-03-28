@@ -212,7 +212,7 @@ export default function Feedbacks({ setActivePage }) {
       <div className="page-header">
         <div>
           <h1>Customer Feedbacks &amp; Reviews</h1>
-          <p>Read feedback from delivered orders and reply to customers.</p>
+          <p>Read feedback from customers after orders are ready and reply when needed.</p>
         </div>
       </div>
 

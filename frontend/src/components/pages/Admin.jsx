@@ -285,7 +285,7 @@ export default function Admin({ setActivePage }) {
                   required
                   value={newStaff.email}
                   onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                  placeholder="e.g. jane@aurelia.lk"
+                  placeholder="e.g. jane@beceff.com"
                 />
               </div>
               <div className="form-group">

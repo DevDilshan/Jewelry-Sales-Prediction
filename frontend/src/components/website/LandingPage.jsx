@@ -155,7 +155,7 @@ export default function LandingPage() {
             made to last
           </h1>
           <p>
-            Aurelia brings together refined materials and careful craft. Explore the boutique collection—each piece chosen for
+            Beceff brings together refined materials and careful craft. Explore the boutique collection—each piece chosen for
             clarity of line and lasting quality.
           </p>
           <div className="hero-buttons">
@@ -281,7 +281,7 @@ export default function LandingPage() {
           <span className="section-tag">Our story</span>
           <h2>Crafting dreams since 1995</h2>
           <p>
-            For nearly three decades, Aurelia has been a destination for fine jewelry in Sri Lanka. Master artisans blend
+            For nearly three decades, Beceff has been a destination for fine jewelry in Sri Lanka. Master artisans blend
             traditional technique with contemporary restraint—pieces meant to be worn for years, then handed down.
           </p>
           <p>
@@ -336,7 +336,7 @@ export default function LandingPage() {
                 </span>
                 <div>
                   <strong>Email</strong>
-                  <p>hello@aurelia.lk</p>
+                  <p>hello@beceff.com</p>
                 </div>
               </div>
               <div className="contact-item">
@@ -387,7 +387,7 @@ export default function LandingPage() {
                   />
                 </svg>
               </div>
-              <span>AURELIA</span>
+              <span>Beceff</span>
             </div>
             <p>Fine jewelry in Sri Lanka since 1995.</p>
           </div>
@@ -423,7 +423,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} Aurelia Fine Jewelry. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Beceff. All rights reserved.</p>
         </div>
       </footer>
     </div>

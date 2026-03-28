@@ -268,8 +268,8 @@ export default function ShopProductPage() {
         <section className="shop-reviews-block" aria-labelledby="reviews-heading">
           <h2 id="reviews-heading">Customer reviews</h2>
           <p className="shop-reviews-sub">
-            Includes reviews left here and feedback from your account after a delivered order. Everything appears as soon as it is
-            posted.
+            Includes reviews left here and feedback from your account after an order is ready for pickup. Everything appears as
+            soon as it is posted.
           </p>
 
           {myOrderFeedback ? (
@@ -280,7 +280,7 @@ export default function ShopProductPage() {
               <ReviewCard
                 r={myOrderFeedback}
                 variant="shop-review-yours"
-                badge="From My Reviews (delivered order)"
+                badge="From My Reviews (order feedback)"
               />
             </div>
           ) : null}
@@ -361,6 +361,8 @@ export default function ShopProductPage() {
         setCartOpen={checkout.setCartOpen}
         cart={checkout.cart}
         setQty={checkout.setQty}
+        toggleLineSelected={checkout.toggleLineSelected}
+        hasSelectedForCheckout={checkout.hasSelectedForCheckout}
         promoInput={checkout.promoInput}
         setPromoInput={checkout.setPromoInput}
         promo={checkout.promo}

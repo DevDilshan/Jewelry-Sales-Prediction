@@ -8,7 +8,7 @@ function customerDisplayName(customer) {
   return n || customer.email || "";
 }
 
-/** Customer: submit feedback only for their own Delivered order, once per order */
+/** Customer: submit feedback only for their own Ready order (or legacy Delivered/Shipped), once per order */
 export async function createCustomerFeedback(req, res) {
   try {
     const { orderId, title, feedback, rating } = req.body;
@@ -27,9 +27,10 @@ export async function createCustomerFeedback(req, res) {
     if (String(order.customer) !== String(req.customerId)) {
       return res.status(403).json({ message: "This order does not belong to your account." });
     }
-    if (order.orderStatus !== "Delivered") {
+    const canReview = ["Ready", "Delivered", "Shipped"].includes(order.orderStatus);
+    if (!canReview) {
       return res.status(400).json({
-        message: "You can leave feedback only after your order is marked as delivered.",
+        message: "You can leave feedback only after your order is marked as ready for pickup.",
       });
     }
 

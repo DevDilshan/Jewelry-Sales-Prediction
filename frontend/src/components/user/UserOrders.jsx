@@ -1,44 +1,71 @@
-import './UserOrders.css'
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { api, getCustomerToken } from "../../config/api";
+import { normalizeOrderStatus } from "../../utils/orderStatus";
+import "./UserOrders.css";
 
 export default function UserOrders() {
-    const orders = [
-        { id: '#AUR-8921', item: 'Solitaire Diamond Ring', category: 'Diamond Rings', date: 'Oct 12, 2023', status: 'DELIVERED', amount: 'LKR 1,250,000' },
-        { id: '#AUR-8918', item: 'Heritage Gold Necklace', category: 'Gold Necklaces', date: 'Oct 08, 2023', status: 'SHIPPED', amount: 'LKR 650,000' },
-        { id: '#AUR-8915', item: 'Ocean Pearl Earrings', category: 'Pearl Collection', date: 'Sep 28, 2023', status: 'DELIVERED', amount: 'LKR 280,000' },
-        { id: '#AUR-8910', item: 'Royal Sapphire Pendant', category: 'Necklaces', date: 'Sep 15, 2023', status: 'DELIVERED', amount: 'LKR 890,000' },
-        { id: '#AUR-8905', item: 'Emerald Cut Ring', category: 'Diamond Rings', date: 'Sep 02, 2023', status: 'DELIVERED', amount: 'LKR 1,750,000' },
-        { id: '#AUR-8898', item: 'Gold Charm Bracelet', category: 'Gold Bracelets', date: 'Aug 20, 2023', status: 'DELIVERED', amount: 'LKR 320,000' },
-        { id: '#AUR-8890', item: 'Diamond Stud Earrings', category: 'Diamond Earrings', date: 'Aug 05, 2023', status: 'DELIVERED', amount: 'LKR 540,000' },
-        { id: '#AUR-8882', item: 'Platinum Band Ring', category: 'Rings', date: 'Jul 18, 2023', status: 'DELIVERED', amount: 'LKR 980,000' },
-    ]
+    const navigate = useNavigate();
+    const [orders, setOrders] = useState([]);
+    const [error, setError] = useState("");
 
-    const getStatusClass = (status) => status.toLowerCase()
+    useEffect(() => {
+        if (!getCustomerToken()) {
+            setError("signin");
+            return;
+        }
+        api("/order/my", { auth: "customer" })
+            .then((res) => setOrders(res.data || []))
+            .catch(() => setError("Could not load orders."));
+    }, []);
+
+    const summary = useMemo(() => {
+        const total = orders.length;
+        const ready = orders.filter((o) => normalizeOrderStatus(o.orderStatus) === "Ready").length;
+        const inProgress = orders.filter((o) => {
+            const n = normalizeOrderStatus(o.orderStatus);
+            return n === "Pending" || n === "Processing";
+        }).length;
+        const spent = orders.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
+        return { total, ready, inProgress, spent };
+    }, [orders]);
+
+    const getStatusClass = (status) => normalizeOrderStatus(status).toLowerCase();
 
     return (
         <div className="user-orders-page">
             <div className="uo-header">
                 <div>
                     <h1>My Orders</h1>
-                    <p>Track and manage all your jewelry purchases.</p>
+                    <p>Takeaway orders — pay when you pick up at the boutique.</p>
+                    {error === "signin" && (
+                        <p className="uo-note">
+                            <button type="button" className="uo-linkish" onClick={() => navigate("/login?return=/dashboard/orders")}>
+                                Sign in
+                            </button>{" "}
+                            to view your orders.
+                        </p>
+                    )}
+                    {error && error !== "signin" && <p className="uo-note error">{error}</p>}
                 </div>
             </div>
 
             <div className="uo-summary">
                 <div className="uo-summary-card">
-                    <span className="uo-summary-num">8</span>
+                    <span className="uo-summary-num">{summary.total}</span>
                     <span className="uo-summary-label">Total Orders</span>
                 </div>
                 <div className="uo-summary-card">
-                    <span className="uo-summary-num">6</span>
-                    <span className="uo-summary-label">Delivered</span>
+                    <span className="uo-summary-num">{summary.ready}</span>
+                    <span className="uo-summary-label">Ready</span>
                 </div>
                 <div className="uo-summary-card">
-                    <span className="uo-summary-num">1</span>
-                    <span className="uo-summary-label">In Transit</span>
+                    <span className="uo-summary-num">{summary.inProgress}</span>
+                    <span className="uo-summary-label">In progress</span>
                 </div>
                 <div className="uo-summary-card">
-                    <span className="uo-summary-num">LKR 6.66M</span>
-                    <span className="uo-summary-label">Total Spent</span>
+                    <span className="uo-summary-num">LKR {summary.spent.toLocaleString()}</span>
+                    <span className="uo-summary-label">Total spent</span>
                 </div>
             </div>
 
@@ -46,30 +73,64 @@ export default function UserOrders() {
                 <table className="uo-table">
                     <thead>
                         <tr>
-                            <th>ORDER ID</th>
-                            <th>ITEM</th>
-                            <th>CATEGORY</th>
+                            <th>ORDER</th>
+                            <th>ITEMS</th>
                             <th>DATE</th>
                             <th>STATUS</th>
                             <th>AMOUNT</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {orders.map(order => (
-                            <tr key={order.id}>
-                                <td className="uo-id">{order.id}</td>
-                                <td className="uo-item">{order.item}</td>
-                                <td className="uo-category">{order.category}</td>
-                                <td className="uo-date">{order.date}</td>
-                                <td>
-                                    <span className={`uo-status ${getStatusClass(order.status)}`}>{order.status}</span>
+                        {error === "signin" ? (
+                            <tr>
+                                <td colSpan={5} className="uo-empty-cell">
+                                    Sign in to see your order history.
                                 </td>
-                                <td className="uo-amount">{order.amount}</td>
                             </tr>
-                        ))}
+                        ) : orders.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} className="uo-empty-cell">
+                                    {error ? (
+                                        "Something went wrong loading orders."
+                                    ) : (
+                                        <>
+                                            No orders yet.{" "}
+                                            <button type="button" className="uo-linkish" onClick={() => navigate("/shop")}>
+                                                Visit the shop
+                                            </button>
+                                        </>
+                                    )}
+                                </td>
+                            </tr>
+                        ) : (
+                            orders.map((order) => {
+                                const first = order.items?.[0]?.product?.productName || "Items";
+                                const extra = (order.items?.length || 0) > 1 ? ` +${order.items.length - 1} more` : "";
+                                const date = order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "—";
+                                return (
+                                    <tr key={order._id}>
+                                        <td className="uo-id">{String(order._id).slice(-8).toUpperCase()}</td>
+                                        <td className="uo-item">
+                                            {first}
+                                            {extra}
+                                            {order.discountAmount > 0 && (
+                                                <span className="uo-discount"> · Discount LKR {Number(order.discountAmount).toLocaleString()}</span>
+                                            )}
+                                        </td>
+                                        <td className="uo-date">{date}</td>
+                                        <td>
+                                            <span className={`uo-status ${getStatusClass(order.orderStatus)}`}>
+                                                {normalizeOrderStatus(order.orderStatus).toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td className="uo-amount">LKR {Number(order.totalAmount).toLocaleString()}</td>
+                                    </tr>
+                                );
+                            })
+                        )}
                     </tbody>
                 </table>
             </div>
         </div>
-    )
+    );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, getCustomerToken } from "../../config/api";
+import { isOrderFeedbackEligible } from "../../utils/orderStatus";
 import "./Feedback.css";
 
 const EMPTY_FORM = { orderId: "", rating: 0, title: "", body: "" };
@@ -86,7 +87,10 @@ export default function MyReviews() {
   );
 
   const eligibleOrders = useMemo(
-    () => orders.filter((o) => o.orderStatus === "Delivered" && !feedbackOrderIds.has(String(o._id))),
+    () =>
+      orders.filter(
+        (o) => isOrderFeedbackEligible(o.orderStatus) && !feedbackOrderIds.has(String(o._id))
+      ),
     [orders, feedbackOrderIds]
   );
 
@@ -172,7 +176,7 @@ export default function MyReviews() {
         <div className="rv-top-bar">
           <div>
             <h1>My Reviews</h1>
-            <p>Share feedback on orders after they are delivered.</p>
+            <p>Share feedback on orders once they are ready for pickup.</p>
             {loadError === "signin" && (
               <p className="rv-auth-hint">
                 <button type="button" className="rv-link-btn" onClick={() => navigate("/login?return=/dashboard/feedback")}>
@@ -188,7 +192,7 @@ export default function MyReviews() {
             className="rv-add-btn"
             disabled={loadError === "signin" || dataLoading || eligibleOrders.length === 0}
             onClick={openAdd}
-            title={eligibleOrders.length === 0 ? "No delivered orders without feedback yet" : ""}
+            title={eligibleOrders.length === 0 ? "No eligible orders without feedback yet" : ""}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -206,7 +210,7 @@ export default function MyReviews() {
 
         {!dataLoading && eligibleOrders.length > 0 && myFeedback.length === 0 && (
           <p className="rv-eligible-hint">
-            You have {eligibleOrders.length} delivered order{eligibleOrders.length !== 1 ? "s" : ""} ready for feedback.
+            You have {eligibleOrders.length} order{eligibleOrders.length !== 1 ? "s" : ""} ready for feedback.
           </p>
         )}
 
@@ -236,7 +240,7 @@ export default function MyReviews() {
               </svg>
             </div>
             <h3>No reviews yet</h3>
-            <p>When an order is marked delivered, you can leave feedback here.</p>
+            <p>When an order is marked ready for pickup, you can leave feedback here.</p>
             {eligibleOrders.length > 0 && (
               <button type="button" className="rv-add-btn" onClick={openAdd}>
                 Write your first review
@@ -263,7 +267,7 @@ export default function MyReviews() {
                     <div className="rv-card-body">
                       <div className="rv-card-top">
                         <div>
-                          <span className="rv-product-category">Delivered order</span>
+                          <span className="rv-product-category">Order feedback</span>
                           <h3 className="rv-product-name">{orderItemsSummary(order)}</h3>
                           <span className="rv-product-sku">#{String(order?._id || "").slice(-8).toUpperCase()}</span>
                         </div>
@@ -277,7 +281,7 @@ export default function MyReviews() {
                       <p className="rv-review-body">{review.feedback}</p>
                       {review.staffReply && (
                         <div className="rv-staff-reply">
-                          <strong>Aurelia replied</strong>
+                          <strong>Beceff replied</strong>
                           {review.staffReplyAt && (
                             <span className="rv-staff-reply-date">{formatDate(review.staffReplyAt)}</span>
                           )}
