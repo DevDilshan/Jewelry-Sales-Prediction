@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, getCustomerInfo, getCustomerToken } from "../../config/api";
+import { normalizeOrderStatus } from "../../utils/orderStatus";
 import "./UserDashboard.css";
 
 export default function UserDashboard() {
@@ -83,8 +84,8 @@ export default function UserDashboard() {
                       </td>
                       <td className="ud-text-light">{date}</td>
                       <td>
-                        <span className={`ud-status ${(order.orderStatus || "").toLowerCase()}`}>
-                          {(order.orderStatus || "").toUpperCase()}
+                        <span className={`ud-status ${normalizeOrderStatus(order.orderStatus).toLowerCase()}`}>
+                          {normalizeOrderStatus(order.orderStatus).toUpperCase()}
                         </span>
                       </td>
                       <td className="ud-amount">LKR {Number(order.totalAmount).toLocaleString()}</td>

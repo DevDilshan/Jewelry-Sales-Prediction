@@ -4,6 +4,8 @@ import Discount from "../models/Discount.js";
 import { evaluateDiscount } from "../utils/discountMath.js";
 import { getActiveSiteWideDiscount, effectiveUnitPrice } from "../utils/sideWidePricing.js";
 
+const ALLOWED_ORDER_STATUSES = ["Pending", "Processing", "Ready"];
+
 function normalizeCoupon(code) {
   if (!code) return "";
   return String(code).trim().toUpperCase();
@@ -171,7 +173,15 @@ export const updateOrderAdmin = async (req, res) => {
     const { orderStatus, paymentStatus } = req.body;
 
     const update = {};
-    if (orderStatus) update.orderStatus = orderStatus;
+    if (orderStatus) {
+      if (!ALLOWED_ORDER_STATUSES.includes(orderStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid order status. Use Pending, Processing, or Ready.",
+        });
+      }
+      update.orderStatus = orderStatus;
+    }
     if (paymentStatus) update.paymentStatus = paymentStatus;
 
     const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true })
