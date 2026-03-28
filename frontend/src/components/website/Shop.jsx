@@ -133,6 +133,8 @@ export default function Shop() {
         setCartOpen={checkout.setCartOpen}
         cart={checkout.cart}
         setQty={checkout.setQty}
+        toggleLineSelected={checkout.toggleLineSelected}
+        hasSelectedForCheckout={checkout.hasSelectedForCheckout}
         promoInput={checkout.promoInput}
         setPromoInput={checkout.setPromoInput}
         promo={checkout.promo}

@@ -39,7 +39,7 @@ export default function Login() {
       <div className="auth-card-wrap">
         <div className="auth-card">
           <h1>Sign in</h1>
-          <p className="auth-lead">Use your Aurelia account to place takeaway orders.</p>
+          <p className="auth-lead">Use your Beceff account to place takeaway orders.</p>
           <form onSubmit={onSubmit}>
             <label className="auth-label">Email</label>
             <input className="auth-input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

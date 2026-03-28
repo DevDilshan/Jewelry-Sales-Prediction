@@ -179,7 +179,8 @@
     color: #b42318;
 }
 
-.ud-status.delivered {
+.ud-status.delivered,
+.ud-status.ready {
     background: #dcfce7;
     color: #22c55e;
 }

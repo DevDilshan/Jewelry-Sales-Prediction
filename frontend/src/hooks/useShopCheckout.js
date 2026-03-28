@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { api, getCustomerToken } from "../config/api";
 import { loadCart, saveCart } from "../utils/shopCartStorage";
 
+function lineIncluded(line) {
+  return line?.selected !== false;
+}
+
 export function useShopCheckout() {
   const navigate = useNavigate();
   const [cart, setCart] = useState(loadCart);
@@ -14,6 +18,8 @@ export function useShopCheckout() {
   const [cartOpen, setCartOpen] = useState(false);
 
   const cartCount = useMemo(() => cart.reduce((n, line) => n + line.quantity, 0), [cart]);
+
+  const hasSelectedForCheckout = useMemo(() => cart.some((line) => lineIncluded(line)), [cart]);
 
   useEffect(() => { saveCart(cart); }, [cart]);
 
@@ -33,6 +39,7 @@ export function useShopCheckout() {
   // 1. Calculate the TRUE original price of the cart (e.g., LKR 100,000)
   const baseSubtotal = useMemo(() => {
     return cart.reduce((sum, line) => {
+      if (!lineIncluded(line)) return sum;
       const p = line.product;
       const originalPrice = (p?.compareAtPrice && p.compareAtPrice > p.productPrice) ? p.compareAtPrice : (p?.productPrice || 0);
       return sum + (originalPrice * line.quantity);
@@ -42,6 +49,7 @@ export function useShopCheckout() {
   // 2. Calculate how much the active site-wide sale is saving them right now (e.g., LKR 20,000)
   const siteWideSavings = useMemo(() => {
     return cart.reduce((sum, line) => {
+      if (!lineIncluded(line)) return sum;
       const p = line.product;
       if (p?.compareAtPrice && p.compareAtPrice > p.productPrice) {
         return sum + ((p.compareAtPrice - p.productPrice) * line.quantity);
@@ -69,7 +77,7 @@ export function useShopCheckout() {
         next[i] = { ...next[i], quantity: q };
         return next;
       }
-      return [...prev, { productId: product._id, quantity: 1, product }];
+      return [...prev, { productId: product._id, quantity: 1, product, selected: true }];
     });
     setCartOpen(true);
   };
@@ -85,6 +93,16 @@ export function useShopCheckout() {
       if (q === 0) return prev.filter((l) => l.productId !== productId);
       return prev.map((l) => (l.productId === productId ? { ...l, quantity: q } : l));
     });
+  };
+
+  const toggleLineSelected = (productId) => {
+    setPromo(null);
+    setPromoMessage("");
+    setCart((prev) =>
+      prev.map((l) =>
+        l.productId === productId ? { ...l, selected: l.selected === false ? true : false } : l
+      )
+    );
   };
 
   const applyPromo = async () => {
@@ -124,9 +142,14 @@ export function useShopCheckout() {
       setCheckoutMsg("Your cart is empty.");
       return;
     }
+    const selectedLines = cart.filter((l) => lineIncluded(l));
+    if (selectedLines.length === 0) {
+      setCheckoutMsg("Tick the items you want to buy, then place your order.");
+      return;
+    }
     setBusy(true);
     try {
-      const items = cart.map((l) => ({ productId: l.productId, quantity: l.quantity }));
+      const items = selectedLines.map((l) => ({ productId: l.productId, quantity: l.quantity }));
       const body = { items };
       if (promo?.valid) {
         body.discountCoupon = promo.code || promoInput.trim();
@@ -136,8 +159,11 @@ export function useShopCheckout() {
         body,
         auth: "customer",
       });
-      setCart([]);
-      saveCart([]);
+      setCart((prev) => {
+        const next = prev.filter((l) => !lineIncluded(l));
+        saveCart(next);
+        return next;
+      });
       setPromo(null);
       setPromoInput("");
       setCheckoutMsg(res.message || "Order placed.");
@@ -150,7 +176,7 @@ export function useShopCheckout() {
   };
 
   return {
-    cart, setCart, cartOpen, setCartOpen, cartCount, addToCart, setQty,
+    cart, setCart, cartOpen, setCartOpen, cartCount, hasSelectedForCheckout, addToCart, setQty, toggleLineSelected,
     // We export the exact values the Drawer needs to display the beautiful math
     subtotal: baseSubtotal, 
     discountAmount: activeDiscountAmount, 

@@ -2,8 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import "./Orders.css";
 import { api, getStaffToken } from "../../config/api";
-
-const STATUSES = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+import { ORDER_STATUSES, normalizeOrderStatus } from "../../utils/orderStatus";
 
 function initials(c) {
   if (!c) return "?";
@@ -74,7 +73,8 @@ export default function Orders({ setActivePage }) {
       const email = (c?.email || "").toLowerCase();
       const q = searchQuery.toLowerCase();
       const matchesSearch = !q || id.includes(q) || name.includes(q) || email.includes(q);
-      const matchesStatus = statusFilter === "All" || order.orderStatus === statusFilter;
+      const matchesStatus =
+        statusFilter === "All" || normalizeOrderStatus(order.orderStatus) === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchQuery, statusFilter]);
@@ -126,7 +126,7 @@ export default function Orders({ setActivePage }) {
 
         <select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="All">All statuses</option>
-          {STATUSES.map((s) => (
+          {ORDER_STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
@@ -166,11 +166,11 @@ export default function Orders({ setActivePage }) {
                 <td>
                   <select
                     className="order-status-select"
-                    value={order.orderStatus}
+                    value={normalizeOrderStatus(order.orderStatus)}
                     disabled={updatingId === order._id || !getStaffToken()}
                     onChange={(e) => updateStatus(order._id, e.target.value)}
                   >
-                    {STATUSES.map((s) => (
+                    {ORDER_STATUSES.map((s) => (
                       <option key={s} value={s}>
                         {s}
                       </option>

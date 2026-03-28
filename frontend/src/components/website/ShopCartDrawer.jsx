@@ -7,6 +7,8 @@ export default function ShopCartDrawer({
   setCartOpen,
   cart,
   setQty,
+  toggleLineSelected,
+  hasSelectedForCheckout,
   promoInput,
   setPromoInput,
   promo,
@@ -46,27 +48,42 @@ export default function ShopCartDrawer({
             <p className="shop-cart-empty">Nothing in your cart.</p>
           ) : (
             <ul className="shop-cart-lines">
-              {cart.map((line) => (
-                <li key={line.productId}>
-                  <div>
-                    <strong>{line.product?.productName}</strong>
-                    <div className="shop-line-price">
-                      LKR {Number(line.product?.productPrice).toLocaleString()} ×{" "}
-                      <input
-                        type="number"
-                        min={1}
-                        max={line.product?.stockQuantity}
-                        value={line.quantity}
-                        onChange={(e) => setQty(line.productId, parseInt(e.target.value, 10) || 0)}
-                        className="shop-qty"
-                      />
+              {cart.map((line) => {
+                const checked = line.selected !== false;
+                return (
+                  <li key={line.productId} className={checked ? "" : "shop-cart-line--unchecked"}>
+                    <div className="shop-cart-line-inner">
+                      <label className="shop-cart-line-check-label">
+                        <input
+                          type="checkbox"
+                          className="shop-cart-line-check"
+                          checked={checked}
+                          onChange={() => toggleLineSelected(line.productId)}
+                          aria-label={`Include ${line.product?.productName || "item"} in this order`}
+                        />
+                        <span className="shop-cart-line-check-ui" aria-hidden />
+                      </label>
+                      <div className="shop-cart-line-details">
+                        <strong>{line.product?.productName}</strong>
+                        <div className="shop-line-price">
+                          LKR {Number(line.product?.productPrice).toLocaleString()} ×{" "}
+                          <input
+                            type="number"
+                            min={1}
+                            max={line.product?.stockQuantity}
+                            value={line.quantity}
+                            onChange={(e) => setQty(line.productId, parseInt(e.target.value, 10) || 0)}
+                            className="shop-qty"
+                          />
+                        </div>
+                      </div>
+                      <button type="button" className="shop-link-btn" onClick={() => setQty(line.productId, 0)}>
+                        Remove
+                      </button>
                     </div>
-                  </div>
-                  <button type="button" className="shop-link-btn" onClick={() => setQty(line.productId, 0)}>
-                    Remove
-                  </button>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
@@ -124,7 +141,7 @@ export default function ShopCartDrawer({
           <button
             type="button"
             className="shop-btn-dark shop-checkout-btn"
-            disabled={busy || cart.length === 0}
+            disabled={busy || cart.length === 0 || !hasSelectedForCheckout}
             onClick={() => placeOrder(returnPathForLogin)}
           >
             {busy ? "Please wait…" : "Place order"}
