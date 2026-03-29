@@ -15,9 +15,9 @@ function formatWhatCustomersGet(d) {
   const scope = d.promoScope === "site_wide" ? "site_wide" : "coupon";
   if (scope === "site_wide") {
     if (d.discountType === "percentage") {
-      return `${amt}% off every product's listed price in the shop`;
+      return `${amt}% off every product’s listed price in the shop`;
     }
-    return `LKR ${amt.toLocaleString()} off each product's listed price (minimum LKR 0)`;
+    return `LKR ${amt.toLocaleString()} off each product’s listed price (minimum LKR 0)`;
   }
   let base =
     d.discountType === "percentage"
@@ -115,7 +115,6 @@ export default function Discounts({ setActivePage }) {
 
   const load = () => {
     setLoadError("");
-    // Validation: Staff token must be present before fetching discounts
     if (!getStaffToken()) {
       setLoadError("staff_auth");
       setDiscounts([]);
@@ -124,7 +123,6 @@ export default function Discounts({ setActivePage }) {
     api("/discount", { auth: "staff" })
       .then((rows) => setDiscounts(Array.isArray(rows) ? rows : []))
       .catch((e) => {
-        // Validation: Handle 401 auth failure vs generic load error separately
         if (e.status === 401) setLoadError("staff_auth");
         else setLoadError(e.message || "Could not load discounts");
       });
@@ -181,7 +179,6 @@ export default function Discounts({ setActivePage }) {
   };
 
   const closeModal = () => {
-    // Validation: Prevent closing the modal while a save is in progress
     if (saving) return;
     setEditingId(null);
     setNewDiscount({ ...EMPTY_DISCOUNT_FORM });
@@ -217,14 +214,12 @@ export default function Discounts({ setActivePage }) {
 
   const handleSaveDiscount = async (e) => {
     e.preventDefault();
-    // Validation: Staff token must be present before saving
     if (!getStaffToken()) {
       setLoadError("staff_auth");
       return;
     }
 
     // NEW FRONTEND VALIDATION: Edge case handling for dates
-    // Validation: End date must not be before start date
     if (newDiscount.startDate && newDiscount.endDate) {
       const start = new Date(newDiscount.startDate);
       const end = new Date(newDiscount.endDate);
@@ -234,7 +229,6 @@ export default function Discounts({ setActivePage }) {
       }
     }
 
-    // Validation: Discount amount must be a valid number
     const amount = parseFloat(newDiscount.discountAmount);
     if (Number.isNaN(amount)) {
       alert("Enter a valid discount amount.");
@@ -281,7 +275,6 @@ export default function Discounts({ setActivePage }) {
       setShowModal(false);
       load();
     } catch (err) {
-      // Validation: Surface API-returned error message to the user on save failure
       alert(err.message || (editingId ? "Could not update discount" : "Could not create discount"));
     } finally {
       setSaving(false);
@@ -289,13 +282,11 @@ export default function Discounts({ setActivePage }) {
   };
 
   const handleDelete = async (id) => {
-    // Validation: Require explicit staff confirmation before deleting a discount
     if (!window.confirm("Delete this discount? Past orders are unchanged.")) return;
     try {
       await api(`/discount/${id}`, { method: "DELETE", auth: "staff" });
       load();
     } catch (err) {
-      // Validation: Surface API-returned error message to the user on delete failure
       alert(err.message || "Delete failed");
     }
   };
@@ -308,18 +299,16 @@ export default function Discounts({ setActivePage }) {
           <p>
             <strong>Coupon</strong> discounts use a code at checkout (off the cart subtotal). You can require a{" "}
             <strong>minimum cart subtotal</strong> in LKR and limit <strong>how many times</strong> the code can be used.{" "}
-            <strong>Site-wide</strong> discounts lower every active product's price in the shop for all visitors—no code. If
+            <strong>Site-wide</strong> discounts lower every active product’s price in the shop for all visitors—no code. If
             several site-wide rules exist, the newest active one applies. <strong>Times applied</strong> counts coupon
             checkouts only (shown as <em>used / limit</em> when a limit is set).
           </p>
         </div>
-        {/* Validation: Disable "New discount" button if staff is not authenticated */}
         <button className="create-btn" type="button" onClick={openCreateModal} disabled={!getStaffToken()}>
           + New discount
         </button>
       </div>
 
-      {/* Validation: Show staff auth banner if session is missing or expired */}
       {loadError === "staff_auth" && (
         <div className="discounts-banner">
           <p>
@@ -455,7 +444,6 @@ export default function Discounts({ setActivePage }) {
                       aria-label="Discount actions"
                       aria-expanded={actionsMenuOpenId === discount._id}
                       aria-haspopup="menu"
-                      {/* Validation: Disable actions menu if staff is not authenticated */}
                       disabled={!getStaffToken()}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -526,7 +514,6 @@ export default function Discounts({ setActivePage }) {
               <div className="form-row">
                 <div className="form-group">
                   <label>Internal name (for staff)</label>
-                  {/* Validation: discountName is required — enforced by HTML required attribute */}
                   <input
                     type="text"
                     required
@@ -554,7 +541,6 @@ export default function Discounts({ setActivePage }) {
                     setNewDiscount({
                       ...newDiscount,
                       promoScope: e.target.value,
-                      // Validation: Reset coupon-only fields when switching promo scope
                       discountCoupon: "",
                       minSubtotalLkr: "",
                       maxUses: "",
@@ -565,12 +551,10 @@ export default function Discounts({ setActivePage }) {
                   <option value="site_wide">Site-wide (all product prices in shop)</option>
                 </select>
               </div>
-              {/* Validation: Coupon-only fields are only rendered when promo scope is "coupon" */}
               {newDiscount.promoScope === "coupon" && (
                 <>
                   <div className="form-group">
                     <label>Promo code (what customers type)</label>
-                    {/* Validation: Promo code is required for coupon-scoped discounts */}
                     <input
                       type="text"
                       required
@@ -582,7 +566,6 @@ export default function Discounts({ setActivePage }) {
                   <div className="form-row">
                     <div className="form-group">
                       <label>Minimum cart subtotal (LKR) — optional</label>
-                      {/* Validation: minSubtotalLkr must be a non-negative number if provided */}
                       <input
                         type="number"
                         min={0}
@@ -594,7 +577,6 @@ export default function Discounts({ setActivePage }) {
                     </div>
                     <div className="form-group">
                       <label>Max redemptions — optional</label>
-                      {/* Validation: maxUses must be a positive integer (min 1) if provided */}
                       <input
                         type="number"
                         min={1}
@@ -627,7 +609,6 @@ export default function Discounts({ setActivePage }) {
                     ? "Percent (1–100)"
                     : "Amount (LKR)"}
                 </label>
-                {/* Validation: discountAmount is required; percentage capped at 100, fixed must be non-negative */}
                 <input
                   type="number"
                   required
@@ -650,7 +631,6 @@ export default function Discounts({ setActivePage }) {
                 </div>
                 <div className="form-group">
                   <label>Valid until (optional)</label>
-                  {/* Validation: End date is checked against start date on submit (see handleSaveDiscount) */}
                   <input
                     type="date"
                     value={newDiscount.endDate}
