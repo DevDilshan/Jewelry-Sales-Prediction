@@ -86,6 +86,7 @@ export default function MyReviews() {
     [myFeedback]
   );
 
+  // order selection validation 
   const eligibleOrders = useMemo(
     () =>
       orders.filter(
@@ -125,7 +126,7 @@ export default function MyReviews() {
       alert(err.message || "Could not delete review.");
     }
   };
-
+  // review submit validations 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.orderId || !form.rating || !form.body.trim()) return;
@@ -247,6 +248,7 @@ export default function MyReviews() {
               </button>
             )}
           </div>
+
         ) : (
           !dataLoading &&
           myFeedback.length > 0 && (
