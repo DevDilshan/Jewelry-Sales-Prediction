@@ -19,10 +19,26 @@ function formatWhatCustomersGet(d) {
     }
     return `LKR ${amt.toLocaleString()} off each product’s listed price (minimum LKR 0)`;
   }
-  if (d.discountType === "percentage") {
-    return `${amt}% off the cart subtotal (with promo code)`;
+  let base =
+    d.discountType === "percentage"
+      ? `${amt}% off the cart subtotal (promo code)`
+      : `LKR ${amt.toLocaleString()} off the cart subtotal (promo code)`;
+  const minSub = d.minSubtotalLkr != null && Number(d.minSubtotalLkr) > 0;
+  if (minSub) {
+    base += ` — min. cart LKR ${Number(d.minSubtotalLkr).toLocaleString()}`;
   }
-  return `LKR ${amt.toLocaleString()} off the cart subtotal (capped at subtotal; promo code)`;
+  const lim = d.maxUses != null && Number(d.maxUses) > 0;
+  if (lim) {
+    base += ` — limit ${Number(d.maxUses)} uses`;
+  }
+  return base;
+}
+
+function formatUsesCell(d) {
+  const n = d.timesApplied ?? 0;
+  const max = d.maxUses != null && Number(d.maxUses) > 0 ? Number(d.maxUses) : null;
+  if (d.promoScope === "site_wide" || max == null) return String(n);
+  return `${n} / ${max}`;
 }
 
 function promoScopeLabel(d) {
@@ -49,11 +65,13 @@ function toDateInputValue(iso) {
 // NEW: Added campaignTheme to the empty form state
 const EMPTY_DISCOUNT_FORM = {
   discountName: "",
-  campaignTheme: "", 
+  campaignTheme: "",
   promoScope: "coupon",
   discountCoupon: "",
   discountType: "percentage",
   discountAmount: "",
+  maxDiscountLkr: "",
+  maxUses: "",
   startDate: "",
   endDate: "",
 };
@@ -176,11 +194,14 @@ export default function Discounts({ setActivePage }) {
     setEditingId(d._id);
     setNewDiscount({
       discountName: d.discountName || "",
-      campaignTheme: d.campaignTheme === "None" ? "" : (d.campaignTheme || ""), // NEW: Load theme
+      campaignTheme: d.campaignTheme === "None" ? "" : (d.campaignTheme || ""),
       promoScope: scope,
       discountCoupon: scope === "site_wide" ? "" : (d.discountCoupon || ""),
       discountType: d.discountType === "fixed" ? "fixed" : "percentage",
       discountAmount: d.discountAmount != null && d.discountAmount !== "" ? String(d.discountAmount) : "",
+      minSubtotalLkr:
+        d.minSubtotalLkr != null && Number(d.minSubtotalLkr) > 0 ? String(d.minSubtotalLkr) : "",
+      maxUses: d.maxUses != null && Number(d.maxUses) > 0 ? String(d.maxUses) : "",
       startDate: toDateInputValue(d.startDate),
       endDate: toDateInputValue(d.endDate),
     });
@@ -223,6 +244,8 @@ export default function Discounts({ setActivePage }) {
         };
         if (newDiscount.promoScope === "coupon") {
           body.discountCoupon = newDiscount.discountCoupon.trim();
+          body.minSubtotalLkr = newDiscount.minSubtotalLkr.trim() || null;
+          body.maxUses = newDiscount.maxUses.trim() || null;
         }
         await api(`/discount/${editingId}`, { method: "PUT", body, auth: "staff" });
       } else {
@@ -235,6 +258,8 @@ export default function Discounts({ setActivePage }) {
         };
         if (newDiscount.promoScope === "coupon") {
           body.discountCoupon = newDiscount.discountCoupon.trim();
+          body.minSubtotalLkr = newDiscount.minSubtotalLkr.trim() || null;
+          body.maxUses = newDiscount.maxUses.trim() || null;
         }
         if (newDiscount.startDate) body.startDate = new Date(newDiscount.startDate).toISOString();
         if (newDiscount.endDate) body.endDate = new Date(newDiscount.endDate).toISOString();
@@ -268,9 +293,11 @@ export default function Discounts({ setActivePage }) {
         <div>
           <h1>Discounts &amp; promo codes</h1>
           <p>
-            <strong>Coupon</strong> discounts use a code at checkout (off the cart subtotal). <strong>Site-wide</strong>{" "}
-            discounts lower every active product’s price in the shop for all visitors—no code. If several site-wide rules
-            exist, the newest active one applies. <strong>Times applied</strong> counts coupon checkouts only.
+            <strong>Coupon</strong> discounts use a code at checkout (off the cart subtotal). You can require a{" "}
+            <strong>minimum cart subtotal</strong> in LKR and limit <strong>how many times</strong> the code can be used.{" "}
+            <strong>Site-wide</strong> discounts lower every active product’s price in the shop for all visitors—no code. If
+            several site-wide rules exist, the newest active one applies. <strong>Times applied</strong> counts coupon
+            checkouts only (shown as <em>used / limit</em> when a limit is set).
           </p>
         </div>
         <button className="create-btn" type="button" onClick={openCreateModal} disabled={!getStaffToken()}>
@@ -292,7 +319,7 @@ export default function Discounts({ setActivePage }) {
       {campaignStats.length > 0 && (
         <div className="discounts-banner" style={{ display: 'block', padding: '18px 24px' }}>
           <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '15px', color: '#1a1a1a' }}>
-            📊 Campaign Performance (Comparison)
+            Campaign Performance (Comparison)
           </h3>
           <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
@@ -406,7 +433,7 @@ export default function Discounts({ setActivePage }) {
                 <td>
                   <span className={`status-badge ${getStatusColor(discount._status)}`}>{discount._status}</span>
                 </td>
-                <td className="applies-cell">{discount.timesApplied ?? 0}</td>
+                <td className="applies-cell">{formatUsesCell(discount)}</td>
                 <td className="discount-actions-cell">
                   <div className="discount-actions-wrap" data-discount-actions>
                     <button
@@ -509,7 +536,13 @@ export default function Discounts({ setActivePage }) {
                 <select
                   value={newDiscount.promoScope}
                   onChange={(e) =>
-                    setNewDiscount({ ...newDiscount, promoScope: e.target.value, discountCoupon: "" })
+                    setNewDiscount({
+                      ...newDiscount,
+                      promoScope: e.target.value,
+                      discountCoupon: "",
+                      minSubtotalLkr: "",
+                      maxUses: "",
+                    })
                   }
                 >
                   <option value="coupon">Coupon (code at checkout)</option>
@@ -517,16 +550,42 @@ export default function Discounts({ setActivePage }) {
                 </select>
               </div>
               {newDiscount.promoScope === "coupon" && (
-                <div className="form-group">
-                  <label>Promo code (what customers type)</label>
-                  <input
-                    type="text"
-                    required
-                    value={newDiscount.discountCoupon}
-                    onChange={(e) => setNewDiscount({ ...newDiscount, discountCoupon: e.target.value })}
-                    placeholder="e.g. NY2025"
-                  />
-                </div>
+                <>
+                  <div className="form-group">
+                    <label>Promo code (what customers type)</label>
+                    <input
+                      type="text"
+                      required
+                      value={newDiscount.discountCoupon}
+                      onChange={(e) => setNewDiscount({ ...newDiscount, discountCoupon: e.target.value })}
+                      placeholder="e.g. NY2025"
+                    />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Minimum cart subtotal (LKR) — optional</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={newDiscount.minSubtotalLkr}
+                        onChange={(e) => setNewDiscount({ ...newDiscount, minSubtotalLkr: e.target.value })}
+                        placeholder="e.g. 50000 — code only if cart total ≥ this"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Max redemptions — optional</label>
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={newDiscount.maxUses}
+                        onChange={(e) => setNewDiscount({ ...newDiscount, maxUses: e.target.value })}
+                        placeholder="e.g. 10 — stop after N uses"
+                      />
+                    </div>
+                  </div>
+                </>
               )}
               <div className="form-group">
                 <label>Amount type</label>
