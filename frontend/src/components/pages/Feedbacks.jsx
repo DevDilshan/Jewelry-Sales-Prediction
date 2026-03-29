@@ -103,72 +103,6 @@ function RatingDonut({ counts, total }) {
   );
 }
 
-function ReplyGaugeCard({ total, pending }) {
-  const replied = Math.max(0, total - pending);
-  const pct = total > 0 ? replied / total : 0;
-
-  const SIZE = 180;
-  const STROKE = 24;
-  const RADIUS = (SIZE - STROKE) / 2;
-  const CIRCUMFERENCE = Math.PI * RADIUS;
-
-  const finalDash = pct * CIRCUMFERENCE;
-  const [dash, setDash] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDash(finalDash);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [finalDash]);
-
-  return (
-    <div className="rating-donut-card">
-      <p className="stat-title">Reply Status</p>
-      <div className="rating-donut-body">
-        <div className="reply-gauge-chart" style={{ position: 'relative', width: SIZE, height: SIZE / 2 }}>
-          <svg width={SIZE} height={SIZE / 2} viewBox={`0 0 ${SIZE} ${SIZE / 2}`}>
-            <path
-              d={`M ${STROKE / 2} ${SIZE / 2} A ${RADIUS} ${RADIUS} 0 0 1 ${SIZE - STROKE / 2} ${SIZE / 2}`}
-              fill="none"
-              stroke="#f0f0ee"
-              strokeWidth={STROKE}
-              strokeLinecap="butt"
-            />
-            {total > 0 && pct > 0 && (
-              <path
-                d={`M ${STROKE / 2} ${SIZE / 2} A ${RADIUS} ${RADIUS} 0 0 1 ${SIZE - STROKE / 2} ${SIZE / 2}`}
-                fill="none"
-                stroke="#cca538ff"
-                strokeWidth={STROKE}
-                strokeDasharray={`${dash} ${CIRCUMFERENCE}`}
-                strokeLinecap="butt"
-                style={{ transition: "stroke-dasharray 1.2s ease-out" }}
-              />
-            )}
-          </svg>
-          <div className="rating-donut-center" style={{ bottom: 0, top: 'auto', left: 0, right: 0, transform: 'translateY(12px)' }}>
-            <span className="rating-donut-total" style={{ fontSize: '15px' }}>{replied} / {total}</span>
-            <span className="rating-donut-label" style={{ marginTop: '3px', fontSize: '10px' }}>replied</span>
-          </div>
-        </div>
-        <div className="rating-donut-legend">
-          <div className="rating-donut-legend-row">
-            <span className="rating-donut-dot" style={{ background: "#cca538ff" }} />
-            <span className="rating-donut-star-label" style={{ flex: 'none', width: '60px' }}>Replied</span>
-            <span className="rating-donut-pct" style={{ minWidth: 'auto', textAlign: 'left' }}>{replied}</span>
-          </div>
-          <div className="rating-donut-legend-row" style={{ marginTop: '4px' }}>
-            <span className="rating-donut-dot" style={{ background: "#b0aca2" }} />
-            <span className="rating-donut-star-label" style={{ flex: 'none', width: '60px' }}>Awaiting</span>
-            <span className="rating-donut-pct" style={{ minWidth: 'auto', textAlign: 'left' }}>{pending}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 export default function Feedbacks({ setActivePage }) {
   useEffect(() => {
@@ -298,7 +232,12 @@ export default function Feedbacks({ setActivePage }) {
           change={`${stats.total} total reviews`}
           changeType="positive"
         />
-        <ReplyGaugeCard total={stats.total} pending={stats.pendingReply} />
+        <StatCard
+          title="Total Reviews"
+          value={String(stats.total)}
+          change={`${stats.pendingReply} awaiting reply`}
+          changeType="positive"
+        />
         <RatingDonut counts={ratingDistribution} total={list.length} />
       </div>
 
