@@ -149,6 +149,19 @@
   font-weight: 300;
 }
 
+.ps-loading {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.ps-inline-error {
+  font-size: 13px;
+  color: #b42318;
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
 /* ── Cards ── */
 .ps-card {
   background: #ffffff;
@@ -297,6 +310,18 @@
   background: #eaf5ec;
   border-color: #8ec99a;
   color: #2e7d40;
+}
+
+.ps-btn-save:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ps-btn-save:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 /* ── Responsive ── */

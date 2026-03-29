@@ -156,3 +156,113 @@ export async function deleteCustomer(req, res) {
         res.status(500).json({message: "Internal server error", error:error.message})
     }
 }
+
+function customerProfilePayload(customer) {
+  return {
+    id: customer._id,
+    firstName: customer.firstName || "",
+    lastName: customer.lastName || "",
+    email: customer.email,
+    phone: customer.phone || "",
+    address: customer.address || "",
+  };
+}
+
+/** GET /customer/me — current user (Bearer). */
+export async function getCustomerMe(req, res) {
+  try {
+    const customer = await Customer.findById(req.customerId).select("-password");
+    if (!customer) {
+      return res.status(404).json({ message: "Account not found." });
+    }
+    res.json(customerProfilePayload(customer));
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Could not load profile" });
+  }
+}
+
+/** PATCH /customer/me — update profile fields (no password). */
+export async function updateCustomerMe(req, res) {
+  try {
+    const customer = await Customer.findById(req.customerId);
+    if (!customer) {
+      return res.status(404).json({ message: "Account not found." });
+    }
+
+    const update = {};
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "firstName")) {
+      update.firstName = String(req.body.firstName ?? "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "lastName")) {
+      update.lastName = String(req.body.lastName ?? "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "phone")) {
+      update.phone = String(req.body.phone ?? "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "address")) {
+      update.address = String(req.body.address ?? "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "email")) {
+      const emailNorm = String(req.body.email ?? "").trim().toLowerCase();
+      if (!emailNorm || !emailNorm.includes("@")) {
+        return res.status(400).json({ message: "A valid email is required." });
+      }
+      if (emailNorm !== customer.email) {
+        const taken = await Customer.findOne({
+          email: emailNorm,
+          _id: { $ne: customer._id },
+        });
+        if (taken) {
+          return res.status(400).json({ message: "That email is already in use." });
+        }
+      }
+      update.email = emailNorm;
+    }
+
+    if (Object.keys(update).length === 0) {
+      const fresh = await Customer.findById(req.customerId).select("-password");
+      return res.json({ message: "No changes.", ...customerProfilePayload(fresh) });
+    }
+
+    const next = await Customer.findByIdAndUpdate(req.customerId, update, {
+      new: true,
+    }).select("-password");
+
+    res.json({ message: "Profile updated.", ...customerProfilePayload(next) });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Could not update profile" });
+  }
+}
+
+/** POST /customer/me/password — change password when signed in. */
+export async function changeCustomerPassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Current password and new password are required.",
+      });
+    }
+    const policy = validatePasswordStrength(newPassword);
+    if (!policy.ok) {
+      return res.status(400).json({ message: policy.message });
+    }
+
+    const customer = await Customer.findById(req.customerId);
+    if (!customer) {
+      return res.status(404).json({ message: "Account not found." });
+    }
+
+    const ok = await verifyPasswordMigrateLegacy(customer, currentPassword);
+    if (!ok) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    customer.password = await hashPassword(newPassword);
+    await customer.save();
+    res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Could not update password" });
+  }
+}
