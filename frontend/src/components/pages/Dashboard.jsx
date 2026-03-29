@@ -101,7 +101,12 @@ export default function Dashboard({ setActivePage }) {
               change="From completed order totals"
               changeType="positive"
             />
-            <StatCard title="TOTAL ORDERS" value={String(stats.totalOrders)} change="All-time count" changeType="positive" />
+            <StatCard
+              title="TOTAL ORDERS"
+              value={String(stats.totalOrders)}
+              change="Excludes cancelled orders"
+              changeType="positive"
+            />
             <StatCard
               title="CUSTOMER FEEDBACK"
               value={String(feedbackStats.total)}

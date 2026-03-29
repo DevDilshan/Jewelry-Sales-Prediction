@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  cancelOrderCustomer,
   deleteOrder,
   getAllOrdersAdmin,
   getMyOrders,
@@ -20,6 +21,7 @@ router.patch("/admin/:id", verifyToken, allowRoles("admin", "sales"), updateOrde
 
 router.post("/", verifyCustomerToken, placeOrder);
 router.get("/my", verifyCustomerToken, getMyOrders);
+router.patch("/:id/cancel", verifyCustomerToken, cancelOrderCustomer);
 router.get("/:id", verifyCustomerToken, getSingleOrder);
 router.delete("/:id", verifyCustomerToken, deleteOrder);
 
