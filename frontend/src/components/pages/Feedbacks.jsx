@@ -228,7 +228,7 @@ export default function Feedbacks({ setActivePage }) {
         <StatCard
           title="Average Rating"
           value={avgRating}
-          extra="★★★★★"
+          extra={avgRating === "—" ? "☆☆☆☆☆" : "★".repeat(Math.round(Number(avgRating))) + "☆".repeat(5 - Math.round(Number(avgRating)))}
           change={`${stats.total} total reviews`}
           changeType="positive"
         />

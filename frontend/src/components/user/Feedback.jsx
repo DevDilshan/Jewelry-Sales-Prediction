@@ -176,7 +176,7 @@ export default function MyReviews() {
         <div className="rv-top-bar">
           <div>
             <h1>My Reviews</h1>
-            <p>Share feedback on orders once they are ready for pickup.</p>
+            <p>Share feedback on purchased orders</p>
             {loadError === "signin" && (
               <p className="rv-auth-hint">
                 <button type="button" className="rv-link-btn" onClick={() => navigate("/login?return=/dashboard/feedback")}>
