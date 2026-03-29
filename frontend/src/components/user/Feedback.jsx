@@ -176,7 +176,7 @@ export default function MyReviews() {
         <div className="rv-top-bar">
           <div>
             <h1>My Reviews</h1>
-            <p>Share feedback on orders once they are ready for pickup.</p>
+            <p>Share feedback on purchased orders</p>
             {loadError === "signin" && (
               <p className="rv-auth-hint">
                 <button type="button" className="rv-link-btn" onClick={() => navigate("/login?return=/dashboard/feedback")}>
@@ -319,7 +319,7 @@ export default function MyReviews() {
             <form onSubmit={handleSubmit} className="rv-modal-form">
               {!editingReviewId && (
                 <div className="rv-field">
-                  <label>SELECT DELIVERED ORDER</label>
+                  <label>SELECT PURCHASED ORDER</label>
                   <div className="rv-product-grid">
                     {eligibleOrders.map((o) => {
                       const selected = form.orderId === o._id;
@@ -359,7 +359,7 @@ export default function MyReviews() {
 
               <div className="rv-field">
                 <label>
-                  REVIEW TITLE 
+                  REVIEW TITLE
                   <span style={{ textTransform: "lowercase", fontWeight: "normal", color: "#aaa" }}> (optional)</span>
                 </label>
                 <input

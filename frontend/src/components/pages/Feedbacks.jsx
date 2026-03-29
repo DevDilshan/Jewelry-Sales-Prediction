@@ -148,7 +148,7 @@ function ReplyGaugeCard({ total, pending }) {
             )}
           </svg>
           <div className="rating-donut-center" style={{ bottom: 0, top: 'auto', left: 0, right: 0, transform: 'translateY(12px)' }}>
-            <span className="rating-donut-total" style={{ fontSize: '18px' }}>{replied} / {total}</span>
+            <span className="rating-donut-total" style={{ fontSize: '15px' }}>{replied} / {total}</span>
             <span className="rating-donut-label" style={{ marginTop: '3px', fontSize: '10px' }}>replied</span>
           </div>
         </div>
@@ -294,7 +294,7 @@ export default function Feedbacks({ setActivePage }) {
         <StatCard
           title="Average Rating"
           value={avgRating}
-          extra="★★★★★"
+          extra={avgRating === "—" ? "☆☆☆☆☆" : "★".repeat(Math.round(Number(avgRating))) + "☆".repeat(5 - Math.round(Number(avgRating)))}
           change={`${stats.total} total reviews`}
           changeType="positive"
         />
