@@ -6,7 +6,7 @@
 .auth-card-wrap {
   max-width: 440px;
   margin: 0 auto;
-  padding: 100px 24px 80px;
+  padding: calc(100px + var(--coupon-banner-offset, 0px)) 24px 80px;
 }
 
 .auth-card {

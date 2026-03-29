@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { getCustomerToken } from '../../config/api'
+import CouponBanner from './CouponBanner'
 import './Navbar.css'
 
 export default function Navbar() {
@@ -17,7 +18,9 @@ export default function Navbar() {
     };
 
     return (
-        <nav className="site-navbar">
+        <header className="site-header">
+            <CouponBanner />
+            <nav className="site-navbar">
             <div className="navbar-inner">
                 <Link to="/" className="navbar-logo">
                     <div className="navbar-logo-icon">
@@ -51,6 +54,7 @@ export default function Navbar() {
                     )}
                 </div>
             </div>
-        </nav>
+            </nav>
+        </header>
     )
 }

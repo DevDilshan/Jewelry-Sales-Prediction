@@ -5,6 +5,7 @@
 }
 
 :root {
+  --coupon-banner-offset: 0px;
   --primary: #d4af37;
   --primary-dark: #b8960f;
   --dark: #1a1a1a;

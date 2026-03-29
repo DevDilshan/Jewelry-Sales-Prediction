@@ -63,7 +63,7 @@
 .shop-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 100px 32px 80px;
+  padding: calc(100px + var(--coupon-banner-offset, 0px)) 32px 80px;
 }
 
 .shop-header {

@@ -1,5 +1,5 @@
 import Discount from "../models/Discount.js";
-import { evaluateDiscount } from "../utils/discountMath.js";
+import { evaluateDiscount, discountIsScheduleActive } from "../utils/discountMath.js";
 
 function normalizeCoupon(code) {
   return String(code || "").trim().toUpperCase();
@@ -78,6 +78,33 @@ export async function viewDiscount(req, res) {
     res.status(200).json(discounts);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+}
+
+/** Public storefront: coupon promos that are in schedule and not sold out (no auth). */
+export async function listPublicActiveCoupons(req, res) {
+  try {
+    const rows = await Discount.find({ promoScope: "coupon" }).lean();
+    const active = rows.filter((d) => {
+      if (!discountIsScheduleActive(d)) return false;
+      const maxUses = d.maxUses;
+      if (maxUses != null && maxUses > 0) {
+        const used = Number(d.timesApplied) || 0;
+        if (used >= maxUses) return false;
+      }
+      return true;
+    });
+    const payload = active.map((d) => ({
+      code: d.discountCoupon,
+      discountType: d.discountType,
+      discountAmount: d.discountAmount,
+      name: d.discountName,
+      minSubtotalLkr: d.minSubtotalLkr ?? null,
+      endDate: d.endDate ?? null,
+    }));
+    res.status(200).json(payload);
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Could not load promotions" });
   }
 }
 
