@@ -34,13 +34,27 @@ export function evaluateDiscount(discount, subtotal) {
     return { ok: false, message: sched };
   }
 
-  // --- Minimum subtotal check ---
-  const minSub = Number(discount.minSubtotal);
+  // --- Minimum subtotal (admin sends minSubtotalLkr; DB field is minSubtotal) ---
+  const rawMin = discount.minSubtotalLkr ?? discount.minSubtotal;
+  const minSub = Number(rawMin);
   if (!Number.isNaN(minSub) && minSub > 0 && subtotal < minSub) {
+    const subStr = subtotal.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const minStr = minSub.toLocaleString(undefined, { maximumFractionDigits: 2 });
     return {
       ok: false,
-      message: `A minimum cart value of LKR ${minSub.toLocaleString()} is required to use this coupon.`,
+      message: `This code needs a minimum order of LKR ${minStr}. Your cart subtotal is LKR ${subStr}.`,
     };
+  }
+
+  const isCoupon = discount.promoScope !== "site_wide";
+  if (isCoupon) {
+    const maxUses = discount.maxUses;
+    if (maxUses != null && maxUses > 0) {
+      const used = Number(discount.timesApplied) || 0;
+      if (used >= maxUses) {
+        return { ok: false, message: "This promo code has reached its usage limit." };
+      }
+    }
   }
 
   // --- Discount calculation ---

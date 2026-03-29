@@ -66,26 +66,14 @@ export async function createDiscount(req, res) {
       }
     }
 
-    // --- minSubtotal: optional, must be a non-negative number if provided ---
-    if (body.minSubtotal !== undefined && body.minSubtotal !== null && body.minSubtotal !== "") {
-      const minSub = Number(body.minSubtotal);
-      if (Number.isNaN(minSub) || minSub < 0) {
-        return res
-          .status(400)
-          .json({ message: "Minimum subtotal must be a non-negative number." });
-      }
-      body.minSubtotal = minSub;
-    } else {
-      body.minSubtotal = null; // no minimum
-    }
-
     if (scope === "coupon") {
-      body.minSubtotalLkr = parseOptionalPositiveNumber(body.minSubtotalLkr);
+      body.minSubtotal = parseOptionalPositiveNumber(body.minSubtotalLkr);
       body.maxUses = parseOptionalMaxUses(body.maxUses);
     } else {
-      body.minSubtotalLkr = null;
+      body.minSubtotal = null;
       body.maxUses = null;
     }
+    delete body.minSubtotalLkr;
 
     const discount = await Discount.create(body);
     res.status(201).json(discount);
@@ -123,7 +111,7 @@ export async function listPublicActiveCoupons(req, res) {
       discountType: d.discountType,
       discountAmount: d.discountAmount,
       name: d.discountName,
-      minSubtotalLkr: d.minSubtotalLkr ?? null,
+      minSubtotalLkr: d.minSubtotalLkr ?? d.minSubtotal ?? null,
       endDate: d.endDate ?? null,
     }));
     res.status(200).json(payload);
@@ -215,7 +203,6 @@ export async function updateDiscount(req, res) {
       discountCoupon: couponRaw,
       startDate: startDateRaw,
       endDate: endDateRaw,
-      minSubtotal: minSubtotalRaw,
     } = req.body;
 
     const promoScope = scopeRaw === "site_wide" ? "site_wide" : "coupon";
@@ -257,25 +244,6 @@ export async function updateDiscount(req, res) {
         .json({ message: "End date cannot be before the start date." });
     }
 
-    // --- minSubtotal update ---
-    if (Object.prototype.hasOwnProperty.call(req.body, "minSubtotal")) {
-      if (
-        minSubtotalRaw === null ||
-        minSubtotalRaw === undefined ||
-        minSubtotalRaw === ""
-      ) {
-        update.minSubtotal = null;
-      } else {
-        const minSub = Number(minSubtotalRaw);
-        if (Number.isNaN(minSub) || minSub < 0) {
-          return res.status(400).json({
-            message: "Minimum subtotal must be a non-negative number.",
-          });
-        }
-        update.minSubtotal = minSub;
-      }
-    }
-
     let coupon = existing.discountCoupon;
 
     if (promoScope === "site_wide") {
@@ -303,6 +271,18 @@ export async function updateDiscount(req, res) {
     }
 
     update.discountCoupon = coupon;
+
+    if (promoScope === "site_wide") {
+      update.minSubtotal = null;
+      update.maxUses = null;
+    } else {
+      if (Object.prototype.hasOwnProperty.call(req.body, "minSubtotalLkr")) {
+        update.minSubtotal = parseOptionalPositiveNumber(req.body.minSubtotalLkr);
+      }
+      if (Object.prototype.hasOwnProperty.call(req.body, "maxUses")) {
+        update.maxUses = parseOptionalMaxUses(req.body.maxUses);
+      }
+    }
 
     const discount = await Discount.findByIdAndUpdate(
       req.params.id,

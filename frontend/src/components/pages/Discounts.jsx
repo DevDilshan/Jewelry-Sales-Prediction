@@ -23,9 +23,10 @@ function formatWhatCustomersGet(d) {
     d.discountType === "percentage"
       ? `${amt}% off the cart subtotal (promo code)`
       : `LKR ${amt.toLocaleString()} off the cart subtotal (promo code)`;
-  const minSub = d.minSubtotalLkr != null && Number(d.minSubtotalLkr) > 0;
+  const minVal = d.minSubtotalLkr ?? d.minSubtotal;
+  const minSub = minVal != null && Number(minVal) > 0;
   if (minSub) {
-    base += ` — min. cart LKR ${Number(d.minSubtotalLkr).toLocaleString()}`;
+    base += ` — min. cart LKR ${Number(minVal).toLocaleString()}`;
   }
   const lim = d.maxUses != null && Number(d.maxUses) > 0;
   if (lim) {
@@ -70,6 +71,7 @@ const EMPTY_DISCOUNT_FORM = {
   discountCoupon: "",
   discountType: "percentage",
   discountAmount: "",
+  minSubtotalLkr: "",
   maxDiscountLkr: "",
   maxUses: "",
   startDate: "",
@@ -199,8 +201,10 @@ export default function Discounts({ setActivePage }) {
       discountCoupon: scope === "site_wide" ? "" : (d.discountCoupon || ""),
       discountType: d.discountType === "fixed" ? "fixed" : "percentage",
       discountAmount: d.discountAmount != null && d.discountAmount !== "" ? String(d.discountAmount) : "",
-      minSubtotalLkr:
-        d.minSubtotalLkr != null && Number(d.minSubtotalLkr) > 0 ? String(d.minSubtotalLkr) : "",
+      minSubtotalLkr: (() => {
+        const v = d.minSubtotalLkr ?? d.minSubtotal;
+        return v != null && Number(v) > 0 ? String(v) : "";
+      })(),
       maxUses: d.maxUses != null && Number(d.maxUses) > 0 ? String(d.maxUses) : "",
       startDate: toDateInputValue(d.startDate),
       endDate: toDateInputValue(d.endDate),
