@@ -1,5 +1,5 @@
 import Discount from "../models/Discount.js";
-import { evaluateDiscount } from "../utils/discountMath.js";
+import { evaluateDiscount, discountIsScheduleActive } from "../utils/discountMath.js";
 
 function normalizeCoupon(code) {
   return String(code || "").trim().toUpperCase();
@@ -11,42 +11,80 @@ function generateSiteWideCode() {
   return `SW-${t}-${r}`;
 }
 
+function parseOptionalPositiveNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  if (Number.isNaN(n) || n <= 0) return null;
+  return n;
+}
+
+function parseOptionalMaxUses(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = parseInt(String(value), 10);
+  if (Number.isNaN(n) || n < 1) return null;
+  return n;
+}
+
 export async function createDiscount(req, res) {
   try {
     const body = { ...req.body };
     const scope = body.promoScope === "site_wide" ? "site_wide" : "coupon";
     body.promoScope = scope;
 
-    body.campaignTheme = body.campaignTheme && String(body.campaignTheme).trim() !== ""
+    body.campaignTheme =
+      body.campaignTheme && String(body.campaignTheme).trim() !== ""
         ? String(body.campaignTheme).trim()
         : "None";
 
+    // Validation: Coupon code required and unique for coupon-scoped discounts
     if (scope === "coupon") {
       if (!body.discountCoupon || !String(body.discountCoupon).trim()) {
-        return res.status(400).json({ message: "Promo code is required for coupon discounts." });
+        return res
+          .status(400)
+          .json({ message: "Promo code is required for coupon discounts." });
       }
       body.discountCoupon = normalizeCoupon(body.discountCoupon);
-      
-      const existingCode = await Discount.findOne({ discountCoupon: body.discountCoupon });
+
+      const existingCode = await Discount.findOne({
+        discountCoupon: body.discountCoupon,
+      });
       if (existingCode) {
-        return res.status(400).json({ message: "This promo code already exists. Please choose another." });
+        return res.status(400).json({
+          message: "This promo code already exists. Please choose another.",
+        });
       }
     } else {
+      // Auto-generate a unique code for site-wide discounts
       body.discountCoupon = generateSiteWideCode();
     }
 
+    // Validation: End date must not be before start date
     if (body.startDate && body.endDate) {
       const start = new Date(body.startDate);
       const end = new Date(body.endDate);
       if (end < start) {
-        return res.status(400).json({ message: "End date cannot be before the start date." });
+        return res
+          .status(400)
+          .json({ message: "End date cannot be before the start date." });
       }
     }
+
+    // Validation: Parse and assign optional coupon-only fields (minSubtotal, maxUses)
+    if (scope === "coupon") {
+      body.minSubtotal = parseOptionalPositiveNumber(body.minSubtotalLkr);
+      body.maxUses = parseOptionalMaxUses(body.maxUses);
+    } else {
+      body.minSubtotal = null;
+      body.maxUses = null;
+    }
+    delete body.minSubtotalLkr;
 
     const discount = await Discount.create(body);
     res.status(201).json(discount);
   } catch (error) {
-    res.status(500).json({ message: error.message || "Could not create discount" });
+    res
+      .status(500)
+      .json({ message: error.message || "Could not create discount" });
   }
 }
 
@@ -59,52 +97,87 @@ export async function viewDiscount(req, res) {
   }
 }
 
+/** Public storefront: coupon promos that are in schedule and not sold out (no auth). */
+export async function listPublicActiveCoupons(req, res) {
+  try {
+    const rows = await Discount.find({ promoScope: "coupon" }).lean();
+    const active = rows.filter((d) => {
+      if (!discountIsScheduleActive(d)) return false;
+      const maxUses = d.maxUses;
+      if (maxUses != null && maxUses > 0) {
+        const used = Number(d.timesApplied) || 0;
+        if (used >= maxUses) return false;
+      }
+      return true;
+    });
+    const payload = active.map((d) => ({
+      code: d.discountCoupon,
+      discountType: d.discountType,
+      discountAmount: d.discountAmount,
+      name: d.discountName,
+      minSubtotalLkr: d.minSubtotalLkr ?? d.minSubtotal ?? null,
+      endDate: d.endDate ?? null,
+    }));
+    res.status(200).json(payload);
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Could not load promotions" });
+  }
+}
+
 export async function validateCoupon(req, res) {
   try {
-    // --- BEST DEAL ALGORITHM ---
-    // We now take the 'baseSubtotal' (e.g., LKR 100,000) and the site-wide savings (e.g., LKR 20,000)
     const { code, baseSubtotal, siteWideSavings = 0 } = req.body;
     const coupon = normalizeCoupon(code);
-    
-    if (!coupon) return res.status(400).json({ valid: false, message: "Enter a promo code" });
 
+    // Validation: Coupon code must be provided
+    if (!coupon)
+      return res
+        .status(400)
+        .json({ valid: false, message: "Enter a promo code" });
+
+    // Validation: Coupon must exist and must not be a site-wide code
     const discount = await Discount.findOne({ discountCoupon: coupon });
     if (!discount || discount.promoScope === "site_wide") {
-      return res.status(200).json({ valid: false, message: "Invalid promo code" });
+      return res
+        .status(200)
+        .json({ valid: false, message: "Invalid promo code" });
     }
 
     const sub = Math.max(0, Number(baseSubtotal) || 0);
 
-    // Evaluate the coupon against the TRUE ORIGINAL PRICE (LKR 100,000)
+    // Validation: Evaluate coupon against subtotal (includes minSubtotal check)
     const result = evaluateDiscount(discount, sub);
-
     if (!result.ok) {
       return res.status(200).json({ valid: false, message: result.message });
     }
 
-    const couponSavingsAmount = Number(result.discountAmount); // e.g., LKR 30,000
+    const couponSavingsAmount = Number(result.discountAmount);
 
-    // If the site-wide sale is better than the coupon, stop them!
+    // Validation: Best deal algorithm — reject coupon if site-wide sale is already better
     if (couponSavingsAmount <= siteWideSavings && siteWideSavings > 0) {
-      return res.status(200).json({ 
-        valid: false, 
-        message: `You already have the best deal! The current sale saves you LKR ${siteWideSavings.toLocaleString()}, but this coupon only saves LKR ${couponSavingsAmount.toLocaleString()}.` 
+      return res.status(200).json({
+        valid: false,
+        message: `You already have the best deal! The current sale saves you LKR ${siteWideSavings.toLocaleString()}, but this coupon only saves LKR ${couponSavingsAmount.toLocaleString()}.`,
       });
     }
 
-    // If the coupon is better (30k > 20k), we apply it to the base price!
-    const totalAfter = Math.max(0, Math.round((sub - couponSavingsAmount) * 100) / 100);
+    // Coupon is better than site-wide — apply it to the base price
+    const totalAfter = Math.max(
+      0,
+      Math.round((sub - couponSavingsAmount) * 100) / 100
+    );
 
     res.status(200).json({
       valid: true,
       discountType: discount.discountType,
-      discountAmount: couponSavingsAmount, 
+      discountAmount: couponSavingsAmount,
       subtotal: sub,
       totalAfter: totalAfter,
       code: discount.discountCoupon,
-      message: siteWideSavings > 0 
-        ? "Awesome! This coupon overrides the site-wide sale to give you an even better deal." 
-        : "Coupon applied successfully!"
+      message:
+        siteWideSavings > 0
+          ? "Awesome! This coupon overrides the site-wide sale to give you an even better deal."
+          : "Coupon applied successfully!",
     });
   } catch (error) {
     res.status(500).json({ valid: false, message: error.message });
@@ -120,24 +193,42 @@ function parseOptionalDate(value) {
 
 export async function updateDiscount(req, res) {
   try {
+    // Validation: Discount must exist before updating
     const existing = await Discount.findById(req.params.id);
-    if (!existing) return res.status(404).json({ message: "Discount not found" });
+    if (!existing)
+      return res.status(404).json({ message: "Discount not found" });
 
     const {
-      discountName, campaignTheme, promoScope: scopeRaw, discountType,
-      discountAmount, discountCoupon: couponRaw, startDate: startDateRaw, endDate: endDateRaw      
+      discountName,
+      campaignTheme,
+      promoScope: scopeRaw,
+      discountType,
+      discountAmount,
+      discountCoupon: couponRaw,
+      startDate: startDateRaw,
+      endDate: endDateRaw,
     } = req.body;
 
     const promoScope = scopeRaw === "site_wide" ? "site_wide" : "coupon";
 
     const update = {
       promoScope,
-      discountType: discountType === "percentage" || discountType === "fixed" ? discountType : existing.discountType,
-      discountAmount: discountAmount != null && !Number.isNaN(Number(discountAmount)) ? Number(discountAmount) : existing.discountAmount,
-      campaignTheme: campaignTheme != null && String(campaignTheme).trim() !== "" ? String(campaignTheme).trim() : existing.campaignTheme,
+      discountType:
+        discountType === "percentage" || discountType === "fixed"
+          ? discountType
+          : existing.discountType,
+      discountAmount:
+        discountAmount != null && !Number.isNaN(Number(discountAmount))
+          ? Number(discountAmount)
+          : existing.discountAmount,
+      campaignTheme:
+        campaignTheme != null && String(campaignTheme).trim() !== ""
+          ? String(campaignTheme).trim()
+          : existing.campaignTheme,
     };
 
-    if (discountName != null && String(discountName).trim()) update.discountName = String(discountName).trim();
+    if (discountName != null && String(discountName).trim())
+      update.discountName = String(discountName).trim();
 
     let parsedStart = existing.startDate;
     let parsedEnd = existing.endDate;
@@ -151,41 +242,80 @@ export async function updateDiscount(req, res) {
       update.endDate = parsedEnd;
     }
 
+    // Validation: End date must not be before start date
     if (parsedStart && parsedEnd && parsedEnd < parsedStart) {
-      return res.status(400).json({ message: "End date cannot be before the start date." });
+      return res
+        .status(400)
+        .json({ message: "End date cannot be before the start date." });
     }
 
     let coupon = existing.discountCoupon;
 
     if (promoScope === "site_wide") {
+      // Auto-generate a new site-wide code if scope is being switched
       if (existing.promoScope !== "site_wide") coupon = generateSiteWideCode();
     } else {
       const trimmed = couponRaw != null ? String(couponRaw).trim() : "";
       if (!trimmed) {
-        if (existing.promoScope !== "coupon") return res.status(400).json({ message: "Promo code is required when switching to a coupon discount." });
+        // Validation: Coupon code required when switching to coupon scope
+        if (existing.promoScope !== "coupon")
+          return res.status(400).json({
+            message:
+              "Promo code is required when switching to a coupon discount.",
+          });
         coupon = existing.discountCoupon;
       } else {
         coupon = normalizeCoupon(trimmed);
-        const clash = await Discount.findOne({ discountCoupon: coupon, _id: { $ne: existing._id } });
-        if (clash) return res.status(400).json({ message: "Another discount already uses this code." });
+        // Validation: Updated coupon code must not clash with another existing discount
+        const clash = await Discount.findOne({
+          discountCoupon: coupon,
+          _id: { $ne: existing._id },
+        });
+        if (clash)
+          return res.status(400).json({
+            message: "Another discount already uses this code.",
+          });
       }
     }
 
     update.discountCoupon = coupon;
 
-    const discount = await Discount.findByIdAndUpdate(req.params.id, update, { new: true });
+    // Validation: Parse and assign optional coupon-only fields (minSubtotal, maxUses)
+    if (promoScope === "site_wide") {
+      update.minSubtotal = null;
+      update.maxUses = null;
+    } else {
+      if (Object.prototype.hasOwnProperty.call(req.body, "minSubtotalLkr")) {
+        update.minSubtotal = parseOptionalPositiveNumber(req.body.minSubtotalLkr);
+      }
+      if (Object.prototype.hasOwnProperty.call(req.body, "maxUses")) {
+        update.maxUses = parseOptionalMaxUses(req.body.maxUses);
+      }
+    }
+
+    const discount = await Discount.findByIdAndUpdate(
+      req.params.id,
+      update,
+      { new: true }
+    );
     res.status(200).json(discount);
   } catch (error) {
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 }
 
 export async function deleteDiscount(req, res) {
   try {
+    // Validation: Discount must exist before deleting
     const discount = await Discount.findByIdAndDelete(req.params.id);
-    if (!discount) return res.status(404).json({ message: "Discount not found" });
+    if (!discount)
+      return res.status(404).json({ message: "Discount not found" });
     res.status(200).json({ message: "Discount deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 }

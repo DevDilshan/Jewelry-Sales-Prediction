@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import Navbar from "../website/Navbar";
 import { api, setCustomerAuth } from "../../config/api";
 import "./AuthPages.css";
@@ -8,6 +8,8 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const ret = searchParams.get("return") || "/dashboard";
   const navigate = useNavigate();
+  const location = useLocation();
+  const resetSuccess = location.state?.resetSuccess;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -40,11 +42,21 @@ export default function Login() {
         <div className="auth-card">
           <h1>Sign in</h1>
           <p className="auth-lead">Use your Beceff account to place takeaway orders.</p>
+          {resetSuccess && (
+            <p className="auth-success" role="status">
+              Your password was reset. Sign in with your new password.
+            </p>
+          )}
           <form onSubmit={onSubmit}>
             <label className="auth-label">Email</label>
             <input className="auth-input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             <label className="auth-label">Password</label>
             <input className="auth-input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <p className="auth-forgot-inline">
+              <Link to={`/forgot-password?return=${encodeURIComponent(ret.startsWith("/") ? ret : `/${ret}`)}`}>
+                Forgot password?
+              </Link>
+            </p>
             {error && <p className="auth-error">{error}</p>}
             <button type="submit" className="auth-submit" disabled={busy}>
               {busy ? "Signing in…" : "Sign in"}

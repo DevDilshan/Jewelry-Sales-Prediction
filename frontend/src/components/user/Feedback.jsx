@@ -319,7 +319,7 @@ export default function MyReviews() {
             <form onSubmit={handleSubmit} className="rv-modal-form">
               {!editingReviewId && (
                 <div className="rv-field">
-                  <label>SELECT PURCHASED ORDER</label>
+                  <label>SELECT DELIVERED ORDER</label>
                   <div className="rv-product-grid">
                     {eligibleOrders.map((o) => {
                       const selected = form.orderId === o._id;
@@ -359,7 +359,7 @@ export default function MyReviews() {
 
               <div className="rv-field">
                 <label>
-                  REVIEW TITLE
+                  REVIEW TITLE 
                   <span style={{ textTransform: "lowercase", fontWeight: "normal", color: "#aaa" }}> (optional)</span>
                 </label>
                 <input

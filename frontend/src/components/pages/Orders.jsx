@@ -167,7 +167,11 @@ export default function Orders({ setActivePage }) {
                   <select
                     className="order-status-select"
                     value={normalizeOrderStatus(order.orderStatus)}
-                    disabled={updatingId === order._id || !getStaffToken()}
+                    disabled={
+                      updatingId === order._id ||
+                      !getStaffToken() ||
+                      normalizeOrderStatus(order.orderStatus) === "Cancelled"
+                    }
                     onChange={(e) => updateStatus(order._id, e.target.value)}
                   >
                     {ORDER_STATUSES.map((s) => (
@@ -177,7 +181,6 @@ export default function Orders({ setActivePage }) {
                     ))}
                   </select>
                   <div className="order-payment-hint">
-                    Payment: {order.paymentStatus}
                     {order.discountAmount > 0 && (
                       <span className="order-discount-tag"> · Discount LKR {Number(order.discountAmount).toLocaleString()}</span>
                     )}
