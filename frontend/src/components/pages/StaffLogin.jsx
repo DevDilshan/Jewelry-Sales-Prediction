@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { api, setStaffAuth } from "../../config/api";
 import PasswordToggleButton from "../PasswordToggleButton";
 import "./AuthPages.css";
@@ -8,6 +8,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function StaffLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const resetSuccess = location.state?.resetSuccess;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -54,6 +56,11 @@ export default function StaffLogin() {
         <div className="auth-card">
           <h1>Staff sign in</h1>
           <p className="auth-lead">Sign in to manage products, discounts, and orders.</p>
+          {resetSuccess && (
+            <p className="auth-success" role="status">
+              Your password was reset. Sign in with your new password.
+            </p>
+          )}
           <form onSubmit={onSubmit} noValidate>
             <label className="auth-label" htmlFor="staff-login-email">
               Work email
@@ -88,6 +95,9 @@ export default function StaffLogin() {
               <PasswordToggleButton visible={showPassword} onToggle={() => setShowPassword((v) => !v)} disabled={busy} />
             </div>
             {fieldErrors.password && <p className="auth-field-error">{fieldErrors.password}</p>}
+            <p className="auth-forgot-inline">
+              <Link to="/admin/forgot-password">Forgot password?</Link>
+            </p>
             {error && <p className="auth-error">{error}</p>}
             <button type="submit" className="auth-submit" disabled={busy}>
               {busy ? "Signing in…" : "Sign in to admin"}

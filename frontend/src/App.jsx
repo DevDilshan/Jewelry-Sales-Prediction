@@ -17,6 +17,10 @@ import Login from './components/pages/Login'
 import Register from './components/pages/Register'
 import StaffLogin from './components/pages/StaffLogin'
 import StaffSetup from './components/pages/StaffSetup'
+import StaffForgotPassword from './components/pages/StaffForgotPassword'
+import StaffResetPassword from './components/pages/StaffResetPassword'
+import CustomerForgotPassword from './components/pages/CustomerForgotPassword'
+import CustomerResetPassword from './components/pages/CustomerResetPassword'
 import UserDashboard from './components/user/UserDashboard'
 import UserOrders from './components/user/UserOrders'
 import UserSidebar from './components/user/UserSidebar'
@@ -35,10 +39,13 @@ export default function App() {
 function AppContent() {
   const [activePage, setActivePage] = useState('dashboard')
   const location = useLocation()
-  const isAdminShell =
-    location.pathname.startsWith('/admin') &&
-    location.pathname !== '/admin/login' &&
-    location.pathname !== '/admin/setup-first'
+  const path = location.pathname
+  const isPublicAdminAuth =
+    path === '/admin/login' ||
+    path === '/admin/setup-first' ||
+    path === '/admin/forgot-password' ||
+    path === '/admin/reset-password'
+  const isAdminShell = path.startsWith('/admin') && !isPublicAdminAuth
 
   return (
     <div className="app-container">
@@ -90,6 +97,8 @@ function AppContent() {
             </StaffGuard>
           } />
           <Route path="/admin/login" element={<StaffLogin />} />
+          <Route path="/admin/forgot-password" element={<StaffForgotPassword />} />
+          <Route path="/admin/reset-password" element={<StaffResetPassword />} />
           <Route path="/admin/setup-first" element={<StaffSetup />} />
 
           {/* Public */}
@@ -97,6 +106,8 @@ function AppContent() {
           <Route path="/shop/product/:productId" element={<ShopProductPage />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<CustomerForgotPassword />} />
+          <Route path="/reset-password" element={<CustomerResetPassword />} />
           <Route path="/register" element={<Register />} />
 
           {/* Customer dashboard */}

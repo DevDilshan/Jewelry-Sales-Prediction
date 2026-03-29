@@ -4,7 +4,23 @@ import Discount from "../models/Discount.js";
 import { evaluateDiscount } from "../utils/discountMath.js";
 import { getActiveSiteWideDiscount, effectiveUnitPrice } from "../utils/sideWidePricing.js";
 
-const ALLOWED_ORDER_STATUSES = ["Pending", "Processing", "Ready"];
+const ALLOWED_ORDER_STATUSES = ["Pending", "Processing", "Ready", "Cancelled"];
+
+/** Restore inventory and undo coupon redemption when an order is cancelled. */
+async function applyOrderCancellationSideEffects(order) {
+  for (const line of order.items) {
+    const pid = line.product?._id || line.product;
+    if (pid) {
+      await Product.findByIdAndUpdate(pid, { $inc: { stockQuantity: line.quantity } });
+    }
+  }
+  if (order.discountId) {
+    await Discount.updateOne(
+      { _id: order.discountId, timesApplied: { $gt: 0 } },
+      { $inc: { timesApplied: -1 } }
+    );
+  }
+}
 
 function normalizeCoupon(code) {
   if (!code) return "";
@@ -172,27 +188,50 @@ export const updateOrderAdmin = async (req, res) => {
   try {
     const { orderStatus, paymentStatus } = req.body;
 
-    const update = {};
-    if (orderStatus) {
-      if (!ALLOWED_ORDER_STATUSES.includes(orderStatus)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid order status. Use Pending, Processing, or Ready.",
-        });
-      }
-      update.orderStatus = orderStatus;
-    }
-    if (paymentStatus) update.paymentStatus = paymentStatus;
-
-    const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true })
-      .populate("customer", "firstName lastName email")
-      .populate("items.product");
-
-    if (!order) {
+    const existing = await Order.findById(req.params.id);
+    if (!existing) {
       return res.status(404).json({
         success: false,
         message: "Order not found",
       });
+    }
+
+    const update = {};
+
+    if (orderStatus !== undefined && orderStatus !== null && String(orderStatus).trim() !== "") {
+      const next = String(orderStatus).trim();
+      if (next !== existing.orderStatus) {
+        if (!ALLOWED_ORDER_STATUSES.includes(next)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid order status.",
+          });
+        }
+        if (existing.orderStatus === "Cancelled") {
+          return res.status(400).json({
+            success: false,
+            message: "Cannot change status of a cancelled order.",
+          });
+        }
+        if (next === "Cancelled") {
+          await applyOrderCancellationSideEffects(existing);
+        }
+        update.orderStatus = next;
+      }
+    }
+    if (paymentStatus !== undefined && paymentStatus !== null && String(paymentStatus).trim() !== "") {
+      update.paymentStatus = String(paymentStatus).trim();
+    }
+
+    let order;
+    if (Object.keys(update).length === 0) {
+      order = await Order.findById(req.params.id)
+        .populate("customer", "firstName lastName email")
+        .populate("items.product");
+    } else {
+      order = await Order.findByIdAndUpdate(req.params.id, update, { new: true })
+        .populate("customer", "firstName lastName email")
+        .populate("items.product");
     }
 
     res.json({
@@ -205,9 +244,41 @@ export const updateOrderAdmin = async (req, res) => {
   }
 };
 
+export const cancelOrderCustomer = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    if (String(order.customer) !== String(req.customerId)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+    if (order.orderStatus !== "Pending") {
+      return res.status(400).json({
+        success: false,
+        message: "You can only cancel orders that are still pending.",
+      });
+    }
+
+    await applyOrderCancellationSideEffects(order);
+    order.orderStatus = "Cancelled";
+    await order.save();
+
+    const populated = await Order.findById(order._id).populate("items.product");
+    res.json({
+      success: true,
+      message: "Order cancelled. Stock has been released.",
+      data: populated,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getOrderStatsAdmin = async (req, res) => {
   try {
     const agg = await Order.aggregate([
+      { $match: { orderStatus: { $ne: "Cancelled" } } },
       {
         $group: {
           _id: null,
