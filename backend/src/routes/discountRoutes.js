@@ -2,6 +2,7 @@ import express from "express";
 import {
   createDiscount,
   deleteDiscount,
+  listPublicActiveCoupons,
   updateDiscount,
   viewDiscount,
   validateCoupon,
@@ -13,7 +14,8 @@ import { allowRoles } from "../middlewares/staffRoleMiddleware.js";
 
 const router = express.Router();
 
-// Public route for the storefront checkout
+// Public storefront
+router.get("/public/active-coupons", listPublicActiveCoupons);
 router.post("/validate", validateCoupon);
 
 // Protected routes for the Admin Dashboard

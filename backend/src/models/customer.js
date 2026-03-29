@@ -21,7 +21,17 @@ const customerSchema = new Schema({
     password: {
         type:String,
         required: true
-    }
+    },
+    resetToken: {
+        type: String,
+        default: null,
+        sparse: true,
+        index: true,
+    },
+    resetTokenExpiry: {
+        type: Date,
+        default: null,
+    },
 }, {timestamps: true})
 
 const Customer = mongoose.model("Customer", customerSchema);
