@@ -8,6 +8,7 @@ export default function UserOrders() {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [error, setError] = useState("");
+    const [cancellingId, setCancellingId] = useState(null);
 
     useEffect(() => {
         if (!getCustomerToken()) {
@@ -26,11 +27,28 @@ export default function UserOrders() {
             const n = normalizeOrderStatus(o.orderStatus);
             return n === "Pending" || n === "Processing";
         }).length;
-        const spent = orders.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
+        const spent = orders.reduce((s, o) => {
+            if (normalizeOrderStatus(o.orderStatus) === "Cancelled") return s;
+            return s + (Number(o.totalAmount) || 0);
+        }, 0);
         return { total, ready, inProgress, spent };
     }, [orders]);
 
     const getStatusClass = (status) => normalizeOrderStatus(status).toLowerCase();
+
+    const cancelOrder = async (orderId) => {
+        if (!window.confirm("Cancel this order? Items go back in stock.")) return;
+        setCancellingId(orderId);
+        try {
+            const res = await api(`/order/${orderId}/cancel`, { method: "PATCH", auth: "customer" });
+            const updated = res.data;
+            setOrders((prev) => prev.map((o) => (o._id === orderId ? updated : o)));
+        } catch (e) {
+            alert(e.message || "Could not cancel order.");
+        } finally {
+            setCancellingId(null);
+        }
+    };
 
     return (
         <div className="user-orders-page">
@@ -78,18 +96,19 @@ export default function UserOrders() {
                             <th>DATE</th>
                             <th>STATUS</th>
                             <th>AMOUNT</th>
+                            <th aria-label="Actions" />
                         </tr>
                     </thead>
                     <tbody>
                         {error === "signin" ? (
                             <tr>
-                                <td colSpan={5} className="uo-empty-cell">
+                                <td colSpan={6} className="uo-empty-cell">
                                     Sign in to see your order history.
                                 </td>
                             </tr>
                         ) : orders.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="uo-empty-cell">
+                                <td colSpan={6} className="uo-empty-cell">
                                     {error ? (
                                         "Something went wrong loading orders."
                                     ) : (
@@ -124,6 +143,18 @@ export default function UserOrders() {
                                             </span>
                                         </td>
                                         <td className="uo-amount">LKR {Number(order.totalAmount).toLocaleString()}</td>
+                                        <td className="uo-actions">
+                                            {normalizeOrderStatus(order.orderStatus) === "Pending" ? (
+                                                <button
+                                                    type="button"
+                                                    className="uo-cancel-btn"
+                                                    disabled={String(cancellingId) === String(order._id)}
+                                                    onClick={() => cancelOrder(order._id)}
+                                                >
+                                                    {String(cancellingId) === String(order._id) ? "Cancelling…" : "Cancel"}
+                                                </button>
+                                            ) : null}
+                                        </td>
                                     </tr>
                                 );
                             })
