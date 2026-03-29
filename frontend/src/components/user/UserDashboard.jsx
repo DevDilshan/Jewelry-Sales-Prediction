@@ -10,7 +10,10 @@ export default function UserDashboard() {
   const [loadError, setLoadError] = useState("");
 
   const customer = getCustomerInfo();
-  const displayName = customer?.firstname || customer?.email || "there";
+  const displayName =
+    [customer?.firstname, customer?.lastname].filter(Boolean).join(" ").trim() ||
+    customer?.email ||
+    "there";
 
   useEffect(() => {
     if (!getCustomerToken()) {

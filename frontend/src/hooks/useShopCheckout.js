@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, getCustomerToken } from "../config/api";
-import { loadCart, saveCart } from "../utils/shopCartStorage";
+import { CART_KEY, loadCart, saveCart } from "../utils/shopCartStorage";
 
 function lineIncluded(line) {
   return line?.selected !== false;
@@ -21,7 +21,17 @@ export function useShopCheckout() {
 
   const hasSelectedForCheckout = useMemo(() => cart.some((line) => lineIncluded(line)), [cart]);
 
-  useEffect(() => { saveCart(cart); }, [cart]);
+  useEffect(() => {
+    saveCart(cart);
+  }, [cart]);
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === CART_KEY || e.key === null) setCart(loadCart());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   useEffect(() => {
     if (!cartOpen) return;
@@ -159,13 +169,13 @@ export function useShopCheckout() {
         body,
         auth: "customer",
       });
-      setCart((prev) => {
-        const next = prev.filter((l) => !lineIncluded(l));
-        saveCart(next);
-        return next;
-      });
+      // Clear cart in storage first so it stays empty even if navigation unmounts quickly.
+      saveCart([]);
+      setCart([]);
+      setCartOpen(false);
       setPromo(null);
       setPromoInput("");
+      setPromoMessage("");
       setCheckoutMsg(res.message || "Order placed.");
       navigate("/dashboard/orders");
     } catch (e) {
