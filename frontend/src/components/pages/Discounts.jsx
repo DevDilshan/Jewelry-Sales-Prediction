@@ -330,7 +330,6 @@ export default function Discounts({ setActivePage }) {
               <tr style={{ borderBottom: '1px solid #e5d7c3', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>
                 <th style={{ paddingBottom: '8px' }}>Theme</th>
                 <th style={{ paddingBottom: '8px' }}>Total Times Applied</th>
-                <th style={{ paddingBottom: '8px' }}>Included Promos</th>
               </tr>
             </thead>
             <tbody>
@@ -338,7 +337,6 @@ export default function Discounts({ setActivePage }) {
                 <tr key={stat.theme} style={{ borderBottom: '1px solid #f5f0e8' }}>
                   <td style={{ padding: '10px 0', fontWeight: '600', color: '#444' }}>{stat.theme}</td>
                   <td style={{ padding: '10px 0', color: '#22c55e', fontWeight: '700' }}>{stat.totalApplied} uses</td>
-                  <td style={{ padding: '10px 0', fontSize: '12px', color: '#777' }}>{stat.campaigns.join(" vs ")}</td>
                 </tr>
               ))}
             </tbody>
