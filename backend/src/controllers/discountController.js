@@ -36,6 +36,7 @@ export async function createDiscount(req, res) {
         ? String(body.campaignTheme).trim()
         : "None";
 
+    // Validation: Coupon code required and unique for coupon-scoped discounts
     if (scope === "coupon") {
       if (!body.discountCoupon || !String(body.discountCoupon).trim()) {
         return res
@@ -53,9 +54,11 @@ export async function createDiscount(req, res) {
         });
       }
     } else {
+      // Auto-generate a unique code for site-wide discounts
       body.discountCoupon = generateSiteWideCode();
     }
 
+    // Validation: End date must not be before start date
     if (body.startDate && body.endDate) {
       const start = new Date(body.startDate);
       const end = new Date(body.endDate);
@@ -66,6 +69,7 @@ export async function createDiscount(req, res) {
       }
     }
 
+    // Validation: Parse and assign optional coupon-only fields (minSubtotal, maxUses)
     if (scope === "coupon") {
       body.minSubtotal = parseOptionalPositiveNumber(body.minSubtotalLkr);
       body.maxUses = parseOptionalMaxUses(body.maxUses);
@@ -122,16 +126,16 @@ export async function listPublicActiveCoupons(req, res) {
 
 export async function validateCoupon(req, res) {
   try {
-    // --- BEST DEAL ALGORITHM ---
-    // We take the 'baseSubtotal' (e.g., LKR 100,000) and the site-wide savings (e.g., LKR 20,000)
     const { code, baseSubtotal, siteWideSavings = 0 } = req.body;
     const coupon = normalizeCoupon(code);
 
+    // Validation: Coupon code must be provided
     if (!coupon)
       return res
         .status(400)
         .json({ valid: false, message: "Enter a promo code" });
 
+    // Validation: Coupon must exist and must not be a site-wide code
     const discount = await Discount.findOne({ discountCoupon: coupon });
     if (!discount || discount.promoScope === "site_wide") {
       return res
@@ -141,16 +145,15 @@ export async function validateCoupon(req, res) {
 
     const sub = Math.max(0, Number(baseSubtotal) || 0);
 
-    // evaluateDiscount now handles minSubtotal check internally
+    // Validation: Evaluate coupon against subtotal (includes minSubtotal check)
     const result = evaluateDiscount(discount, sub);
-
     if (!result.ok) {
       return res.status(200).json({ valid: false, message: result.message });
     }
 
     const couponSavingsAmount = Number(result.discountAmount);
 
-    // If the site-wide sale is better than the coupon, stop them!
+    // Validation: Best deal algorithm — reject coupon if site-wide sale is already better
     if (couponSavingsAmount <= siteWideSavings && siteWideSavings > 0) {
       return res.status(200).json({
         valid: false,
@@ -158,7 +161,7 @@ export async function validateCoupon(req, res) {
       });
     }
 
-    // If the coupon is better, apply it to the base price
+    // Coupon is better than site-wide — apply it to the base price
     const totalAfter = Math.max(
       0,
       Math.round((sub - couponSavingsAmount) * 100) / 100
@@ -190,6 +193,7 @@ function parseOptionalDate(value) {
 
 export async function updateDiscount(req, res) {
   try {
+    // Validation: Discount must exist before updating
     const existing = await Discount.findById(req.params.id);
     if (!existing)
       return res.status(404).json({ message: "Discount not found" });
@@ -238,6 +242,7 @@ export async function updateDiscount(req, res) {
       update.endDate = parsedEnd;
     }
 
+    // Validation: End date must not be before start date
     if (parsedStart && parsedEnd && parsedEnd < parsedStart) {
       return res
         .status(400)
@@ -247,10 +252,12 @@ export async function updateDiscount(req, res) {
     let coupon = existing.discountCoupon;
 
     if (promoScope === "site_wide") {
+      // Auto-generate a new site-wide code if scope is being switched
       if (existing.promoScope !== "site_wide") coupon = generateSiteWideCode();
     } else {
       const trimmed = couponRaw != null ? String(couponRaw).trim() : "";
       if (!trimmed) {
+        // Validation: Coupon code required when switching to coupon scope
         if (existing.promoScope !== "coupon")
           return res.status(400).json({
             message:
@@ -259,6 +266,7 @@ export async function updateDiscount(req, res) {
         coupon = existing.discountCoupon;
       } else {
         coupon = normalizeCoupon(trimmed);
+        // Validation: Updated coupon code must not clash with another existing discount
         const clash = await Discount.findOne({
           discountCoupon: coupon,
           _id: { $ne: existing._id },
@@ -272,6 +280,7 @@ export async function updateDiscount(req, res) {
 
     update.discountCoupon = coupon;
 
+    // Validation: Parse and assign optional coupon-only fields (minSubtotal, maxUses)
     if (promoScope === "site_wide") {
       update.minSubtotal = null;
       update.maxUses = null;
@@ -299,6 +308,7 @@ export async function updateDiscount(req, res) {
 
 export async function deleteDiscount(req, res) {
   try {
+    // Validation: Discount must exist before deleting
     const discount = await Discount.findByIdAndDelete(req.params.id);
     if (!discount)
       return res.status(404).json({ message: "Discount not found" });
