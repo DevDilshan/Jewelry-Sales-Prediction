@@ -52,11 +52,17 @@ const discountSchema = new Schema(
     /**
      * Optional minimum cart subtotal (LKR) required before this coupon can be applied.
      * If null or 0, there is no minimum — coupon works on any subtotal.
+     * (API/admin UI may refer to this as minSubtotalLkr; it is stored here.)
      */
     minSubtotal: {
       type: Number,
       default: null,
       min: 0,
+    },
+    /** Coupon only: max successful checkouts; null = unlimited */
+    maxUses: {
+      type: Number,
+      default: null,
     },
   },
   { timestamps: true }
