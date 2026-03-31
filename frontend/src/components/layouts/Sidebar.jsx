@@ -61,16 +61,29 @@ const ALL_MENU_ITEMS = [
   { id: "staff", label: "Staff", path: "/admin/staff" },
 ];
 
-function avatarInitials(username) {
-  const u = (username || "").trim();
-  return u.length >= 2 ? u.slice(0, 2).toUpperCase() : u.charAt(0).toUpperCase() || "?";
+function staffDisplayName(info) {
+  if (!info) return "Staff";
+  const n = [info.firstName, info.lastName].filter(Boolean).join(" ").trim();
+  if (n) return n;
+  return info.username || "Staff";
+}
+
+function staffAvatarInitials(info) {
+  if (!info) return "?";
+  const fn = (info.firstName || "").trim();
+  const ln = (info.lastName || "").trim();
+  if (fn && ln) return `${fn[0]}${ln[0]}`.toUpperCase();
+  if (fn.length >= 2) return fn.slice(0, 2).toUpperCase();
+  if (fn.length === 1) return fn[0].toUpperCase();
+  const u = (info.username || "").trim();
+  return u.length >= 2 ? u.slice(0, 2).toUpperCase() : (u.charAt(0) || "?").toUpperCase();
 }
 
 export default function Sidebar({ activePage, setActivePage }) {
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const staffInfo = getStaffInfo();
-  const displayName = staffInfo?.username || "Staff";
+  const displayName = staffDisplayName(staffInfo);
   const displayRole = ROLE_LABELS[staffInfo?.role] || (staffInfo?.role || "").toUpperCase() || "—";
 
   const handleNavigate = (item) => {
@@ -104,7 +117,7 @@ export default function Sidebar({ activePage, setActivePage }) {
 
       <div className="sidebar-footer">
         <div className="user-section">
-          <div className="user-avatar-text">{avatarInitials(displayName)}</div>
+          <div className="user-avatar-text">{staffAvatarInitials(staffInfo)}</div>
           <div className="user-info">
             <p className="user-name">{displayName}</p>
             <p className="user-role">{displayRole}</p>

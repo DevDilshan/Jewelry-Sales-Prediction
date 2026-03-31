@@ -23,6 +23,36 @@ const staffSchema = new Schema({
         enum: ["admin", "productmanager", "sales", "viewer"],
         default: "viewer"
     },
+    firstName: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    lastName: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    phone: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    jobTitle: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    department: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    address: {
+        type: String,
+        trim: true,
+        default: "",
+    },
     resetToken: {
         type: String,
         default: null,
