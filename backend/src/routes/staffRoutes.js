@@ -10,6 +10,7 @@ import {
   resetStaffPasswordWithToken,
   setupFirstStaff,
   updateStaff,
+  updateStaffMe,
 } from "../controllers/staffController.js";
 import { verifyToken } from "../middlewares/staffAuthMiddleware.js";
 import { allowRoles } from "../middlewares/staffRoleMiddleware.js"
@@ -22,6 +23,7 @@ router.post("/forgot-password", forgotStaffPassword);
 router.post("/reset-password", resetStaffPasswordWithToken);
 
 router.get("/me", verifyToken, getStaffMe);
+router.patch("/me", verifyToken, updateStaffMe);
 router.post("/me/password", verifyToken, changeOwnPassword);
 
 router.post("/register", verifyToken, allowRoles("admin"), registerStaff);

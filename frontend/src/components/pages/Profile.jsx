@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PasswordToggleButton from "../PasswordToggleButton";
 import "./Profile.css";
-import { api, getStaffToken } from "../../config/api";
+import { api, getStaffToken, setStaffAuth } from "../../config/api";
 import {
   getPasswordPolicyIssues,
   isPasswordPolicyValid,
   PASSWORD_REQUIREMENTS_HINT,
 } from "../../utils/passwordPolicy";
+import { validateStaffProfileForm } from "../../utils/staffProfileValidation";
 
 const ROLE_LABEL = {
   admin: "Admin",
@@ -16,10 +17,24 @@ const ROLE_LABEL = {
   viewer: "Viewer",
 };
 
-function avatarInitials(username) {
-  const u = (username || "").trim();
-  return u.length >= 2 ? u.slice(0, 2).toUpperCase() : u.slice(0, 1).toUpperCase() || "?";
+function avatarInitialsFromProfile(me) {
+  if (!me) return "—";
+  const fn = (me.firstName || "").trim();
+  const ln = (me.lastName || "").trim();
+  if (fn && ln) return `${fn[0]}${ln[0]}`.toUpperCase();
+  if (fn.length >= 2) return fn.slice(0, 2).toUpperCase();
+  const u = (me.username || "").trim();
+  return u.length >= 2 ? u.slice(0, 2).toUpperCase() : (u.charAt(0) || "?").toUpperCase();
 }
+
+const emptyPersonalForm = {
+  firstName: "",
+  lastName: "",
+  phone: "",
+  jobTitle: "",
+  department: "",
+  address: "",
+};
 
 export default function Profile({ setActivePage }) {
   useEffect(() => {
@@ -28,6 +43,13 @@ export default function Profile({ setActivePage }) {
 
   const [me, setMe] = useState(null);
   const [loadError, setLoadError] = useState("");
+  const [form, setForm] = useState(emptyPersonalForm);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -44,13 +66,94 @@ export default function Profile({ setActivePage }) {
       return;
     }
     api("/staff/me", { auth: "staff" })
-      .then(setMe)
+      .then((data) => setMe(data))
       .catch((e) => setLoadError(e.message || "Could not load profile"));
   }, []);
+
+  useEffect(() => {
+    if (!showEditModal) return;
+    const onKey = (e) => {
+      if (e.key === "Escape" && !profileBusy) setShowEditModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showEditModal, profileBusy]);
 
   const newPolicyIssues = getPasswordPolicyIssues(newPassword);
   const confirmMismatch =
     confirmPassword.length > 0 && newPassword.length > 0 && newPassword !== confirmPassword;
+
+  const openEditModal = () => {
+    if (!me) return;
+    setForm({
+      firstName: me.firstName || "",
+      lastName: me.lastName || "",
+      phone: me.phone || "",
+      jobTitle: me.jobTitle || "",
+      department: me.department || "",
+      address: me.address || "",
+    });
+    setFieldErrors({});
+    setProfileError("");
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!me) return;
+    setProfileMessage("");
+    setProfileError("");
+    setFieldErrors({});
+
+    const v = validateStaffProfileForm({ ...form, email: me.email });
+    if (!v.ok) {
+      setFieldErrors(v.errors);
+      return;
+    }
+
+    setProfileBusy(true);
+    try {
+      const updated = await api("/staff/me", {
+        method: "PATCH",
+        body: {
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          phone: form.phone.trim(),
+          jobTitle: form.jobTitle.trim(),
+          department: form.department.trim(),
+          address: form.address.trim(),
+        },
+        auth: "staff",
+      });
+      setMe(updated);
+      const token = getStaffToken();
+      if (token) {
+        setStaffAuth(token, {
+          username: updated.username,
+          email: updated.email,
+          role: updated.role,
+          firstName: updated.firstName || "",
+          lastName: updated.lastName || "",
+        });
+      }
+      setShowEditModal(false);
+      setProfileMessage("Profile saved.");
+      setTimeout(() => setProfileMessage(""), 4000);
+    } catch (err) {
+      const serverErrors = err.data?.errors;
+      if (serverErrors && typeof serverErrors === "object") {
+        setFieldErrors(serverErrors);
+      }
+      setProfileError(err.message || "Could not save profile");
+    } finally {
+      setProfileBusy(false);
+    }
+  };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -87,12 +190,22 @@ export default function Profile({ setActivePage }) {
     }
   };
 
+  const setField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
   return (
     <div className="profile-page">
       <div className="page-header">
         <div>
           <h1>My Profile</h1>
-          <p>Manage your staff account and password</p>
+          <p>Account overview and security</p>
         </div>
       </div>
 
@@ -105,36 +218,50 @@ export default function Profile({ setActivePage }) {
 
       <div className="profile-container">
         <div className="profile-section">
-          <div className="section-content">
+          <div className="section-content profile-summary-row">
             <div className="profile-avatar-section">
-              <div className="profile-avatar">{me ? avatarInitials(me.username) : "—"}</div>
+              <div className="profile-avatar">{me ? avatarInitialsFromProfile(me) : "—"}</div>
             </div>
 
-            <div className="profile-details">
-              <h2>Profile Details</h2>
-              <p>Information from your staff account</p>
+            <div className="profile-details profile-details--wide">
+              <h2>Personal details</h2>
+              <p className="profile-section-lead">
+                Your sign-in identity and role. Use Edit profile to update your details — all fields there are required.
+              </p>
 
-              <div className="form-group">
-                <label>USERNAME</label>
-                <input type="text" className="form-input" readOnly value={me?.username || ""} />
-              </div>
-
-              <div className="form-grid">
+              <div className="profile-fixed-fields">
                 <div className="form-group">
-                  <label>ROLE</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    readOnly
-                    value={me ? ROLE_LABEL[me.role] || me.role : ""}
-                  />
+                  <label>Email address</label>
+                  <input type="email" className="form-input form-input-readonly" readOnly value={me?.email || ""} />
+                </div>
+
+                <div className="form-grid profile-form-grid-2">
+                  <div className="form-group">
+                    <label>Username</label>
+                    <input type="text" className="form-input form-input-readonly" readOnly value={me?.username || ""} />
+                  </div>
+                  <div className="form-group">
+                    <label>Role</label>
+                    <input
+                      type="text"
+                      className="form-input form-input-readonly"
+                      readOnly
+                      value={me ? ROLE_LABEL[me.role] || me.role : ""}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>EMAIL ADDRESS</label>
-                <input type="email" className="form-input" readOnly value={me?.email || ""} />
-              </div>
+              {profileMessage && <p className="profile-pwd-success profile-inline-msg">{profileMessage}</p>}
+
+              <button
+                type="button"
+                className="profile-btn-edit"
+                onClick={openEditModal}
+                disabled={loadError === "auth" || !me}
+              >
+                Edit profile
+              </button>
             </div>
           </div>
         </div>
@@ -237,6 +364,167 @@ export default function Profile({ setActivePage }) {
           </div>
         </div>
       </div>
+
+      {showEditModal && (
+        <div
+          className="profile-modal-backdrop"
+          role="presentation"
+          onClick={() => !profileBusy && setShowEditModal(false)}
+        >
+          <div
+            className="profile-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-edit-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="profile-modal-head">
+              <h2 id="profile-edit-modal-title">Edit personal details</h2>
+              <button
+                type="button"
+                className="profile-modal-close"
+                onClick={() => !profileBusy && setShowEditModal(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <p className="profile-modal-lead">All fields are required. Your details are validated on save.</p>
+
+            <form className="profile-modal-form" onSubmit={handleSaveProfile} noValidate>
+              <div className="form-grid profile-form-grid-2">
+                <div className="form-group">
+                  <label htmlFor="modal-first-name">First name</label>
+                  <input
+                    id="modal-first-name"
+                    type="text"
+                    className={`form-input ${fieldErrors.firstName ? "form-input-error" : ""}`}
+                    autoComplete="given-name"
+                    value={form.firstName}
+                    onChange={(e) => setField("firstName", e.target.value)}
+                    disabled={profileBusy}
+                    placeholder="e.g. Saman"
+                  />
+                  {fieldErrors.firstName && (
+                    <p className="form-field-error" role="alert">
+                      {fieldErrors.firstName}
+                    </p>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label htmlFor="modal-last-name">Last name</label>
+                  <input
+                    id="modal-last-name"
+                    type="text"
+                    className={`form-input ${fieldErrors.lastName ? "form-input-error" : ""}`}
+                    autoComplete="family-name"
+                    value={form.lastName}
+                    onChange={(e) => setField("lastName", e.target.value)}
+                    disabled={profileBusy}
+                    placeholder="e.g. Perera"
+                  />
+                  {fieldErrors.lastName && (
+                    <p className="form-field-error" role="alert">
+                      {fieldErrors.lastName}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="modal-phone">Phone</label>
+                <input
+                  id="modal-phone"
+                  type="tel"
+                  className={`form-input ${fieldErrors.phone ? "form-input-error" : ""}`}
+                  autoComplete="tel"
+                  value={form.phone}
+                  onChange={(e) => setField("phone", e.target.value)}
+                  disabled={profileBusy}
+                  placeholder="+94771234567"
+                />
+                {fieldErrors.phone && (
+                  <p className="form-field-error" role="alert">
+                    {fieldErrors.phone}
+                  </p>
+                )}
+              </div>
+
+              <div className="form-grid profile-form-grid-2">
+                <div className="form-group">
+                  <label htmlFor="modal-job">Job title</label>
+                  <input
+                    id="modal-job"
+                    type="text"
+                    className={`form-input ${fieldErrors.jobTitle ? "form-input-error" : ""}`}
+                    value={form.jobTitle}
+                    onChange={(e) => setField("jobTitle", e.target.value)}
+                    disabled={profileBusy}
+                    placeholder="e.g. Sales associate"
+                  />
+                  {fieldErrors.jobTitle && (
+                    <p className="form-field-error" role="alert">
+                      {fieldErrors.jobTitle}
+                    </p>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label htmlFor="modal-dept">Department</label>
+                  <input
+                    id="modal-dept"
+                    type="text"
+                    className={`form-input ${fieldErrors.department ? "form-input-error" : ""}`}
+                    value={form.department}
+                    onChange={(e) => setField("department", e.target.value)}
+                    disabled={profileBusy}
+                    placeholder="e.g. Boutique floor"
+                  />
+                  {fieldErrors.department && (
+                    <p className="form-field-error" role="alert">
+                      {fieldErrors.department}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="modal-address">Address</label>
+                <textarea
+                  id="modal-address"
+                  className={`form-input form-textarea ${fieldErrors.address ? "form-input-error" : ""}`}
+                  rows={4}
+                  autoComplete="street-address"
+                  value={form.address}
+                  onChange={(e) => setField("address", e.target.value)}
+                  disabled={profileBusy}
+                  placeholder="Street, city, postal code"
+                />
+                {fieldErrors.address && (
+                  <p className="form-field-error" role="alert">
+                    {fieldErrors.address}
+                  </p>
+                )}
+              </div>
+
+              {profileError && <p className="profile-pwd-error">{profileError}</p>}
+
+              <div className="profile-modal-actions">
+                <button
+                  type="button"
+                  className="profile-modal-cancel"
+                  onClick={() => !profileBusy && setShowEditModal(false)}
+                  disabled={profileBusy}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="profile-modal-save" disabled={profileBusy}>
+                  {profileBusy ? "Saving…" : "Save profile"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 .profile-page {
   max-width: 900px;
   margin: 0 auto;
+  position: relative;
 }
 
 .profile-banner {
@@ -90,6 +91,187 @@
 .section-content {
   display: flex;
   gap: 32px;
+}
+
+.profile-summary-row {
+  align-items: flex-start;
+}
+
+.profile-fixed-fields {
+  margin-bottom: 8px;
+}
+
+.profile-fixed-fields .form-group label {
+  text-transform: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  letter-spacing: 0.5px;
+}
+
+.profile-inline-msg {
+  margin: 12px 0 8px !important;
+}
+
+.profile-btn-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 12px 28px;
+  background: #fffbf0;
+  border: 1px solid #e5d7c3;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  transition: background 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+
+.profile-btn-edit:hover:not(:disabled) {
+  background: #fff8e7;
+  border-color: #d4af37;
+}
+
+.profile-btn-edit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Edit profile modal */
+.profile-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 15, 15, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: profile-modal-in 0.2s ease;
+}
+
+@keyframes profile-modal-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.profile-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: min(90vh, 720px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+  padding: 28px 28px 24px;
+}
+
+.profile-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.profile-modal-head h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.profile-modal-close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 22px;
+  line-height: 1;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.profile-modal-close:hover:not(:disabled) {
+  background: #eee;
+  color: #1a1a1a;
+}
+
+.profile-modal-lead {
+  color: #888;
+  font-size: 13px;
+  margin: 0 0 20px;
+  line-height: 1.45;
+}
+
+.profile-modal-form .form-grid {
+  margin-bottom: 0;
+}
+
+.profile-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 8px;
+}
+
+.profile-modal-cancel {
+  padding: 11px 22px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.profile-modal-cancel:hover:not(:disabled) {
+  background: #f9f9f9;
+}
+
+.profile-modal-save {
+  padding: 11px 24px;
+  border-radius: 8px;
+  border: 1px solid #e5d7c3;
+  background: #fffbf0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #1a1a1a;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.profile-modal-save:hover:not(:disabled) {
+  background: #fff8e7;
+  border-color: #d4af37;
+}
+
+.profile-modal-save:disabled,
+.profile-modal-cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .profile-avatar-section {
@@ -190,10 +372,46 @@
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
 }
 
-.form-input:read-only {
+.form-textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.45;
+}
+
+.form-input:read-only,
+.form-input-readonly {
   background: #f9f9f9;
   color: #666;
   cursor: default;
+}
+
+.form-input-error {
+  border-color: #f87171 !important;
+}
+
+.form-input-error:focus {
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15);
+}
+
+.profile-details--wide {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.profile-section-lead {
+  color: #999;
+  font-size: 13px;
+  margin: 0 0 20px;
+  line-height: 1.45;
+}
+
+.profile-personal-form .form-grid {
+  margin-bottom: 0;
+}
+
+.profile-save-profile-btn {
+  margin-top: 16px;
 }
 
 .password-input-group {

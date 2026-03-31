@@ -3,6 +3,7 @@ import Staff from "../models/Staff.js";
 import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 import { hashPassword, verifyPasswordMigrateLegacy, verifyStoredPassword } from "../utils/passwordHash.js";
 import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
+import { validateStaffProfilePatch } from "../utils/staffProfileValidation.js";
 
 const DEFAULT_STAFF_PASSWORD = () =>
   process.env.DEFAULT_STAFF_PASSWORD?.trim() || "ChangeMe@123";
@@ -122,6 +123,8 @@ export async function loginStaff(req, res) {
       username: user.username,
       email: user.email,
       role: user.role,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
       accesstoken,
     });
   } catch (error) {
@@ -146,6 +149,58 @@ export async function getStaffMe(req, res) {
     }
     res.json(user);
   } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
+/** PATCH /staff/me — update own profile (personal fields + email). */
+export async function updateStaffMe(req, res) {
+  try {
+    const parsed = validateStaffProfilePatch(req.body);
+    if (!parsed.ok) {
+      return res.status(400).json({
+        message: "Validation failed.",
+        errors: parsed.errors,
+      });
+    }
+    const { values } = parsed;
+    if (Object.keys(values).length === 0) {
+      const user = await Staff.findById(req.user.id).select(STAFF_SAFE_SELECT);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      return res.json(user);
+    }
+
+    const existing = await Staff.findById(req.user.id);
+    if (!existing) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (values.email != null && values.email !== existing.email) {
+      const taken = await Staff.findOne({
+        email: values.email,
+        _id: { $ne: existing._id },
+      });
+      if (taken) {
+        return res.status(400).json({
+          message: "That email is already in use.",
+          errors: { email: "That email is already in use." },
+        });
+      }
+    }
+
+    const update = { ...values };
+    const user = await Staff.findByIdAndUpdate(req.user.id, update, {
+      new: true,
+    }).select(STAFF_SAFE_SELECT);
+
+    res.json(user);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: "Email or username conflict.",
+        errors: { email: "That email is already in use." },
+      });
+    }
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 }
