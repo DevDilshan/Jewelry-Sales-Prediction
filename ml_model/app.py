@@ -159,11 +159,11 @@ def generate_recommendations(predictions, target_month):
         sales    = item["predicted_sales"]
         category = item["category"]
 
-        if sales >= 400:
+        if sales >= 10:
             action   = "Increase stock immediately"
             priority = "high"
             detail   = f"Expected high demand of {sales:,} units. Check reorder levels and place orders with suppliers."
-        elif sales >= 150:
+        elif sales >= 7:
             action   = "Monitor stock levels"
             priority = "medium"
             detail   = f"Moderate demand of {sales:,} units expected. Review current stock and reorder if below safety level."
