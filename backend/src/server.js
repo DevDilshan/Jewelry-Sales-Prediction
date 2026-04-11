@@ -11,6 +11,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import productReviewRoutes from './routes/productReviewRoutes.js';
 import { verifyToken } from "./middlewares/staffAuthMiddleware.js";
 import { allowRoles } from "./middlewares/staffRoleMiddleware.js";
+import predictionRoutes from './routes/predictionsRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -37,7 +38,7 @@ app.use('/api/feedback',  feedbackRoutes)
 app.use('/api/customer', customerRoutes)
 app.use('/api/order', orderRoutes)
 app.use('/api/product-review', productReviewRoutes)
-
+app.use('/api/predictions', predictionRoutes);
 app.listen(PORT, ()=>{
     console.log("Server started on PORT:",PORT);
 })
