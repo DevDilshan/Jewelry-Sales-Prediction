@@ -141,9 +141,9 @@ def generate_sri_lankan_insight(predictions, target_month, target_year, month_na
     }
 
     # Stock urgency
-    high_demand = [p["category"] for p in predictions if p["predicted_sales"] >= 400]
-    medium_demand = [p["category"] for p in predictions if 150 <= p["predicted_sales"] < 400]
-    low_demand = [p["category"] for p in predictions if p["predicted_sales"] < 150]
+    high_demand = [p["category"] for p in predictions if p["predicted_sales"] >= 10]
+    medium_demand = [p["category"] for p in predictions if 150 <= p["predicted_sales"] < 10]
+    low_demand = [p["category"] for p in predictions if p["predicted_sales"] < 7]
 
     insight = f"{top} is predicted to be the top selling category in {month_name} {target_year} "
     insight += f"with {top_sales:,} units — {((top_sales/total)*100):.1f}% of total predicted sales. "
