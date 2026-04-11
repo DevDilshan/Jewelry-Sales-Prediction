@@ -7,6 +7,10 @@ import numpy as np
 from pymongo import MongoClient
 from datetime import datetime
 import os
+from dotenv import load_dotenv
+from pathlib import Path
+
+
 
 app = Flask(__name__)
 CORS(app)
@@ -22,7 +26,16 @@ with open('features.pkl', 'rb') as f:
     features = pickle.load(f)
 
 # ── MongoDB connection ────────────────────────────────────────────
-MONGO_URI = "mongodb+srv://jewelry_sales_predict_db_user:Yl7s4zEldHOQLrt0@cluster0.6evhnwg.mongodb.net/?appName=Cluster0"
+
+
+dotenv_path = Path(__file__).resolve().parent.parent / 'backend' / '.env'
+load_dotenv(dotenv_path)
+
+print("MONGO_URI:", os.getenv("MONGO_URI"));
+
+
+
+MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME   = "test"
 
 client = MongoClient(MONGO_URI)
