@@ -297,7 +297,7 @@ export default function Products({ setActivePage }) {
           <option value="Necklace">Necklace</option>
           <option value="Earring">Earring</option>
           <option value="Bracelet">Bracelet</option>
-          <option value="Watch">Watch</option>
+          <option value="Watch">Brooch</option>
         </select>
         <select className="filter-select" value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
           <option value="All">Stock Status: All</option>
@@ -445,7 +445,8 @@ export default function Products({ setActivePage }) {
                         <option value="Necklace">Necklace</option>
                         <option value="Earring">Earring</option>
                         <option value="Bracelet">Bracelet</option>
-                        <option value="Watch">Watch</option>
+                        <option value="Brooch">Brooch</option>
+                        <option value="Pendant">Pendant</option>
                       </select>
                       {addErrors.category && <span style={errorStyle}>{addErrors.category}</span>}
                     </div>
@@ -603,7 +604,8 @@ export default function Products({ setActivePage }) {
                         <option value="Necklace">Necklace</option>
                         <option value="Earring">Earring</option>
                         <option value="Bracelet">Bracelet</option>
-                        <option value="Watch">Watch</option>
+                        <option value="Brooch">Brooch</option>
+                        <option value="Pendant">Pendant</option>
                       </select>
                       {editErrors.productCategory && <span style={errorStyle}>{editErrors.productCategory}</span>}
                     </div>
