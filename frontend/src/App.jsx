@@ -27,7 +27,7 @@ import UserSidebar from './components/user/UserSidebar'
 import ProfileSettings from './components/user/UserProfile'
 import AddressBook from './components/user/Addressbook'
 import MyReviews from './components/user/Feedback'
-
+import SalesPrediction from './components/pages/SalesPrediction'
 export default function App() {
   return (
     <Router>
@@ -94,6 +94,11 @@ function AppContent() {
           <Route path="/admin/profile" element={
             <StaffGuard pageId="profile">
               <Profile setActivePage={setActivePage} />
+            </StaffGuard>
+          } />
+          <Route path="/admin/sales-prediction" element={
+            <StaffGuard pageId="sales-prediction">
+              <SalesPrediction setActivePage={setActivePage} />
             </StaffGuard>
           } />
           <Route path="/admin/login" element={<StaffLogin />} />
