@@ -1,0 +1,552 @@
+/* ═══════════════════════════════════════════════
+   SalesPrediction.css  —  Luxury Jewelry Dashboard
+   Palette: warm golds · deep espresso · soft ivory
+   ═══════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ── CSS Variables ── */
+:root {
+  --gold-bright  : #d4af37;
+  --gold-mid     : #c29460;
+  --gold-deep    : #b87333;
+  --espresso     : #2b1f14;
+  --espresso-mid : #3e2c1c;
+  --ivory        : #faf7f2;
+  --ivory-mid    : #f2ece0;
+  --text-primary : #1e1510;
+  --text-secondary: #6b5744;
+  --text-light   : #9a8472;
+  --surface      : #ffffff;
+  --border       : #e8dece;
+  --shadow-sm    : 0 2px 8px rgba(43,31,20,0.07);
+  --shadow-md    : 0 6px 24px rgba(43,31,20,0.10);
+  --shadow-lg    : 0 16px 48px rgba(43,31,20,0.14);
+  --radius-sm    : 8px;
+  --radius-md    : 12px;
+  --radius-lg    : 18px;
+  --radius-xl    : 24px;
+}
+
+/* ══════════════════════════════════
+   PAGE WRAPPER
+══════════════════════════════════ */
+.sp-page {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--ivory);
+  min-height: 100vh;
+  padding: 32px 36px 64px;
+  color: var(--text-primary);
+  background-image:
+    radial-gradient(ellipse at 80% 0%, rgba(212,175,55,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 0% 100%, rgba(184,115,51,0.06) 0%, transparent 50%);
+}
+
+/* ══════════════════════════════════
+   DASHBOARD HEADER
+══════════════════════════════════ */
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 16px;
+}
+
+.dashboard-header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--espresso);
+  letter-spacing: 0.3px;
+  margin: 0 0 4px;
+  line-height: 1.15;
+}
+
+.dashboard-header p {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ── Month / Year selectors ── */
+.sp-selector {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sp-select {
+  appearance: none;
+  background: var(--surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c29460' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  background-size: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 36px 9px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.sp-select:hover,
+.sp-select:focus {
+  border-color: var(--gold-mid);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.12);
+  outline: none;
+}
+
+/* ══════════════════════════════════
+   LOADING STATE
+══════════════════════════════════ */
+.sp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  gap: 16px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.sp-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--ivory-mid);
+  border-top-color: var(--gold-bright);
+  border-radius: 50%;
+  animation: sp-spin 0.8s linear infinite;
+}
+
+@keyframes sp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════
+   ERROR STATE
+══════════════════════════════════ */
+.sp-error {
+  background: #fff4f0;
+  border: 1.5px solid #f4c0ae;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  color: #b84a2e;
+  font-size: 13.5px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+/* ══════════════════════════════════
+   SEASON BANNER
+══════════════════════════════════ */
+.sp-season-banner {
+  background: linear-gradient(135deg, #d4af37 0%, #c29460 60%, #b87333 100%);
+  border-radius: var(--radius-md);
+  padding: 13px 22px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(212,175,55,0.30);
+  position: relative;
+  overflow: hidden;
+}
+
+.sp-season-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.sp-season-icon { font-size: 18px; }
+
+.sp-season-label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.sp-season-sub {
+  font-size: 13px;
+  opacity: 0.82;
+  font-weight: 400;
+}
+
+/* ══════════════════════════════════
+   STAT CARDS GRID
+══════════════════════════════════ */
+.sp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.sp-stat-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.25s, transform 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.sp-stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold-bright), var(--gold-deep));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.sp-stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.sp-stat-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  color: var(--text-light);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+
+.sp-stat-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--espresso);
+  margin: 0 0 4px;
+  line-height: 1.1;
+}
+
+.sp-stat-sub {
+  font-size: 12px;
+  color: var(--text-light);
+  margin: 0;
+}
+
+/* ══════════════════════════════════
+   MAIN GRID  (chart + insight)
+══════════════════════════════════ */
+.sp-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 18px;
+  margin-bottom: 24px;
+  align-items: start;
+}
+
+/* ══════════════════════════════════
+   GENERIC CARD
+══════════════════════════════════ */
+.sp-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.sp-card h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--espresso);
+  margin: 0;
+}
+
+/* ══════════════════════════════════
+   SECTION HEADER  (h2 + tag)
+══════════════════════════════════ */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.currency {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--text-light);
+  text-transform: uppercase;
+  background: var(--ivory-mid);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+/* ══════════════════════════════════
+   BAR CHART
+══════════════════════════════════ */
+.sp-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sp-bar-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 64px 70px;
+  align-items: center;
+  gap: 12px;
+}
+
+.sp-bar-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-bar-track {
+  height: 10px;
+  background: var(--ivory-mid);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sp-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(.16,1,.3,1);
+  position: relative;
+}
+
+.sp-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 60%, rgba(255,255,255,0.25));
+  border-radius: inherit;
+}
+
+.sp-bar-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════
+   STATUS BADGES
+══════════════════════════════════ */
+.sp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.status-high {
+  background: #fff1e6;
+  color: #c44f10;
+  border: 1px solid #f5c4a4;
+}
+
+.status-medium {
+  background: #fefbe6;
+  color: #a07b00;
+  border: 1px solid #e8d87a;
+}
+
+.status-low {
+  background: #edfaf2;
+  color: #1e7c45;
+  border: 1px solid #a4dbb9;
+}
+
+/* ══════════════════════════════════
+   AI INSIGHT CARD
+══════════════════════════════════ */
+.sp-insight-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: linear-gradient(160deg, var(--espresso) 0%, var(--espresso-mid) 100%);
+  border-color: rgba(212,175,55,0.25);
+}
+
+.sp-insight-card h2 {
+  color: var(--gold-bright);
+  font-size: 18px;
+}
+
+.sp-insight-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.sp-insight-text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(255,255,255,0.82);
+  margin: 0;
+  font-weight: 300;
+}
+
+/* ══════════════════════════════════
+   TABLE CARDS
+══════════════════════════════════ */
+.sp-table-card {
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.orders-table thead th {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--text-light);
+  padding: 0 16px 12px;
+  text-align: left;
+  border-bottom: 1.5px solid var(--border);
+}
+
+.orders-table thead th:first-child { padding-left: 0; }
+
+.orders-table tbody tr {
+  border-bottom: 1px solid var(--ivory-mid);
+  transition: background 0.15s;
+}
+
+.orders-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.orders-table tbody tr:hover {
+  background: var(--ivory);
+}
+
+.orders-table tbody td {
+  padding: 13px 16px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.orders-table tbody td:first-child { padding-left: 0; }
+
+/* ── Category cell (dot + name) ── */
+.sp-cat-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 500;
+}
+
+.sp-cat-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Share bar cell ── */
+.sp-share-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sp-share-bar {
+  width: 80px;
+  height: 6px;
+  background: var(--ivory-mid);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sp-share-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* ── Detail column ── */
+.sp-detail-col {
+  font-size: 12px;
+  max-width: 250px;
+  line-height: 1.55;
+  color: var(--text-light);
+}
+
+/* ── Utility ── */
+.text-light {
+  color: var(--text-light);
+}
+
+/* ══════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════ */
+@media (max-width: 1024px) {
+  .sp-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sp-insight-card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .sp-page {
+    padding: 20px 18px 48px;
+  }
+
+  .sp-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sp-bar-row {
+    grid-template-columns: 76px 1fr 54px;
+  }
+
+  .sp-bar-row .sp-status-badge {
+    display: none;
+  }
+
+  .orders-table thead th:nth-child(5),
+  .orders-table tbody td:nth-child(5) {
+    display: none;
+  }
+}
