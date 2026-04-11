@@ -44,6 +44,12 @@ const icons = {
       <circle cx="14" cy="16" r="1.5" />
     </svg>
   ),
+  prediction: (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 14l4-4 3 3 4-5 4 3" />
+      <path d="M2 18h16" />
+    </svg>
+  ),
   staff: (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M15 17v-1a3 3 0 00-3-3H8a3 3 0 00-3 3v1" />
@@ -58,7 +64,9 @@ const ALL_MENU_ITEMS = [
   { id: "discounts", label: "Discounts", path: "/admin/discounts" },
   { id: "feedbacks", label: "Feedbacks", path: "/admin/feedbacks" },
   { id: "orders", label: "Orders", path: "/admin/orders" },
+  { id: "sales-prediction", label: "Sales Prediction", path: "/admin/sales-prediction" },
   { id: "staff", label: "Staff", path: "/admin/staff" },
+  
 ];
 
 function avatarInitials(username) {
@@ -96,7 +104,7 @@ export default function Sidebar({ activePage, setActivePage }) {
             className={`nav-item ${activePage === item.id ? "active" : ""}`}
             onClick={() => handleNavigate(item)}
           >
-            <span className="nav-icon">{icons[item.id]}</span>
+            <span className="nav-icon">{icons[item.id] || icons.dashboard}</span>
             <span className="nav-label">{item.label}</span>
           </button>
         ))}
