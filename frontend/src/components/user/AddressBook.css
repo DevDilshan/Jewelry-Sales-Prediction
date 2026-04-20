@@ -1,0 +1,450 @@
+
+/* ── Layout ── */
+.ab-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f7f7f5;
+}
+
+/* ── Main ── */
+.ab-main {
+  flex: 1;
+  padding: 48px 60px;
+}
+
+.ab-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+
+.ab-top-bar h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.ab-top-bar p {
+  font-size: 14px;
+  color: #999;
+  font-weight: 300;
+}
+
+.ab-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #ffffff;
+  border: 1.5px solid #e8e8e6;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.ab-add-btn:hover {
+  border-color: #c9a84c;
+  color: #7a5f10;
+  box-shadow: 0 4px 12px rgba(201,168,76,0.15);
+}
+
+/* ── Grid ── */
+.ab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* ── Address Card ── */
+.ab-card {
+  background: #ffffff;
+  border: 1px solid #eeeeec;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: box-shadow 0.2s;
+}
+
+.ab-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+.ab-card.is-default {
+  border-color: #e5d49a;
+  background: #fffdf5;
+}
+
+.ab-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.ab-card-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ab-card-icon {
+  color: #c9a84c;
+  display: flex;
+}
+
+.ab-card-label {
+  font-size: 18px;
+  font-weight: 400;
+  color: #1a1a1a;
+  line-height: 1.2;
+}
+
+.ab-default-badge {
+  background: #c9a84c;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 4px 10px;
+  border-radius: 50px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ab-card-body {
+  flex: 1;
+  margin-bottom: 20px;
+}
+
+.ab-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.ab-address-line {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.ab-phone {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #444;
+  font-weight: 400;
+}
+
+.ab-phone svg { color: #c9a84c; flex-shrink: 0; }
+
+.ab-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0ee;
+}
+
+.ab-card-actions { display: flex; gap: 16px; }
+
+.ab-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
+}
+
+.ab-action-btn.edit { color: #c9a84c; }
+.ab-action-btn.edit:hover { color: #a07820; }
+.ab-action-btn.delete { color: #ccc; }
+.ab-action-btn.delete:hover { color: #e05c5c; }
+
+.ab-set-default {
+  background: none;
+  border: 1px solid #e0e0de;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ab-set-default:hover {
+  border-color: #c9a84c;
+  color: #7a5f10;
+}
+
+/* ── Add Slot ── */
+.ab-add-slot {
+  background: #fafaf8;
+  border: 1.5px dashed #d8d8d4;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  min-height: 220px;
+  transition: all 0.2s;
+}
+
+.ab-add-slot span {
+  font-size: 13px;
+  color: #bbb;
+  font-weight: 400;
+}
+
+.ab-add-slot:hover {
+  border-color: #c9a84c;
+  background: #fffdf5;
+}
+
+.ab-add-slot:hover span { color: #7a5f10; }
+
+/* ── Modal ── */
+.ab-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: abFadeIn 0.2s ease;
+}
+
+@keyframes abFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.ab-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+  animation: abSlideUp 0.25s ease;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.ab-modal.ab-modal-sm { max-width: 400px; }
+
+@keyframes abSlideUp {
+  from { transform: translateY(18px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.ab-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid #f0f0ee;
+}
+
+.ab-modal-header h2 {
+  font-size: 22px;
+  font-weight: 400;
+  color: #1a1a1a;
+}
+
+.ab-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.ab-modal-close:hover { color: #333; background: #f5f5f3; }
+
+/* Form */
+.ab-modal-form {
+  padding: 24px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ab-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ab-field label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #7a9ab0;
+  text-transform: uppercase;
+}
+
+.ab-optional {
+  font-weight: 400;
+  color: #bbb;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+}
+
+.ab-field input,
+.ab-field select {
+  width: 100%;
+  padding: 12px 14px;
+  background: #f8f8f6;
+  border: 1px solid #ebebeb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #1a1a1a;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+}
+
+.ab-field input::placeholder { color: #bbb; }
+
+.ab-field input:focus,
+.ab-field select:focus {
+  outline: none;
+  border-color: #c9a84c;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+}
+
+/* Modal actions */
+.ab-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 28px 24px;
+  border-top: 1px solid #f0f0ee;
+}
+
+/* When inside form */
+.ab-modal-form + .ab-modal-actions,
+form .ab-modal-actions {
+  padding: 8px 0 0;
+  border-top: 1px solid #f0f0ee;
+}
+
+.ab-btn-cancel {
+  padding: 11px 24px;
+  background: #fff;
+  border: 1.5px solid #e8e8e6;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ab-btn-cancel:hover { background: #f5f5f3; }
+
+.ab-btn-submit {
+  padding: 11px 28px;
+  background: #f5f0e3;
+  border: 1.5px solid #e0d0a0;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #7a5f10;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ab-btn-submit:hover {
+  background: #ede4cc;
+  border-color: #c9a84c;
+  box-shadow: 0 4px 12px rgba(201,168,76,0.18);
+}
+
+.ab-btn-danger {
+  padding: 11px 28px;
+  background: #e05c5c;
+  border: none;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ab-btn-danger:hover { background: #c94444; }
+
+/* Confirm body */
+.ab-confirm-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 24px 28px 8px;
+}
+
+.ab-confirm-icon {
+  width: 44px;
+  height: 44px;
+  background: #fff5f5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ab-confirm-body p {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin-top: 4px;
+  font-weight: 300;
+}
+
+.ab-confirm-body strong { color: #1a1a1a; font-weight: 600; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .ab-sidebar { display: none; }
+  .ab-main { padding: 32px 24px; }
+}
+
+@media (max-width: 600px) {
+  .ab-grid { grid-template-columns: 1fr; }
+  .ab-field-row { grid-template-columns: 1fr; }
+  .ab-top-bar { flex-direction: column; gap: 16px; }
+}
