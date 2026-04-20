@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import Staff from "../models/Staff.js";
+import DesignerPortfolio from "../models/DesignerPortfolio.js";
+import { deleteUploadedRelPath } from "../utils/uploadedFile.js";
 import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 import { hashPassword, verifyPasswordMigrateLegacy, verifyStoredPassword } from "../utils/passwordHash.js";
 import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
@@ -75,7 +77,7 @@ export async function registerStaff(req, res) {
     if (!String(email).includes("@")) {
       return res.status(400).json({ message: "Invalid email" });
     }
-    const allowed = ["admin", "productmanager", "sales", "viewer"];
+    const allowed = ["admin", "productmanager", "sales", "viewer", "designer"];
     const r = allowed.includes(role) ? role : "viewer";
     const customPwd = req.body.password?.trim();
     const plainPassword = customPwd || DEFAULT_STAFF_PASSWORD();
@@ -301,10 +303,19 @@ export async function deleteStaff(req, res) {
     if (String(req.params.id) === String(req.user?.id)) {
       return res.status(400).json({ message: "You cannot remove your own account." });
     }
-    const user = await Staff.findByIdAndDelete(req.params.id);
+    const targetId = req.params.id;
+    const user = await Staff.findById(targetId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    const portfolios = await DesignerPortfolio.find({ staff: targetId });
+    for (const p of portfolios) {
+      for (const img of p.images) {
+        await deleteUploadedRelPath(img.relPath);
+      }
+    }
+    await DesignerPortfolio.deleteMany({ staff: targetId });
+    await Staff.findByIdAndDelete(targetId);
     res.status(200).json({ message: "User removed successfully" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });

@@ -436,13 +436,15 @@ export default function Profile({ setActivePage }) {
                 <input
                   id="modal-phone"
                   type="tel"
+                  inputMode="numeric"
                   className={`form-input ${fieldErrors.phone ? "form-input-error" : ""}`}
                   autoComplete="tel"
                   value={form.phone}
                   onChange={(e) => setField("phone", e.target.value)}
                   disabled={profileBusy}
-                  placeholder="+94771234567"
+                  placeholder="0771234567"
                 />
+                <p className="form-field-hint">Phone number must be this format: 0771234567</p>
                 {fieldErrors.phone && (
                   <p className="form-field-error" role="alert">
                     {fieldErrors.phone}
