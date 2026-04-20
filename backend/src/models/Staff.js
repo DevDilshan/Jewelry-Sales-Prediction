@@ -20,7 +20,7 @@ const staffSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ["admin", "productmanager", "sales", "viewer"],
+        enum: ["admin", "productmanager", "sales", "viewer", "designer"],
         default: "viewer"
     },
     firstName: {

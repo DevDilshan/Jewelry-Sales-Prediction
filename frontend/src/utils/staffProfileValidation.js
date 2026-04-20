@@ -1,7 +1,7 @@
 const NAME_MAX = 80;
 const TITLE_MAX = 120;
-const PHONE_MAX = 32;
 const ADDRESS_MAX = 500;
+const STAFF_PHONE_LOCAL_RE = /^0\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function requiredMsg(label) {
@@ -41,11 +41,11 @@ export function validateStaffProfileForm(fields) {
 
   const ph = String(phone).trim();
   if (!ph) errors.phone = requiredMsg("Phone");
-  else if (ph.length > PHONE_MAX) errors.phone = `Phone must be at most ${PHONE_MAX} characters.`;
   else {
     const digits = ph.replace(/\D/g, "");
-    if (digits.length < 7 || digits.length > 15) {
-      errors.phone = "Enter a phone number with 7–15 digits.";
+    if (!STAFF_PHONE_LOCAL_RE.test(digits)) {
+      errors.phone =
+        "Enter exactly 10 digits starting with 0 (e.g. 0771234567).";
     }
   }
 
