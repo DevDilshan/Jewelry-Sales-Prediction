@@ -25,7 +25,7 @@ import UserDashboard from './components/user/UserDashboard'
 import UserOrders from './components/user/UserOrders'
 import UserSidebar from './components/user/UserSidebar'
 import ProfileSettings from './components/user/UserProfile'
-import AddressBook from './components/user/Addressbook'
+import AddressBook from './components/user/AddressBook'
 import MyReviews from './components/user/Feedback'
 import SalesPrediction from './components/pages/SalesPrediction'
 export default function App() {
