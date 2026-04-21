@@ -47,6 +47,7 @@ function AppContent() {
     path === '/admin/reset-password'
   const isAdminShell = path.startsWith('/admin') && !isPublicAdminAuth
 
+  
   return (
     <div className="app-container">
 
