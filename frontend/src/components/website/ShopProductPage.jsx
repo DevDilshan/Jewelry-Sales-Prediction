@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Navbar from "./Navbar";
 import ShopCartDrawer from "./ShopCartDrawer";
@@ -24,6 +24,20 @@ function StarPicker({ value, onChange }) {
   );
 }
 
+function buildProductGallery(product) {
+  if (!product) return [];
+  const out = [];
+  const seen = new Set();
+  const add = (u) => {
+    if (!u || typeof u !== "string" || seen.has(u)) return;
+    seen.add(u);
+    out.push(u);
+  };
+  add(product.productImage);
+  (Array.isArray(product.additionalImages) ? product.additionalImages : []).forEach(add);
+  return out;
+}
+
 function ProductPageSkeleton() {
   return (
     <div className="shop-inner shop-page-skeleton" aria-busy="true" aria-label="Loading product">
@@ -32,7 +46,14 @@ function ProductPageSkeleton() {
         <div className="sk sk-block sk-w-24" style={{ height: 44, borderRadius: 10 }} />
       </div>
       <div className="shop-product-layout">
-        <div className="sk sk-block sk-hero" />
+        <div>
+          <div className="sk sk-block sk-hero" />
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <div className="sk sk-block" style={{ width: 72, height: 72, borderRadius: 8 }} />
+            <div className="sk sk-block" style={{ width: 72, height: 72, borderRadius: 8 }} />
+            <div className="sk sk-block" style={{ width: 72, height: 72, borderRadius: 8 }} />
+          </div>
+        </div>
         <div className="shop-product-detail">
           <div className="sk sk-line sk-w-80" />
           <div className="sk sk-line sk-w-50" />
@@ -97,8 +118,15 @@ export default function ShopProductPage() {
   const [text, setText] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitBusy, setSubmitBusy] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const returnPath = `/shop/product/${productId}`;
+
+  const galleryImages = useMemo(() => buildProductGallery(product), [product]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [productId, product?._id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,12 +255,33 @@ export default function ShopProductPage() {
         </header>
 
         <div className="shop-product-layout">
-          <div className="shop-product-hero">
-            {product.productImage ? (
-              <img src={product.productImage} alt={product.productName} />
-            ) : (
-              <span className="shop-product-hero-placeholder">✦</span>
-            )}
+          <div className="shop-product-gallery">
+            <div className="shop-product-hero">
+              {galleryImages.length > 0 ? (
+                <img
+                  src={galleryImages[Math.min(activeImageIndex, galleryImages.length - 1)]}
+                  alt={product.productName}
+                />
+              ) : (
+                <span className="shop-product-hero-placeholder">✦</span>
+              )}
+            </div>
+            {galleryImages.length > 1 ? (
+              <div className="shop-product-thumbs" role="tablist" aria-label="Product photos">
+                {galleryImages.map((src, i) => (
+                  <button
+                    key={`thumb-${i}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === activeImageIndex}
+                    className={`shop-product-thumb ${i === activeImageIndex ? "is-active" : ""}`}
+                    onClick={() => setActiveImageIndex(i)}
+                  >
+                    <img src={src} alt="" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="shop-product-detail">
