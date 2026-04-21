@@ -28,8 +28,7 @@ with open('features.pkl', 'rb') as f:
 # ── MongoDB connection ────────────────────────────────────────────
 
 
-dotenv_path = Path(__file__).resolve().parent.parent / 'backend' / '.env'
-load_dotenv(dotenv_path)
+load_dotenv()
 
 print("MONGO_URI:", os.getenv("MONGO_URI"));
 
