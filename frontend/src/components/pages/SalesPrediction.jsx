@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "../../config/api.js";
 import "./SalesPrediction.css";
 
 const CATEGORY_COLORS = {
@@ -46,7 +47,7 @@ export default function SalesPrediction({ setActivePage }) {
   useEffect(() => {
     setLoading(true);
     setError("");
-    fetch(`${import.meta.env.VITE_API_URL}/api/predictions/predict-all?month=${selectedMonth}&year=${selectedYear}`)
+    fetch(`${API_BASE}/predictions/predict-all?month=${selectedMonth}&year=${selectedYear}`)
       .then(res => res.json())
       .then(res => {
         if (res.success) setData(res.data);
