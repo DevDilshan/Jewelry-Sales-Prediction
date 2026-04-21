@@ -56,6 +56,7 @@ export default function Products({ setActivePage }) {
   })
   const [mainImage, setMainImage] = useState(null)
   const [additionalImages, setAdditionalImages] = useState([null, null, null, null])
+  const [editAdditionalImages, setEditAdditionalImages] = useState([null, null, null, null])
 
   // Close action menu on outside click
   useEffect(() => {
@@ -107,6 +108,20 @@ export default function Products({ setActivePage }) {
     try {
       const dataUrl = await readFileAsDataUrl(file)
       setEditData((prev) => ({ ...prev, productImage: dataUrl }))
+    } catch (err) {
+      console.error('Could not read image:', err)
+    }
+    e.target.value = ''
+  }
+
+  const handleEditAdditionalImageUpload = async (index, e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      const updated = [...editAdditionalImages]
+      updated[index] = dataUrl
+      setEditAdditionalImages(updated)
     } catch (err) {
       console.error('Could not read image:', err)
     }
@@ -193,6 +208,10 @@ export default function Products({ setActivePage }) {
       if (mainImage && String(mainImage).startsWith('data:')) {
         prod.productImage = mainImage
       }
+      const extras = additionalImages.filter((x) => x && String(x).startsWith('data:'))
+      if (extras.length) {
+        prod.additionalImages = extras
+      }
 
       const res = await axios.post(`${API_BASE}/product/create`, prod, { headers: staffAuthHeaders() })
       setProducts([res.data, ...products])
@@ -213,6 +232,8 @@ export default function Products({ setActivePage }) {
   const openEdit = (product) => {
     setSelectedProduct(product)
     setEditData({ ...product })
+    const existing = Array.isArray(product.additionalImages) ? product.additionalImages : []
+    setEditAdditionalImages([0, 1, 2, 3].map((i) => existing[i] || null))
     setEditErrors({})
     setActionMenu(null)
     setEditModal(true)
@@ -239,6 +260,7 @@ export default function Products({ setActivePage }) {
         gemType: editData.gemType?.toLowerCase() || 'none',
         stockQuantity: stockQty,
         productImage: editData.productImage || selectedProduct.productImage,
+        additionalImages: editAdditionalImages.filter((x) => x && String(x).trim()),
         reorderLevel: parseInt(editData.reorderLevel) || 3,
         isActive: stockQty === 0 ? false : (selectedProduct.stockQuantity === 0 ? true : editData.isActive)
       }
@@ -580,6 +602,24 @@ export default function Products({ setActivePage }) {
                   {editData.productImage && (
                     <p className="section-label" style={{ marginTop: 8, fontWeight: 500 }}>Click image to replace</p>
                   )}
+                  <p className="section-label" style={{ marginTop: 16 }}>ADDITIONAL PHOTOS</p>
+                  <div className="additional-images">
+                    {editAdditionalImages.map((img, i) => (
+                      <label key={i} className="additional-image-slot">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleEditAdditionalImageUpload(i, e)}
+                          style={{ display: 'none' }}
+                        />
+                        {img ? (
+                          <img src={img} alt={`Additional ${i + 1}`} className="uploaded-add-img" />
+                        ) : (
+                          <span className="add-img-plus">+</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="modal-right">
 
