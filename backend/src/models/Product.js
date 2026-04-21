@@ -46,6 +46,12 @@ const productSchema = new Schema({
     type:String
   },
 
+  /** Extra photos (same format as productImage — URLs or data URLs). Shown in shop gallery. */
+  additionalImages: {
+    type: [String],
+    default: [],
+  },
+
   reorderLevel :{
     type:Number,
     default:5
