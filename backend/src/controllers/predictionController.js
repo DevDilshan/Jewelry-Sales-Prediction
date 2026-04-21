@@ -1,10 +1,9 @@
 import fetch from 'node-fetch';
 
-const FLASK_URL = 'http://localhost:5002';
+const FLASK_URL = process.env.FLASK_API_URL || 'http://localhost:5002';
 
 export const getPredictions = async (req, res) => {
     try {
-        // Pass month and year query params to Flask if provided
         const { month, year } = req.query;
         
         let flaskUrl = `${FLASK_URL}/predict-all`;
@@ -13,6 +12,7 @@ export const getPredictions = async (req, res) => {
             flaskUrl += `?month=${month}&year=${year}`;
         }
 
+        
         const response = await fetch(flaskUrl);
         
         if (!response.ok) {
