@@ -46,7 +46,7 @@ export default function SalesPrediction({ setActivePage }) {
   useEffect(() => {
     setLoading(true);
     setError("");
-    fetch(`http://localhost:5001/api/predictions/predict-all?month=${selectedMonth}&year=${selectedYear}`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/predictions/predict-all?month=${selectedMonth}&year=${selectedYear}`)
       .then(res => res.json())
       .then(res => {
         if (res.success) setData(res.data);
