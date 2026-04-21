@@ -1,6 +1,8 @@
 flask
 flask-cors
-pymongo
+gunicorn
+scikit-learn
 pandas
 numpy
-scikit-learn
+pymongo
+python-dotenv
