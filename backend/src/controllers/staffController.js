@@ -143,6 +143,19 @@ export async function listStaff(req, res) {
   }
 }
 
+/** GET /api/staff/designers — accounts with designer role (for portfolio assignment) */
+export async function listDesignerStaff(req, res) {
+  try {
+    const designers = await Staff.find({ role: "designer" })
+      .select("username email firstName lastName")
+      .sort({ username: 1 })
+      .lean();
+    res.json(designers);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
 export async function getStaffMe(req, res) {
   try {
     const user = await Staff.findById(req.user.id).select(STAFF_SAFE_SELECT);

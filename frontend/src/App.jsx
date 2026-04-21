@@ -28,6 +28,12 @@ import ProfileSettings from './components/user/UserProfile'
 import AddressBook from './components/user/AddressBook'
 import MyReviews from './components/user/Feedback'
 import SalesPrediction from './components/pages/SalesPrediction'
+import CustomDesignPage from './components/website/CustomDesignPage'
+import DesignersPage from './components/website/DesignersPage'
+import DesignerPortfolioPublicPage from './components/website/DesignerPortfolioPublicPage'
+import UserCustomDesign from './components/user/UserCustomDesign'
+import CustomDesignRequestsAdmin from './components/pages/CustomDesignRequestsAdmin'
+import DesignerPortfolioStaff from './components/pages/DesignerPortfolioStaff'
 export default function App() {
   return (
     <Router>
@@ -102,6 +108,16 @@ function AppContent() {
               <SalesPrediction setActivePage={setActivePage} />
             </StaffGuard>
           } />
+          <Route path="/admin/custom-design-requests" element={
+            <StaffGuard pageId="custom-design-requests">
+              <CustomDesignRequestsAdmin setActivePage={setActivePage} />
+            </StaffGuard>
+          } />
+          <Route path="/admin/designer-portfolio" element={
+            <StaffGuard pageId="designer-portfolio">
+              <DesignerPortfolioStaff setActivePage={setActivePage} />
+            </StaffGuard>
+          } />
           <Route path="/admin/login" element={<StaffLogin />} />
           <Route path="/admin/forgot-password" element={<StaffForgotPassword />} />
           <Route path="/admin/reset-password" element={<StaffResetPassword />} />
@@ -111,6 +127,9 @@ function AppContent() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/shop/product/:productId" element={<ShopProductPage />} />
           <Route path="/shop" element={<Shop />} />
+          <Route path="/custom-design" element={<CustomDesignPage />} />
+          <Route path="/designers/:portfolioId" element={<DesignerPortfolioPublicPage />} />
+          <Route path="/designers" element={<DesignersPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<CustomerForgotPassword />} />
           <Route path="/reset-password" element={<CustomerResetPassword />} />
@@ -122,6 +141,7 @@ function AppContent() {
           <Route path="/dashboard/address" element={<AddressBook />} />
           <Route path="/dashboard/profile" element={<ProfileSettings />} />
           <Route path="/dashboard/feedback" element={<MyReviews />} />
+          <Route path="/dashboard/custom-design" element={<UserCustomDesign />} />
         </Routes>
       </main>
     </div>

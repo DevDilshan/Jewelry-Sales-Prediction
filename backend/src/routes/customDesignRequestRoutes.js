@@ -33,19 +33,19 @@ router.get("/my/:id", verifyCustomerToken, getMyCustomDesignRequest);
 router.get(
   "/admin",
   verifyToken,
-  allowRoles("admin", "sales", "productmanager", "viewer"),
+  allowRoles("admin", "sales", "productmanager", "viewer", "designer"),
   listCustomDesignRequestsAdmin
 );
 router.get(
   "/admin/:id",
   verifyToken,
-  allowRoles("admin", "sales", "productmanager", "viewer"),
+  allowRoles("admin", "sales", "productmanager", "viewer", "designer"),
   getCustomDesignRequestAdmin
 );
 router.patch(
   "/admin/:id",
   verifyToken,
-  allowRoles("admin", "sales", "productmanager"),
+  allowRoles("admin", "sales", "productmanager", "designer"),
   updateCustomDesignRequestAdmin
 );
 

@@ -1,0 +1,136 @@
+.dp-public-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: 56px;
+}
+
+.dp-back {
+  margin-bottom: 20px;
+}
+
+.dp-back a {
+  color: #666;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.dp-back a:hover {
+  color: var(--dark);
+}
+
+.dp-loading,
+.dp-error {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-light);
+}
+
+.dp-error {
+  color: var(--danger);
+}
+
+.dp-public-header {
+  margin-bottom: 20px;
+}
+
+.dp-public-header h1 {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 800;
+  color: var(--dark);
+  margin: 0 0 10px;
+  line-height: 1.2;
+}
+
+.dp-public-headline {
+  font-size: 1.15rem;
+  color: var(--text-light);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.dp-public-person {
+  font-size: 0.95rem;
+  color: #777;
+  margin: 0;
+}
+
+.dp-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+}
+
+.dp-specialties li {
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  background: #f5f0e6;
+  border-radius: 999px;
+  color: #5c4a32;
+}
+
+.dp-bio {
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  margin-bottom: 36px;
+}
+
+.dp-gallery-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 18px;
+  color: var(--dark);
+}
+
+.dp-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.dp-gallery-item {
+  margin: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.dp-gallery-item img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.dp-gallery-item figcaption {
+  font-size: 0.88rem;
+  color: var(--text-light);
+  padding: 10px 12px 14px;
+  line-height: 1.45;
+}
+
+.dp-cta {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.dp-cta-link {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--dark);
+  text-decoration: none;
+  padding: 12px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.dp-cta-link:hover {
+  border-color: #ccc;
+}

@@ -8,6 +8,7 @@ const ROLE_OPTIONS = [
   { value: "productmanager", label: "Product Manager" },
   { value: "sales", label: "Sales" },
   { value: "viewer", label: "Viewer" },
+  { value: "designer", label: "Designer" },
 ];
 
 function roleLabel(role) {

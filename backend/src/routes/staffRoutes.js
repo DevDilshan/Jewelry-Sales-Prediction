@@ -4,6 +4,7 @@ import {
   deleteStaff,
   forgotStaffPassword,
   getStaffMe,
+  listDesignerStaff,
   listStaff,
   loginStaff,
   registerStaff,
@@ -27,6 +28,7 @@ router.patch("/me", verifyToken, updateStaffMe);
 router.post("/me/password", verifyToken, changeOwnPassword);
 
 router.post("/register", verifyToken, allowRoles("admin"), registerStaff);
+router.get("/designers", verifyToken, allowRoles("admin", "productmanager"), listDesignerStaff);
 router.get("/", verifyToken, allowRoles("admin"), listStaff);
 router.put("/:id", verifyToken, allowRoles("admin"), updateStaff);
 router.delete("/:id", verifyToken, allowRoles("admin"), deleteStaff);

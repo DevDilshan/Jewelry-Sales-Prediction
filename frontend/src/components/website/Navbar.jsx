@@ -34,6 +34,8 @@ export default function Navbar() {
                 <div className="navbar-links">
                     <button type="button" onClick={() => scrollToSection('hero')} className="nav-link">Home</button>
                     <Link to="/shop" className="nav-link">Shop</Link>
+                    <Link to="/designers" className="nav-link">Designers</Link>
+                    <Link to="/custom-design" className="nav-link">Custom design</Link>
                     <button type="button" onClick={() => scrollToSection('showcase')} className="nav-link">Featured</button>
                     <button type="button" onClick={() => scrollToSection('about')} className="nav-link">About</button>
                     <button type="button" onClick={() => scrollToSection('contact')} className="nav-link">Contact</button>

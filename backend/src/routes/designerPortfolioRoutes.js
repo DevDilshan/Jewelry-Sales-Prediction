@@ -53,13 +53,13 @@ router.post(
 router.get(
   "/admin",
   verifyToken,
-  allowRoles("admin", "productmanager", "viewer"),
+  allowRoles("admin", "productmanager", "sales", "viewer"),
   listDesignerPortfoliosAdmin
 );
 router.get(
   "/admin/:id",
   verifyToken,
-  allowRoles("admin", "productmanager", "viewer"),
+  allowRoles("admin", "productmanager", "sales", "viewer"),
   getDesignerPortfolioAdmin
 );
 router.post(
