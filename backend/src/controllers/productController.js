@@ -8,7 +8,7 @@ function wantsShopPricing(req) {
 
 export async function createProduct(req, res) {
   try {
-    const { productName, productCategory, productPrice, stockQuantity, isActive } = req.body;
+    const { productName, productCategory, productPrice, stockQuantity, isActive, reorderLevel} = req.body;
 
     // Required field validation
     if (!productName || !productName.trim()) {
@@ -23,9 +23,15 @@ export async function createProduct(req, res) {
     if (stockQuantity === undefined || isNaN(stockQuantity) || stockQuantity < 0) {
       return res.status(400).json({ message: "A valid stock quantity is required" });
     }
+
+    if (!reorderLevel || isNaN(reorderLevel) || reorderLevel <= 0) {
+      return res.status(400).json({ message: "Reorder level must be greater than 0" });
+    }
+
     if (isActive === undefined || isActive === null) {
       return res.status(400).json({ message: "Active status is required" });
     }
+    
 
     const product = await Product.create(req.body);
     res.status(201).json(product);
@@ -71,7 +77,7 @@ export async function getProductById(req, res) {
 
 export async function updateProduct(req, res) {
   try {
-    const { productName, productCategory, productPrice, stockQuantity } = req.body;
+    const { productName, productCategory, productPrice, stockQuantity,reorderLevel } = req.body;
 
     // Validate only fields that are being updated
     if (productName !== undefined && !productName.trim()) {
@@ -82,6 +88,10 @@ export async function updateProduct(req, res) {
     }
     if (stockQuantity !== undefined && (isNaN(stockQuantity) || stockQuantity < 0)) {
       return res.status(400).json({ message: "Stock quantity must be a positive number" });
+    }
+
+    if (reorderLevel !== undefined && (isNaN(reorderLevel) || reorderLevel <= 0)) {
+       return res.status(400).json({ message: "Reorder level must be greater than 0" });
     }
 
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
