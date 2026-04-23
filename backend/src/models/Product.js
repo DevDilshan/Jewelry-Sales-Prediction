@@ -26,7 +26,7 @@ const productSchema = new Schema({
 
   metalMaterial: {
   type: String,
-  enum: ['gold', 'silver', 'platinum', 'white gold', 'rose gold'],
+  enum: ['gold', 'silver', 'platinum', 'rose gold'],
   },
 
  gemType: {
@@ -54,7 +54,7 @@ const productSchema = new Schema({
 
   reorderLevel :{
     type:Number,
-    default:5
+     required:true
   },
   
   isActive:{
