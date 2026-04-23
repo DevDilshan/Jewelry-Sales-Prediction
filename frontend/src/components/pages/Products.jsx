@@ -165,6 +165,8 @@ export default function Products({ setActivePage }) {
       errs.price = 'Please enter a valid price greater than 0.'
     if (newProduct.stockCount === '' || isNaN(newProduct.stockCount) || parseInt(newProduct.stockCount) < 0)
       errs.stockCount = 'Please enter a valid stock quantity (0 or more).'
+    if (!newProduct.reorderLevel || isNaN(newProduct.reorderLevel) || parseInt(newProduct.reorderLevel) <= 0)
+       errs.reorderLevel = 'Reorder level must be greater than 0.'
     return errs
   }
 
@@ -179,6 +181,8 @@ export default function Products({ setActivePage }) {
       errs.productPrice = 'Please enter a valid price greater than 0.'
     if (editData.stockQuantity === '' || isNaN(editData.stockQuantity) || parseInt(editData.stockQuantity) < 0)
       errs.stockQuantity = 'Please enter a valid stock quantity (0 or more).'
+    if (!editData.reorderLevel || isNaN(editData.reorderLevel) || parseInt(editData.reorderLevel) <= 0)
+       errs.reorderLevel = 'Reorder level must be greater than 0.'
     return errs
   }
 
@@ -202,7 +206,7 @@ export default function Products({ setActivePage }) {
         metalMaterial: newProduct.metal.toLowerCase(),
         gemType: newProduct.gem.toLowerCase(),
         stockQuantity: stockQty,
-        reorderLevel: parseInt(newProduct.reorderLevel) || 3,
+        reorderLevel: parseInt(newProduct.reorderLevel),
         isActive: stockQty === 0 ? false : newProduct.active
       }
       if (mainImage && String(mainImage).startsWith('data:')) {
@@ -319,7 +323,7 @@ export default function Products({ setActivePage }) {
           <option value="Necklace">Necklace</option>
           <option value="Earring">Earring</option>
           <option value="Bracelet">Bracelet</option>
-          <option value="Watch">Brooch</option>
+          <option value="Brooch">Brooch</option>
         </select>
         <select className="filter-select" value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
           <option value="All">Stock Status: All</option>
@@ -548,11 +552,13 @@ export default function Products({ setActivePage }) {
                       <label>REORDER LEVEL</label>
                       <input
                         type="number"
-                        min="0"
+                        min="1"
                         value={newProduct.reorderLevel}
                         onChange={(e) => setNewProduct({ ...newProduct, reorderLevel: e.target.value })}
-                        placeholder="3"
-                      />
+                        placeholder="5"
+                         />
+                        {addErrors.reorderLevel && <span style={errorStyle}>{addErrors.reorderLevel}</span>}
+                     
                     </div>
                     <div className="form-group active-status-group">
                       <label>ACTIVE STATUS</label>
@@ -717,11 +723,12 @@ export default function Products({ setActivePage }) {
                     <div className="form-group">
                       <label>REORDER LEVEL</label>
                       <input
-                        type="number"
-                        min="0"
-                        value={editData.reorderLevel || 0}
-                        onChange={(e) => setEditData({ ...editData, reorderLevel: e.target.value })}
-                      />
+                          type="number"
+                          min="1"
+                          value={editData.reorderLevel || ''}
+                          onChange={(e) => { setEditData({ ...editData, reorderLevel: e.target.value }); setEditErrors(p => ({ ...p, reorderLevel: '' })) }}
+                        />
+                          {editErrors.reorderLevel && <span style={errorStyle}>{editErrors.reorderLevel}</span>}
                     </div>
                     <div className="form-group active-status-group">
                       <label>ACTIVE STATUS</label>
