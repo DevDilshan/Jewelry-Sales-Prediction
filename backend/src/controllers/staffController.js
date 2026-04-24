@@ -27,6 +27,8 @@ function sanitizeStaff(doc) {
 }
 
 const STAFF_SAFE_SELECT = "-password -resetToken -resetTokenExpiry";
+/** Staff list excludes large profile blobs. */
+const STAFF_LIST_SELECT = "-password -resetToken -resetTokenExpiry -profileImage";
 
 /** Only when there are zero staff documents — creates first admin */
 export async function setupFirstStaff(req, res) {
@@ -127,6 +129,7 @@ export async function loginStaff(req, res) {
       role: user.role,
       firstName: user.firstName || "",
       lastName: user.lastName || "",
+      profileImage: user.profileImage || "",
       accesstoken,
     });
   } catch (error) {
@@ -136,7 +139,7 @@ export async function loginStaff(req, res) {
 
 export async function listStaff(req, res) {
   try {
-    const staff = await Staff.find().select(STAFF_SAFE_SELECT).sort({ createdAt: -1 });
+    const staff = await Staff.find().select(STAFF_LIST_SELECT).sort({ createdAt: -1 });
     res.json(staff);
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });

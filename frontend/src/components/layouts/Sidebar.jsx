@@ -144,7 +144,13 @@ export default function Sidebar({ activePage, setActivePage }) {
 
       <div className="sidebar-footer">
         <div className="user-section">
-          <div className="user-avatar-text">{staffAvatarInitials(staffInfo)}</div>
+          {staffInfo?.profileImage ? (
+            <div className="user-avatar-img">
+              <img src={staffInfo.profileImage} alt="" />
+            </div>
+          ) : (
+            <div className="user-avatar-text">{staffAvatarInitials(staffInfo)}</div>
+          )}
           <div className="user-info">
             <p className="user-name">{displayName}</p>
             <p className="user-role">{displayRole}</p>

@@ -1,6 +1,8 @@
 const NAME_MAX = 80;
 const TITLE_MAX = 120;
 const ADDRESS_MAX = 500;
+const PROFILE_IMAGE_DATA_URL_RE = /^data:image\/(jpeg|jpg|png|gif|webp);base64,/i;
+const PROFILE_IMAGE_MAX_CHARS = 4_000_000;
 const STAFF_PHONE_LOCAL_RE = /^0\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -74,6 +76,16 @@ export function validateStaffProfileForm(fields) {
   if (!em) errors.email = "Email is required.";
   else if (!EMAIL_RE.test(em)) errors.email = "Enter a valid email address.";
   else if (em.length > 254) errors.email = "Email is too long.";
+
+  const pic = fields.profileImage;
+  if (pic != null && pic !== "") {
+    const s = String(pic);
+    if (s.length > PROFILE_IMAGE_MAX_CHARS) {
+      errors.profileImage = "Profile photo is too large. Choose a smaller image (e.g. under 2.5 MB).";
+    } else if (!PROFILE_IMAGE_DATA_URL_RE.test(s)) {
+      errors.profileImage = "Profile photo must be JPEG, PNG, GIF, or WebP.";
+    }
+  }
 
   return { ok: Object.keys(errors).length === 0, errors };
 }

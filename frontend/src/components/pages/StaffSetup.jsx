@@ -36,6 +36,9 @@ export default function StaffSetup() {
         username: data.user?.username || username.trim(),
         email: data.user?.email || email.trim(),
         role: data.user?.role || "admin",
+        firstName: data.user?.firstName || "",
+        lastName: data.user?.lastName || "",
+        profileImage: data.user?.profileImage || "",
       });
       if (data.temporaryPassword) {
         window.alert(

@@ -1,6 +1,9 @@
 const NAME_MAX = 80;
 const TITLE_MAX = 120;
 const ADDRESS_MAX = 500;
+/** Max stored length for base64 profile photos (~3.7MB decoded). */
+const PROFILE_IMAGE_MAX_CHARS = 5_000_000;
+const PROFILE_IMAGE_DATA_URL_RE = /^data:image\/(jpeg|jpg|png|gif|webp);base64,/i;
 /** Local mobile: exactly 10 digits, first digit 0 (e.g. 0771234567) */
 const STAFF_PHONE_LOCAL_RE = /^0\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -95,6 +98,26 @@ export function validateStaffProfilePatch(body) {
       errors.address = "Address contains invalid characters.";
     } else {
       values.address = t;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "profileImage")) {
+    const raw = body.profileImage;
+    if (raw === null || raw === undefined) {
+      /* skip */
+    } else if (typeof raw !== "string") {
+      errors.profileImage = "Profile photo must be a string or empty.";
+    } else {
+      const t = raw.trim();
+      if (!t) {
+        values.profileImage = "";
+      } else if (t.length > PROFILE_IMAGE_MAX_CHARS) {
+        errors.profileImage = "Profile photo is too large. Use a smaller image (e.g. under 2.5 MB).";
+      } else if (!PROFILE_IMAGE_DATA_URL_RE.test(t)) {
+        errors.profileImage = "Profile photo must be a JPEG, PNG, GIF, or WebP image.";
+      } else {
+        values.profileImage = t;
+      }
     }
   }
 
