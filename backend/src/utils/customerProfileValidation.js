@@ -1,8 +1,13 @@
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_CHARS_RE = /^[\d\s\-+().]*$/;
+/** Sri Lankan mobile: 10 digits, local format starting with 07 (e.g. 0712345678). */
+const LK_MOBILE_10_RE = /^07[0-9]{8}$/;
 
-function countPhoneDigits(phone) {
-  return String(phone || "").replace(/\D/g, "").length;
+/** Strip to digits, map leading 94… to 0… (local), keep at most 10 digits. */
+export function toLkMobileTenDigits(value) {
+  let d = String(value ?? "").replace(/\D/g, "");
+  if (d.startsWith("94") && d.length >= 11) {
+    d = `0${d.slice(2)}`;
+  }
+  return d.slice(0, 10);
 }
 
 /**
@@ -18,9 +23,6 @@ export function mergeCustomerProfileForValidation(customer, update) {
   return {
     firstName: merged("firstName"),
     lastName: merged("lastName"),
-    email: Object.prototype.hasOwnProperty.call(update, "email")
-      ? String(update.email ?? "").trim().toLowerCase()
-      : fromCustomer("email").toLowerCase(),
     phone: merged("phone"),
     address: merged("address"),
   };
@@ -31,7 +33,7 @@ export function mergeCustomerProfileForValidation(customer, update) {
  */
 export function validateCustomerProfileFields(fields) {
   const errors = {};
-  const { firstName, lastName, email, phone, address } = fields;
+  const { firstName, lastName, phone, address } = fields;
 
   const fn = String(firstName ?? "").trim();
   const ln = String(lastName ?? "").trim();
@@ -44,25 +46,11 @@ export function validateCustomerProfileFields(fields) {
     errors.lastName = "Last name must be at most 60 characters.";
   }
 
-  const em = String(email ?? "").trim().toLowerCase();
-  if (!em) {
-    errors.email = "Email is required.";
-  } else if (!EMAIL_RE.test(em)) {
-    errors.email = "Enter a valid email address.";
-  }
-
-  const ph = String(phone ?? "").trim();
-  if (ph) {
-    if (!PHONE_CHARS_RE.test(ph)) {
-      errors.phone = "Phone may only include digits, spaces, and + ( ) - .";
-    } else {
-      const digits = countPhoneDigits(ph);
-      if (digits < 8) {
-        errors.phone = "Phone number is too short (at least 8 digits).";
-      } else if (digits > 15) {
-        errors.phone = "Phone number is too long (at most 15 digits).";
-      }
-    }
+  const ph = toLkMobileTenDigits(phone);
+  if (!ph) {
+    errors.phone = "Enter your 10-digit mobile number (e.g. 0712345678).";
+  } else if (!LK_MOBILE_10_RE.test(ph)) {
+    errors.phone = "Use a Sri Lankan mobile: 10 digits starting with 07 (e.g. 0712345678).";
   }
 
   const addr = String(address ?? "").trim();

@@ -4,6 +4,7 @@ import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 import {
   mergeCustomerProfileForValidation,
   validateCustomerProfileFields,
+  toLkMobileTenDigits,
 } from "../utils/customerProfileValidation.js";
 import { hashPassword, verifyPasswordMigrateLegacy } from "../utils/passwordHash.js";
 import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
@@ -217,26 +218,16 @@ export async function updateCustomerMe(req, res) {
       update.lastName = String(req.body.lastName ?? "").trim();
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "phone")) {
-      update.phone = String(req.body.phone ?? "").trim();
+      update.phone = toLkMobileTenDigits(req.body.phone);
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "address")) {
       update.address = String(req.body.address ?? "").trim();
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "email")) {
       const emailNorm = String(req.body.email ?? "").trim().toLowerCase();
-      if (!emailNorm || !emailNorm.includes("@")) {
-        return res.status(400).json({ message: "A valid email is required." });
+      if (emailNorm && emailNorm !== String(customer.email || "").toLowerCase()) {
+        return res.status(400).json({ message: "Email cannot be changed." });
       }
-      if (emailNorm !== customer.email) {
-        const taken = await Customer.findOne({
-          email: emailNorm,
-          _id: { $ne: customer._id },
-        });
-        if (taken) {
-          return res.status(400).json({ message: "That email is already in use." });
-        }
-      }
-      update.email = emailNorm;
     }
 
     if (Object.keys(update).length === 0) {

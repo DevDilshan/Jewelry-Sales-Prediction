@@ -5,7 +5,10 @@ import {
   isPasswordPolicyValid,
   PASSWORD_REQUIREMENTS_HINT,
 } from "../../utils/passwordPolicy";
-import { validateCustomerProfileForm } from "../../utils/customerProfileValidation";
+import {
+  validateCustomerProfileForm,
+  toLkMobileTenDigits,
+} from "../../utils/customerProfileValidation";
 import "./UserProfile.css";
 
 function splitFullName(fullName) {
@@ -59,7 +62,7 @@ export default function ProfileSettings() {
       .then((data) => {
         setProfile({
           fullName: [data.firstName, data.lastName].filter(Boolean).join(" ").trim(),
-          phone: data.phone || "",
+          phone: toLkMobileTenDigits(data.phone || ""),
           email: data.email || "",
           address: data.address || "",
         });
@@ -79,6 +82,7 @@ export default function ProfileSettings() {
   const mapServerProfileErrors = (errors) => {
     if (!errors || typeof errors !== "object") return {};
     const out = { ...errors };
+    delete out.email;
     if (out.firstName || out.lastName) {
       out.fullName = out.firstName || out.lastName;
       delete out.firstName;
@@ -105,15 +109,14 @@ export default function ProfileSettings() {
         body: {
           firstName,
           lastName,
-          email: profile.email.trim(),
-          phone: profile.phone.trim(),
+          phone: toLkMobileTenDigits(profile.phone),
           address: profile.address.trim(),
         },
         auth: "customer",
       });
       setProfile({
         fullName: [data.firstName, data.lastName].filter(Boolean).join(" ").trim(),
-        phone: data.phone || "",
+        phone: toLkMobileTenDigits(data.phone || ""),
         email: data.email || "",
         address: data.address || "",
       });
@@ -237,10 +240,11 @@ export default function ProfileSettings() {
                 </div>
 
                 <div className="ps-field">
-                  <label htmlFor="ps-phone">PHONE NUMBER (OPTIONAL)</label>
+                  <label htmlFor="ps-phone">MOBILE NUMBER</label>
                   <input
                     id="ps-phone"
                     type="tel"
+                    inputMode="numeric"
                     value={profile.phone}
                     onChange={(e) => {
                       setProfileFieldErrors((prev) => {
@@ -248,53 +252,40 @@ export default function ProfileSettings() {
                         delete next.phone;
                         return next;
                       });
-                      setProfile({ ...profile, phone: e.target.value });
+                      setProfile({ ...profile, phone: toLkMobileTenDigits(e.target.value) });
                     }}
-                    placeholder="+94 77 000 0000"
+                    placeholder="0712345678"
                     autoComplete="tel"
                     disabled={profileBusy}
-                    maxLength={32}
+                    maxLength={15}
                     className={profileFieldErrors.phone ? "ps-input-invalid" : ""}
                     aria-invalid={Boolean(profileFieldErrors.phone)}
-                    aria-describedby={profileFieldErrors.phone ? "ps-phone-err" : undefined}
+                    aria-describedby={profileFieldErrors.phone ? "ps-phone-err" : "ps-phone-hint"}
                   />
                   {profileFieldErrors.phone ? (
                     <p id="ps-phone-err" className="ps-field-error" role="alert">
                       {profileFieldErrors.phone}
                     </p>
                   ) : (
-                    <p className="ps-field-hint">8–15 digits; spaces and + ( ) - . allowed.</p>
+                    <p id="ps-phone-hint" className="ps-field-hint">
+                      10 digits, Sri Lankan format starting with 07 (e.g. 071, 077). You can paste +94… and it will be normalized.
+                    </p>
                   )}
                 </div>
               </div>
 
               <div className="ps-field">
-                <label htmlFor="ps-email">EMAIL ADDRESS</label>
-                <input
-                  id="ps-email"
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => {
-                    setProfileFieldErrors((prev) => {
-                      const next = { ...prev };
-                      delete next.email;
-                      return next;
-                    });
-                    setProfile({ ...profile, email: e.target.value });
-                  }}
-                  placeholder="your@email.com"
-                  autoComplete="email"
-                  disabled={profileBusy}
-                  maxLength={254}
-                  className={profileFieldErrors.email ? "ps-input-invalid" : ""}
-                  aria-invalid={Boolean(profileFieldErrors.email)}
-                  aria-describedby={profileFieldErrors.email ? "ps-email-err" : undefined}
-                />
-                {profileFieldErrors.email && (
-                  <p id="ps-email-err" className="ps-field-error" role="alert">
-                    {profileFieldErrors.email}
-                  </p>
-                )}
+                <span className="ps-field-label-text" id="ps-email-label">
+                  EMAIL ADDRESS
+                </span>
+                <div
+                  className="ps-readonly-value"
+                  aria-labelledby="ps-email-label"
+                  title={profile.email}
+                >
+                  {profile.email || "—"}
+                </div>
+                <p className="ps-field-hint">Email is fixed to your account and cannot be changed here.</p>
               </div>
 
               <div className="ps-field">

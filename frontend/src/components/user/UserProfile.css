@@ -214,12 +214,27 @@
   gap: 7px;
 }
 
-.ps-field label {
+.ps-field label,
+.ps-field-label-text {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 1.5px;
   color: #7a9ab0;
   text-transform: uppercase;
+  display: block;
+}
+
+.ps-readonly-value {
+  width: 100%;
+  padding: 13px 16px;
+  background: #efefec;
+  border: 1px solid #e4e4e0;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: #555;
+  box-sizing: border-box;
+  word-break: break-all;
 }
 
 .ps-field input,

@@ -1,18 +1,22 @@
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_CHARS_RE = /^[\d\s\-+().]*$/;
+/** Sri Lankan mobile: 10 digits, local format starting with 07 (e.g. 0712345678). */
+const LK_MOBILE_10_RE = /^07[0-9]{8}$/;
 
-function countPhoneDigits(phone) {
-  return String(phone || "").replace(/\D/g, "").length;
+/** Strip to digits, map leading 94… to 0… (local), keep at most 10 digits. */
+export function toLkMobileTenDigits(value) {
+  let d = String(value ?? "").replace(/\D/g, "");
+  if (d.startsWith("94") && d.length >= 11) {
+    d = `0${d.slice(2)}`;
+  }
+  return d.slice(0, 10);
 }
 
 /**
- * @param {{ fullName: string, email: string, phone: string, address: string }} profile
+ * @param {{ fullName: string, phone: string, address: string }} profile — email is not editable; omit from validation.
  * @returns {{ ok: boolean, errors: Record<string, string> }}
  */
 export function validateCustomerProfileForm(profile) {
   const errors = {};
   const fullName = String(profile.fullName ?? "").trim();
-  const email = String(profile.email ?? "").trim();
   const phone = String(profile.phone ?? "").trim();
   const address = String(profile.address ?? "").trim();
 
@@ -35,23 +39,11 @@ export function validateCustomerProfileForm(profile) {
     }
   }
 
-  if (!email) {
-    errors.email = "Email is required.";
-  } else if (!EMAIL_RE.test(email)) {
-    errors.email = "Enter a valid email address.";
-  }
-
-  if (phone) {
-    if (!PHONE_CHARS_RE.test(phone)) {
-      errors.phone = "Phone may only include digits, spaces, and + ( ) - .";
-    } else {
-      const digits = countPhoneDigits(phone);
-      if (digits < 8) {
-        errors.phone = "Phone number is too short (at least 8 digits).";
-      } else if (digits > 15) {
-        errors.phone = "Phone number is too long (at most 15 digits).";
-      }
-    }
+  const ph = toLkMobileTenDigits(phone);
+  if (!ph) {
+    errors.phone = "Enter your 10-digit mobile number (e.g. 0712345678).";
+  } else if (!LK_MOBILE_10_RE.test(ph)) {
+    errors.phone = "Use a Sri Lankan mobile: 10 digits starting with 07 (e.g. 0712345678).";
   }
 
   if (address.length > 2000) {
