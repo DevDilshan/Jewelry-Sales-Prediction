@@ -54,7 +54,9 @@ export function validateCustomerProfileFields(fields) {
   }
 
   const addr = String(address ?? "").trim();
-  if (addr.length > 2000) {
+  if (!addr) {
+    errors.address = "Enter your shipping or contact address.";
+  } else if (addr.length > 2000) {
     errors.address = "Address must be at most 2000 characters.";
   }
 

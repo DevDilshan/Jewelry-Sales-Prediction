@@ -46,7 +46,9 @@ export function validateCustomerProfileForm(profile) {
     errors.phone = "Use a Sri Lankan mobile: 10 digits starting with 07 (e.g. 0712345678).";
   }
 
-  if (address.length > 2000) {
+  if (!address) {
+    errors.address = "Enter your shipping or contact address.";
+  } else if (address.length > 2000) {
     errors.address = "Address must be at most 2000 characters.";
   }
 

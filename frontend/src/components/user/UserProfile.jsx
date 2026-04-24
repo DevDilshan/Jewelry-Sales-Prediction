@@ -289,7 +289,7 @@ export default function ProfileSettings() {
               </div>
 
               <div className="ps-field">
-                <label htmlFor="ps-address">SHIPPING / CONTACT ADDRESS (OPTIONAL)</label>
+                <label htmlFor="ps-address">SHIPPING / CONTACT ADDRESS</label>
                 <textarea
                   id="ps-address"
                   value={profile.address}
@@ -308,7 +308,9 @@ export default function ProfileSettings() {
                   maxLength={2000}
                   className={profileFieldErrors.address ? "ps-input-invalid" : ""}
                   aria-invalid={Boolean(profileFieldErrors.address)}
-                  aria-describedby={profileFieldErrors.address ? "ps-address-err" : undefined}
+                  aria-describedby={
+                    profileFieldErrors.address ? "ps-address-err" : "ps-address-hint"
+                  }
                 />
                 <div className="ps-address-meta">
                   {profileFieldErrors.address ? (
@@ -316,7 +318,9 @@ export default function ProfileSettings() {
                       {profileFieldErrors.address}
                     </p>
                   ) : (
-                    <p className="ps-field-hint">Up to 2000 characters.</p>
+                    <p id="ps-address-hint" className="ps-field-hint">
+                      Required. Street, city, postal code, and country (up to 2000 characters).
+                    </p>
                   )}
                   <span className="ps-char-count">{profile.address.length}/2000</span>
                 </div>
