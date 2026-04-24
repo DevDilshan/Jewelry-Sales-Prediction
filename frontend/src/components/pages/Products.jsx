@@ -331,28 +331,28 @@ export default function Products({ setActivePage }) {
       </div>
 
               {/* ── Stats Cards ── */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <p className="stat-label">TOTAL PRODUCTS</p>
-            <p className="stat-value">{products.length}</p>
-            <p className="stat-sub">in catalog</p>
-          </div>
-          <div className="stat-card">
-            <p className="stat-label">ACTIVE PRODUCTS</p>
-            <p className="stat-value success">{products.filter(p => p.isActive).length}</p>
-            <p className="stat-sub">visible in shop</p>
-          </div>
-          <div className="stat-card">
-            <p className="stat-label">OUT OF STOCK</p>
-            <p className="stat-value danger">{products.filter(p => p.stockQuantity === 0).length}</p>
-            <p className="stat-sub">need restocking</p>
-          </div>
-          <div className="stat-card">
-            <p className="stat-label">LOW STOCK</p>
-            <p className="stat-value warning">{products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= p.reorderLevel).length}</p>
-            <p className="stat-sub">below reorder level</p>
-          </div>
+              <div className="stats-grid">
+        <div className="stat-card card-total">
+          <p className="stat-label">TOTAL PRODUCTS</p>
+          <p className="stat-value">{products.length}</p>
+          <p className="stat-sub">in catalog</p>
         </div>
+        <div className="stat-card card-active">
+          <p className="stat-label">ACTIVE PRODUCTS</p>
+          <p className="stat-value">{products.filter(p => p.isActive).length}</p>
+          <p className="stat-sub">visible in shop</p>
+        </div>
+        <div className="stat-card card-out">
+          <p className="stat-label">OUT OF STOCK</p>
+          <p className="stat-value">{products.filter(p => p.stockQuantity === 0).length}</p>
+          <p className="stat-sub">need restocking</p>
+        </div>
+        <div className="stat-card card-low">
+          <p className="stat-label">LOW STOCK</p>
+          <p className="stat-value">{products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= p.reorderLevel).length}</p>
+          <p className="stat-sub">below reorder level</p>
+        </div>
+      </div>
 
       <div className="products-controls">
         <div className="search-box">
