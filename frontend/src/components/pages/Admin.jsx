@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import "./Admin.css";
 import { api, getStaffToken } from "../../config/api";
+import { isValidStaffAccountEmail, staffAccountEmailHint } from "../../utils/staffEmail";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
@@ -22,6 +23,23 @@ function initialsFrom(username, email) {
   return e.slice(0, 2).toUpperCase() || "?";
 }
 
+function displayField(value) {
+  const s = (value ?? "").toString().trim();
+  return s || "—";
+}
+
+function StaffAvatar({ staff, className = "" }) {
+  const base = `avatar ${className}`.trim();
+  if (staff.profileImage) {
+    return (
+      <div className={`${base} avatar--photo`}>
+        <img src={staff.profileImage} alt="" className="avatar-img" />
+      </div>
+    );
+  }
+  return <div className={base}>{initialsFrom(staff.username, staff.email)}</div>;
+}
+
 export default function Admin({ setActivePage }) {
   useEffect(() => {
     setActivePage("admin");
@@ -32,6 +50,7 @@ export default function Admin({ setActivePage }) {
   const [editModal, setEditModal] = useState(false);
   const [removeConfirm, setRemoveConfirm] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [detailStaff, setDetailStaff] = useState(null);
   const [actionMenu, setActionMenu] = useState(null);
   const menuRef = useRef(null);
 
@@ -83,6 +102,10 @@ export default function Admin({ setActivePage }) {
   const handleAddStaff = async (e) => {
     e.preventDefault();
     if (!getStaffToken()) return;
+    if (!isValidStaffAccountEmail(newStaff.email)) {
+      alert(staffAccountEmailHint());
+      return;
+    }
     setSaving(true);
     try {
       const data = await api("/staff/register", {
@@ -108,6 +131,11 @@ export default function Admin({ setActivePage }) {
     }
   };
 
+  const openStaffDetail = (staff) => {
+    setActionMenu(null);
+    setDetailStaff(staff);
+  };
+
   const openEdit = (staff) => {
     setSelectedStaff(staff);
     setEditData({
@@ -116,12 +144,24 @@ export default function Admin({ setActivePage }) {
       role: staff.role || "viewer",
     });
     setActionMenu(null);
+    setDetailStaff(null);
     setEditModal(true);
+  };
+
+  const openEditFromDetail = () => {
+    if (!detailStaff) return;
+    const s = detailStaff;
+    setDetailStaff(null);
+    openEdit(s);
   };
 
   const handleEdit = async (e) => {
     e.preventDefault();
     if (!selectedStaff?._id || !getStaffToken()) return;
+    if (!isValidStaffAccountEmail(editData.email)) {
+      alert(staffAccountEmailHint());
+      return;
+    }
     setSaving(true);
     try {
       await api(`/staff/${selectedStaff._id}`, {
@@ -218,10 +258,10 @@ export default function Admin({ setActivePage }) {
           </thead>
           <tbody>
             {filteredStaff.map((staff) => (
-              <tr key={staff._id}>
+              <tr key={staff._id} className="staff-table-row" onClick={() => openStaffDetail(staff)}>
                 <td>
                   <div className="staff-info">
-                    <div className="avatar">{initialsFrom(staff.username, staff.email)}</div>
+                    <StaffAvatar staff={staff} />
                     <p className="staff-name">{staff.username}</p>
                   </div>
                 </td>
@@ -229,7 +269,7 @@ export default function Admin({ setActivePage }) {
                 <td>
                   <span className="role-badge">{roleLabel(staff.role)}</span>
                 </td>
-                <td>
+                <td className="staff-actions-cell" onClick={(e) => e.stopPropagation()}>
                   <div className="action-wrapper" ref={actionMenu === staff._id ? menuRef : null}>
                     <button
                       type="button"
@@ -255,6 +295,60 @@ export default function Admin({ setActivePage }) {
           </tbody>
         </table>
       </div>
+
+      {detailStaff && (
+        <div className="modal-overlay" onClick={() => setDetailStaff(null)}>
+          <div className="modal staff-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Staff member</h2>
+              <button type="button" className="modal-close" onClick={() => setDetailStaff(null)} aria-label="Close">
+                ✕
+              </button>
+            </div>
+            <div className="staff-detail-body">
+              <div className="staff-detail-hero">
+                <StaffAvatar staff={detailStaff} className="staff-detail-avatar" />
+                <div>
+                  <p className="staff-detail-username">{detailStaff.username}</p>
+                  <p className="staff-detail-email">{detailStaff.email}</p>
+                  <span className="role-badge">{roleLabel(detailStaff.role)}</span>
+                </div>
+              </div>
+              <dl className="staff-detail-grid">
+                <dt>First name</dt>
+                <dd>{displayField(detailStaff.firstName)}</dd>
+                <dt>Last name</dt>
+                <dd>{displayField(detailStaff.lastName)}</dd>
+                <dt>Phone</dt>
+                <dd>{displayField(detailStaff.phone)}</dd>
+                <dt>Job title</dt>
+                <dd>{displayField(detailStaff.jobTitle)}</dd>
+                <dt>Department</dt>
+                <dd>{displayField(detailStaff.department)}</dd>
+                <dt>Address</dt>
+                <dd className="staff-detail-multiline">{displayField(detailStaff.address)}</dd>
+                <dt>Account created</dt>
+                <dd>
+                  {detailStaff.createdAt
+                    ? new Date(detailStaff.createdAt).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })
+                    : "—"}
+                </dd>
+              </dl>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn-cancel" onClick={() => setDetailStaff(null)}>
+                Close
+              </button>
+              <button type="button" className="btn-submit" onClick={openEditFromDetail}>
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => !saving && setShowModal(false)}>
@@ -288,6 +382,7 @@ export default function Admin({ setActivePage }) {
                   onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
                   placeholder="e.g. jane@beceff.com"
                 />
+                <p className="admin-field-hint">{staffAccountEmailHint()}</p>
               </div>
               <div className="form-group">
                 <label>Role</label>
@@ -374,6 +469,7 @@ export default function Admin({ setActivePage }) {
                   value={editData.email}
                   onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                 />
+                <p className="admin-field-hint">{staffAccountEmailHint()}</p>
               </div>
               <div className="form-group">
                 <label>Role</label>

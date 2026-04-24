@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api, setStaffAuth } from "../../config/api";
 import { isPasswordPolicyValid, PASSWORD_REQUIREMENTS_HINT } from "../../utils/passwordPolicy";
+import { isValidStaffAccountEmail, staffAccountEmailHint } from "../../utils/staffEmail";
 import "./AuthPages.css";
 
 export default function StaffSetup() {
@@ -27,6 +28,10 @@ export default function StaffSetup() {
         return;
       }
     }
+    if (!isValidStaffAccountEmail(email)) {
+      setError(staffAccountEmailHint());
+      return;
+    }
     setBusy(true);
     try {
       const body = { username: username.trim(), email: email.trim() };
@@ -36,6 +41,9 @@ export default function StaffSetup() {
         username: data.user?.username || username.trim(),
         email: data.user?.email || email.trim(),
         role: data.user?.role || "admin",
+        firstName: data.user?.firstName || "",
+        lastName: data.user?.lastName || "",
+        profileImage: data.user?.profileImage || "",
       });
       if (data.temporaryPassword) {
         window.alert(

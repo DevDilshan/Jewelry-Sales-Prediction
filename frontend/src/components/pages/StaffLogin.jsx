@@ -43,6 +43,7 @@ export default function StaffLogin() {
         role: data.role,
         firstName: data.firstName || "",
         lastName: data.lastName || "",
+        profileImage: data.profileImage || "",
       });
       navigate("/admin");
     } catch (err) {

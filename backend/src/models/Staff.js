@@ -53,6 +53,11 @@ const staffSchema = new Schema({
         trim: true,
         default: "",
     },
+    /** Optional data URL or URL string (same pattern as product images). */
+    profileImage: {
+        type: String,
+        default: "",
+    },
     resetToken: {
         type: String,
         default: null,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import PasswordToggleButton from "../PasswordToggleButton";
 import "./Profile.css";
@@ -15,7 +15,11 @@ const ROLE_LABEL = {
   productmanager: "Product Manager",
   sales: "Sales",
   viewer: "Viewer",
+  designer: "Designer",
 };
+
+const PROFILE_PHOTO_MAX_BYTES = Math.floor(2.5 * 1024 * 1024);
+const PROFILE_PHOTO_ACCEPT_RE = /^image\/(jpeg|pjpeg|png|gif|webp)$/i;
 
 function avatarInitialsFromProfile(me) {
   if (!me) return "—";
@@ -34,6 +38,7 @@ const emptyPersonalForm = {
   jobTitle: "",
   department: "",
   address: "",
+  profileImage: "",
 };
 
 export default function Profile({ setActivePage }) {
@@ -49,6 +54,7 @@ export default function Profile({ setActivePage }) {
   const [profileMessage, setProfileMessage] = useState("");
   const [profileError, setProfileError] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
+  const photoInputRef = useRef(null);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -97,6 +103,7 @@ export default function Profile({ setActivePage }) {
       jobTitle: me.jobTitle || "",
       department: me.department || "",
       address: me.address || "",
+      profileImage: me.profileImage || "",
     });
     setFieldErrors({});
     setProfileError("");
@@ -110,7 +117,7 @@ export default function Profile({ setActivePage }) {
     setProfileError("");
     setFieldErrors({});
 
-    const v = validateStaffProfileForm({ ...form, email: me.email });
+    const v = validateStaffProfileForm({ ...form, email: me.email, profileImage: form.profileImage });
     if (!v.ok) {
       setFieldErrors(v.errors);
       return;
@@ -127,6 +134,7 @@ export default function Profile({ setActivePage }) {
           jobTitle: form.jobTitle.trim(),
           department: form.department.trim(),
           address: form.address.trim(),
+          profileImage: form.profileImage || "",
         },
         auth: "staff",
       });
@@ -139,6 +147,7 @@ export default function Profile({ setActivePage }) {
           role: updated.role,
           firstName: updated.firstName || "",
           lastName: updated.lastName || "",
+          profileImage: updated.profileImage || "",
         });
       }
       setShowEditModal(false);
@@ -200,6 +209,44 @@ export default function Profile({ setActivePage }) {
     });
   };
 
+  const onProfilePhotoFile = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (!PROFILE_PHOTO_ACCEPT_RE.test(f.type)) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        profileImage: "Use JPEG, PNG, GIF, or WebP.",
+      }));
+      return;
+    }
+    if (f.size > PROFILE_PHOTO_MAX_BYTES) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        profileImage: "Image must be about 2.5 MB or smaller.",
+      }));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      if (typeof dataUrl === "string") setField("profileImage", dataUrl);
+    };
+    reader.readAsDataURL(f);
+  };
+
+  const clearProfilePhoto = () => {
+    setField("profileImage", "");
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const renderAvatar = (src, initials) => {
+    if (src) {
+      return <img className="profile-avatar-photo" src={src} alt="" />;
+    }
+    return initials;
+  };
+
   return (
     <div className="profile-page">
       <div className="page-header">
@@ -220,13 +267,16 @@ export default function Profile({ setActivePage }) {
         <div className="profile-section">
           <div className="section-content profile-summary-row">
             <div className="profile-avatar-section">
-              <div className="profile-avatar">{me ? avatarInitialsFromProfile(me) : "—"}</div>
+              <div className={`profile-avatar${me?.profileImage ? " profile-avatar--has-photo" : ""}`}>
+                {me ? renderAvatar(me.profileImage, avatarInitialsFromProfile(me)) : "—"}
+              </div>
             </div>
 
             <div className="profile-details profile-details--wide">
               <h2>Personal details</h2>
               <p className="profile-section-lead">
-                Your sign-in identity and role. Use Edit profile to update your details — all fields there are required.
+                Your sign-in identity and role. Use Edit profile to update your details — text fields there are required;
+                profile photo is optional.
               </p>
 
               <div className="profile-fixed-fields">
@@ -389,9 +439,51 @@ export default function Profile({ setActivePage }) {
                 ×
               </button>
             </div>
-            <p className="profile-modal-lead">All fields are required. Your details are validated on save.</p>
+            <p className="profile-modal-lead">
+              Text fields below are required. Profile photo is optional (JPEG, PNG, GIF, or WebP, about 2.5 MB max).
+            </p>
 
             <form className="profile-modal-form" onSubmit={handleSaveProfile} noValidate>
+              <div className="profile-photo-block">
+                <div className={`profile-avatar profile-avatar--modal${form.profileImage ? " profile-avatar--has-photo" : ""}`}>
+                  {renderAvatar(form.profileImage, avatarInitialsFromProfile(me))}
+                </div>
+                <input
+                  ref={photoInputRef}
+                  id="profile-photo-file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="profile-photo-input-hidden"
+                  onChange={onProfilePhotoFile}
+                  disabled={profileBusy}
+                />
+                <div className="profile-photo-actions">
+                  <button
+                    type="button"
+                    className="profile-photo-choose-btn"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={profileBusy}
+                  >
+                    Choose photo
+                  </button>
+                  {(form.profileImage || me?.profileImage) && (
+                    <button
+                      type="button"
+                      className="profile-photo-remove-btn"
+                      onClick={clearProfilePhoto}
+                      disabled={profileBusy}
+                    >
+                      Remove photo
+                    </button>
+                  )}
+                </div>
+                {fieldErrors.profileImage && (
+                  <p className="form-field-error" role="alert">
+                    {fieldErrors.profileImage}
+                  </p>
+                )}
+              </div>
+
               <div className="form-grid profile-form-grid-2">
                 <div className="form-group">
                   <label htmlFor="modal-first-name">First name</label>
