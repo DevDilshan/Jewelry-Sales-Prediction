@@ -288,6 +288,113 @@
   transform: translateX(0px);
 }
 
+/* ── Low Stock Alert Section ── */
+.low-stock-section {
+  background: #fffbf0;
+  border: 1px solid #f6d860;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.low-stock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.low-stock-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #92610a;
+}
+
+.low-stock-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #b8860b;
+  background: #fef3c7;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.low-stock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.low-stock-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.low-stock-item.alert-out {
+  background: #fff5f5;
+  border-color: #fed7d7;
+}
+
+.low-stock-item.alert-low {
+  background: #fffff0;
+  border-color: #fefcbf;
+}
+
+.low-stock-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.low-stock-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.low-stock-category {
+  font-size: 11px;
+  color: #999;
+}
+
+.low-stock-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.low-stock-qty,
+.low-stock-reorder {
+  font-size: 12px;
+  color: #666;
+}
+
+.low-stock-qty strong,
+.low-stock-reorder strong {
+  color: #1a1a1a;
+}
+
+.low-stock-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.badge-out {
+  background: #fed7d7;
+  color: #9b2c2c;
+}
+
+.badge-low {
+  background: #fefcbf;
+  color: #975a16;
+}
+
 /* Action wrapper + dropdown */
 .action-wrapper {
   position: relative;
