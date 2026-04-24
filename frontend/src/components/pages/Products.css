@@ -22,6 +22,54 @@
   font-size: 14px;
 }
 
+/* ── Stats Cards ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #eeebe4;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #999;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px 0;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+}
+
+.stat-value.success {
+  color: #276749;
+}
+
+.stat-value.danger {
+  color: #9b2c2c;
+}
+
+.stat-value.warning {
+  color: #975a16;
+}
+
+.stat-sub {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+}
+
 .add-btn {
   background: #fffbf0;
   border: 1px solid #e5d7c3;
