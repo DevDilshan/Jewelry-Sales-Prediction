@@ -1,6 +1,10 @@
 import Customer from "../models/Customer.js";
 import jwt from "jsonwebtoken";
 import { validatePasswordStrength } from "../utils/passwordPolicy.js";
+import {
+  mergeCustomerProfileForValidation,
+  validateCustomerProfileFields,
+} from "../utils/customerProfileValidation.js";
 import { hashPassword, verifyPasswordMigrateLegacy } from "../utils/passwordHash.js";
 import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
 
@@ -238,6 +242,16 @@ export async function updateCustomerMe(req, res) {
     if (Object.keys(update).length === 0) {
       const fresh = await Customer.findById(req.customerId).select("-password");
       return res.json({ message: "No changes.", ...customerProfilePayload(fresh) });
+    }
+
+    const merged = mergeCustomerProfileForValidation(customer, update);
+    const fieldErrors = validateCustomerProfileFields(merged);
+    if (Object.keys(fieldErrors).length > 0) {
+      const first = Object.values(fieldErrors)[0];
+      return res.status(400).json({
+        message: typeof first === "string" ? first : "Invalid profile data.",
+        errors: fieldErrors,
+      });
     }
 
     const next = await Customer.findByIdAndUpdate(req.customerId, update, {
