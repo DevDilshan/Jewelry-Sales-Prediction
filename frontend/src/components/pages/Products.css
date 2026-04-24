@@ -26,18 +26,19 @@
 
 .stats-grid {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 24px;
 }
 
 .stat-card {
   flex: 1;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
+  overflow: hidden;
 }
 
 .stat-card.card-total {
@@ -61,10 +62,13 @@
 }
 
 .stat-label {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  margin: 0 0 4px 0;
+  letter-spacing: 0.3px;
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-card.card-total .stat-label { color: #92610a; }
@@ -73,9 +77,10 @@
 .stat-card.card-low .stat-label { color: #92400e; }
 
 .stat-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   margin: 0 0 2px 0;
+  white-space: nowrap;
 }
 
 .stat-card.card-total .stat-value { color: #7a4f0d; }
@@ -84,14 +89,19 @@
 .stat-card.card-low .stat-value { color: #78350f; }
 
 .stat-sub {
-  font-size: 10px;
+  font-size: 9px;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-card.card-total .stat-sub { color: #b8860b; }
 .stat-card.card-active .stat-sub { color: #16a34a; }
 .stat-card.card-out .stat-sub { color: #dc2626; }
 .stat-card.card-low .stat-sub { color: #d97706; }
+
+  
 
 .add-btn {
   background: #fffbf0;
