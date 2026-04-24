@@ -265,7 +265,7 @@ export default function Products({ setActivePage }) {
         stockQuantity: stockQty,
         productImage: editData.productImage || selectedProduct.productImage,
         additionalImages: editAdditionalImages.filter((x) => x && String(x).trim()),
-        reorderLevel: parseInt(editData.reorderLevel) || 3,
+        reorderLevel: parseInt(editData.reorderLevel),
         isActive: stockQty === 0 ? false : (selectedProduct.stockQuantity === 0 ? true : editData.isActive)
       }
 
@@ -331,6 +331,39 @@ export default function Products({ setActivePage }) {
           <option value="Out Of Stock">Out Of Stock</option>
         </select>
       </div>
+
+          {/* ── Low Stock Alerts ── */}
+    {products.some(p => p.stockQuantity === 0 || p.stockQuantity <= p.reorderLevel) && (
+      <div className="low-stock-section">
+        <div className="low-stock-header">
+          <span className="low-stock-title">
+            ⚠️ Stock Alerts
+          </span>
+          <span className="low-stock-count">
+            {products.filter(p => p.stockQuantity === 0 || p.stockQuantity <= p.reorderLevel).length} products need attention
+          </span>
+        </div>
+        <div className="low-stock-list">
+          {products
+            .filter(p => p.stockQuantity === 0 || p.stockQuantity <= p.reorderLevel)
+            .map(p => (
+              <div key={p._id} className={`low-stock-item ${p.stockQuantity === 0 ? 'alert-out' : 'alert-low'}`}>
+                <div className="low-stock-info">
+                  <span className="low-stock-name">{p.productName}</span>
+                  <span className="low-stock-category">{p.productCategory}</span>
+                </div>
+                <div className="low-stock-meta">
+                  <span className="low-stock-qty">Stock: <strong>{p.stockQuantity}</strong></span>
+                  <span className="low-stock-reorder">Reorder Level: <strong>{p.reorderLevel}</strong></span>
+                  <span className={`low-stock-badge ${p.stockQuantity === 0 ? 'badge-out' : 'badge-low'}`}>
+                    {p.stockQuantity === 0 ? 'Out of Stock' : 'Low Stock'}
+                  </span>
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
+    )}
 
       <div className="products-table-container">
         <table className="products-table">
