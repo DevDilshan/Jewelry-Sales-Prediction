@@ -40,6 +40,9 @@ export default function Products({ setActivePage }) {
   const [editData, setEditData] = useState({})
   const [addErrors, setAddErrors] = useState({})
   const [editErrors, setEditErrors] = useState({})
+  const [toast, setToast] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 8
   const menuRef = useRef(null)
 
   const [products, setProducts] = useState([])
@@ -67,7 +70,11 @@ export default function Products({ setActivePage }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [actionMenu])
 
-  const filteredProducts = products.filter(product => {
+      useEffect(() => {
+      setCurrentPage(1)
+    }, [searchQuery, categoryFilter, stockFilter])
+
+    const filteredProducts = products.filter(product => {
     const matchesSearch = product.productName?.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = categoryFilter === 'All' || product.productCategory === categoryFilter
     let matchesStock = true
@@ -75,6 +82,11 @@ export default function Products({ setActivePage }) {
     if (stockFilter === 'Out Of Stock') matchesStock = product.stockQuantity === 0
     return matchesSearch && matchesCategory && matchesStock
   })
+    const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)
+    const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+)
 
   const handleMainImageUpload = async (e) => {
     const file = e.target.files?.[0]
@@ -149,6 +161,11 @@ export default function Products({ setActivePage }) {
       console.error('Failed to update active status:', error.response?.data || error.message)
     }
   }
+
+  const showToast = (message, type = 'success') => {
+  setToast({ message, type })
+  setTimeout(() => setToast(null), 3000)
+}
 
   // ── Validate Add form, returns error object ──
   const validateAdd = () => {
@@ -227,6 +244,7 @@ export default function Products({ setActivePage }) {
       setAdditionalImages([null, null, null, null])
       setAddErrors({})
       setShowModal(false)
+      showToast('Product added successfully!')
     } catch (error) {
       const msg = error.response?.data?.message || 'Failed to save product. Please try again.'
       setAddErrors({ server: msg })
@@ -276,6 +294,7 @@ export default function Products({ setActivePage }) {
       setProducts(products.map(p => p._id === selectedProduct._id ? { ...p, ...updatedProduct } : p))
       setEditErrors({})
       setEditModal(false)
+      showToast('Product updated successfully!')
       setSelectedProduct(null)
     } catch (error) {
       const msg = error.response?.data?.message || 'Failed to update product. Please try again.'
@@ -298,6 +317,7 @@ export default function Products({ setActivePage }) {
     }
     setDeleteConfirm(false)
     setSelectedProduct(null)
+    showToast('Product deleted successfully!', 'delete')
   }
 
   return (
@@ -365,6 +385,8 @@ export default function Products({ setActivePage }) {
       </div>
     )}
 
+    
+
       <div className="products-table-container">
         <table className="products-table">
           <thead>
@@ -382,7 +404,7 @@ export default function Products({ setActivePage }) {
             </tr>
           </thead>
           <tbody>
-            {filteredProducts.map(product => {
+            {paginatedProducts.map(product => {
               const stockStatus = getStockStatus(product.stockQuantity, product.reorderLevel)
               return (
                 <tr key={product._id}>
@@ -439,13 +461,19 @@ export default function Products({ setActivePage }) {
       </div>
 
       <div className="pagination">
-        <span>SHOWING 1 TO {filteredProducts.length} OF {products.length} PRODUCTS</span>
+        <span>SHOWING {filteredProducts.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1} TO {Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)} OF {filteredProducts.length} PRODUCTS</span>
         <div className="pagination-buttons">
-          <button className="page-btn">‹</button>
-          <button className="page-btn active">1</button>
-          <button className="page-btn">2</button>
-          <button className="page-btn">3</button>
-          <button className="page-btn">›</button>
+          <button className="page-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>‹</button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            <button
+              key={page}
+              className={`page-btn ${currentPage === page ? 'active' : ''}`}
+              onClick={() => setCurrentPage(page)}
+            >
+              {page}
+            </button>
+          ))}
+          <button className="page-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>›</button>
         </div>
       </div>
 
@@ -786,7 +814,6 @@ export default function Products({ setActivePage }) {
           </div>
         </div>
       )}
-
       {/* ── Delete Confirmation Modal ── */}
       {deleteConfirm && selectedProduct && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(false)}>
@@ -808,6 +835,14 @@ export default function Products({ setActivePage }) {
           </div>
         </div>
       )}
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.type === 'success' ? '✓' : '🗑'} {toast.message}
+        </div>
+      )}
+
     </div>
   )
 }
