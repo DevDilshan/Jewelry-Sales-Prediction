@@ -168,6 +168,21 @@ function customerProfilePayload(customer) {
   };
 }
 
+const CUSTOMER_ADMIN_LIST_SELECT = "-password -resetToken -resetTokenExpiry";
+
+/** GET /api/staff/customers — staff directory of registered shop customers (no passwords). */
+export async function listCustomersAdmin(req, res) {
+  try {
+    const customers = await Customer.find()
+      .select(CUSTOMER_ADMIN_LIST_SELECT)
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(customers);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
 /** GET /customer/me — current user (Bearer). */
 export async function getCustomerMe(req, res) {
   try {
