@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api, setStaffAuth } from "../../config/api";
 import { isPasswordPolicyValid, PASSWORD_REQUIREMENTS_HINT } from "../../utils/passwordPolicy";
+import { isValidStaffAccountEmail, staffAccountEmailHint } from "../../utils/staffEmail";
 import "./AuthPages.css";
 
 export default function StaffSetup() {
@@ -26,6 +27,10 @@ export default function StaffSetup() {
         setError(PASSWORD_REQUIREMENTS_HINT);
         return;
       }
+    }
+    if (!isValidStaffAccountEmail(email)) {
+      setError(staffAccountEmailHint());
+      return;
     }
     setBusy(true);
     try {

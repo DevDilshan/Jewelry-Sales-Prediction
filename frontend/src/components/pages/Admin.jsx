@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import "./Admin.css";
 import { api, getStaffToken } from "../../config/api";
+import { isValidStaffAccountEmail, staffAccountEmailHint } from "../../utils/staffEmail";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
@@ -25,6 +26,18 @@ function initialsFrom(username, email) {
 function displayField(value) {
   const s = (value ?? "").toString().trim();
   return s || "—";
+}
+
+function StaffAvatar({ staff, className = "" }) {
+  const base = `avatar ${className}`.trim();
+  if (staff.profileImage) {
+    return (
+      <div className={`${base} avatar--photo`}>
+        <img src={staff.profileImage} alt="" className="avatar-img" />
+      </div>
+    );
+  }
+  return <div className={base}>{initialsFrom(staff.username, staff.email)}</div>;
 }
 
 export default function Admin({ setActivePage }) {
@@ -89,6 +102,10 @@ export default function Admin({ setActivePage }) {
   const handleAddStaff = async (e) => {
     e.preventDefault();
     if (!getStaffToken()) return;
+    if (!isValidStaffAccountEmail(newStaff.email)) {
+      alert(staffAccountEmailHint());
+      return;
+    }
     setSaving(true);
     try {
       const data = await api("/staff/register", {
@@ -141,6 +158,10 @@ export default function Admin({ setActivePage }) {
   const handleEdit = async (e) => {
     e.preventDefault();
     if (!selectedStaff?._id || !getStaffToken()) return;
+    if (!isValidStaffAccountEmail(editData.email)) {
+      alert(staffAccountEmailHint());
+      return;
+    }
     setSaving(true);
     try {
       await api(`/staff/${selectedStaff._id}`, {
@@ -240,7 +261,7 @@ export default function Admin({ setActivePage }) {
               <tr key={staff._id} className="staff-table-row" onClick={() => openStaffDetail(staff)}>
                 <td>
                   <div className="staff-info">
-                    <div className="avatar">{initialsFrom(staff.username, staff.email)}</div>
+                    <StaffAvatar staff={staff} />
                     <p className="staff-name">{staff.username}</p>
                   </div>
                 </td>
@@ -286,7 +307,7 @@ export default function Admin({ setActivePage }) {
             </div>
             <div className="staff-detail-body">
               <div className="staff-detail-hero">
-                <div className="avatar staff-detail-avatar">{initialsFrom(detailStaff.username, detailStaff.email)}</div>
+                <StaffAvatar staff={detailStaff} className="staff-detail-avatar" />
                 <div>
                   <p className="staff-detail-username">{detailStaff.username}</p>
                   <p className="staff-detail-email">{detailStaff.email}</p>
@@ -361,6 +382,7 @@ export default function Admin({ setActivePage }) {
                   onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
                   placeholder="e.g. jane@beceff.com"
                 />
+                <p className="admin-field-hint">{staffAccountEmailHint()}</p>
               </div>
               <div className="form-group">
                 <label>Role</label>
@@ -447,6 +469,7 @@ export default function Admin({ setActivePage }) {
                   value={editData.email}
                   onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                 />
+                <p className="admin-field-hint">{staffAccountEmailHint()}</p>
               </div>
               <div className="form-group">
                 <label>Role</label>

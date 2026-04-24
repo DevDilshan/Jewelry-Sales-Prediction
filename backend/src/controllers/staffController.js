@@ -6,6 +6,7 @@ import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 import { hashPassword, verifyPasswordMigrateLegacy, verifyStoredPassword } from "../utils/passwordHash.js";
 import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
 import { validateStaffProfilePatch } from "../utils/staffProfileValidation.js";
+import { isValidStaffAccountEmail, staffAccountEmailErrorMessage } from "../utils/staffEmail.js";
 
 const DEFAULT_STAFF_PASSWORD = () =>
   process.env.DEFAULT_STAFF_PASSWORD?.trim() || "ChangeMe@123";
@@ -27,8 +28,6 @@ function sanitizeStaff(doc) {
 }
 
 const STAFF_SAFE_SELECT = "-password -resetToken -resetTokenExpiry";
-/** Staff list excludes large profile blobs. */
-const STAFF_LIST_SELECT = "-password -resetToken -resetTokenExpiry -profileImage";
 
 /** Only when there are zero staff documents — creates first admin */
 export async function setupFirstStaff(req, res) {
@@ -41,8 +40,8 @@ export async function setupFirstStaff(req, res) {
     if (!username?.trim() || !email?.trim()) {
       return res.status(400).json({ message: "Username and email are required." });
     }
-    if (!String(email).includes("@")) {
-      return res.status(400).json({ message: "Invalid email" });
+    if (!isValidStaffAccountEmail(email)) {
+      return res.status(400).json({ message: staffAccountEmailErrorMessage() });
     }
     const customPwd = req.body.password?.trim();
     const plainPassword = customPwd || DEFAULT_STAFF_PASSWORD();
@@ -76,8 +75,8 @@ export async function registerStaff(req, res) {
     if (!username?.trim() || !email?.trim()) {
       return res.status(400).json({ message: "Username and email are required." });
     }
-    if (!String(email).includes("@")) {
-      return res.status(400).json({ message: "Invalid email" });
+    if (!isValidStaffAccountEmail(email)) {
+      return res.status(400).json({ message: staffAccountEmailErrorMessage() });
     }
     const allowed = ["admin", "productmanager", "sales", "viewer", "designer"];
     const r = allowed.includes(role) ? role : "viewer";
@@ -139,7 +138,7 @@ export async function loginStaff(req, res) {
 
 export async function listStaff(req, res) {
   try {
-    const staff = await Staff.find().select(STAFF_LIST_SELECT).sort({ createdAt: -1 });
+    const staff = await Staff.find().select(STAFF_SAFE_SELECT).sort({ createdAt: -1 });
     res.json(staff);
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -304,6 +303,9 @@ export async function updateStaff(req, res) {
     delete body.password;
     delete body.resetToken;
     delete body.resetTokenExpiry;
+    if (body.email != null && String(body.email).trim() !== "" && !isValidStaffAccountEmail(body.email)) {
+      return res.status(400).json({ message: staffAccountEmailErrorMessage() });
+    }
     const user = await Staff.findByIdAndUpdate(req.params.id, body, { new: true }).select(STAFF_SAFE_SELECT);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
