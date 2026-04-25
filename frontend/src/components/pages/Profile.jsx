@@ -21,6 +21,13 @@ const ROLE_LABEL = {
 const PROFILE_PHOTO_MAX_BYTES = Math.floor(2.5 * 1024 * 1024);
 const PROFILE_PHOTO_ACCEPT_RE = /^image\/(jpeg|pjpeg|png|gif|webp)$/i;
 
+function dateInputValue(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
 function avatarInitialsFromProfile(me) {
   if (!me) return "—";
   const fn = (me.firstName || "").trim();
@@ -38,6 +45,9 @@ const emptyPersonalForm = {
   jobTitle: "",
   department: "",
   address: "",
+  yearsOfExperience: "",
+  dateOfBirth: "",
+  emergencyContactNumber: "",
   profileImage: "",
 };
 
@@ -103,6 +113,12 @@ export default function Profile({ setActivePage }) {
       jobTitle: me.jobTitle || "",
       department: me.department || "",
       address: me.address || "",
+      yearsOfExperience:
+        me.yearsOfExperience == null || me.yearsOfExperience === ""
+          ? ""
+          : String(me.yearsOfExperience),
+      dateOfBirth: dateInputValue(me.dateOfBirth),
+      emergencyContactNumber: me.emergencyContactNumber || "",
       profileImage: me.profileImage || "",
     });
     setFieldErrors({});
@@ -134,6 +150,9 @@ export default function Profile({ setActivePage }) {
           jobTitle: form.jobTitle.trim(),
           department: form.department.trim(),
           address: form.address.trim(),
+          yearsOfExperience: form.yearsOfExperience.trim(),
+          dateOfBirth: form.dateOfBirth.trim(),
+          emergencyContactNumber: form.emergencyContactNumber.trim(),
           profileImage: form.profileImage || "",
         },
         auth: "staff",
@@ -299,6 +318,35 @@ export default function Profile({ setActivePage }) {
                       value={me ? ROLE_LABEL[me.role] || me.role : ""}
                     />
                   </div>
+                </div>
+                <div className="form-grid profile-form-grid-2">
+                  <div className="form-group">
+                    <label>Years of experience</label>
+                    <input
+                      type="text"
+                      className="form-input form-input-readonly"
+                      readOnly
+                      value={me?.yearsOfExperience == null ? "" : String(me.yearsOfExperience)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Date of birth</label>
+                    <input
+                      type="text"
+                      className="form-input form-input-readonly"
+                      readOnly
+                      value={dateInputValue(me?.dateOfBirth)}
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Emergency contact number</label>
+                  <input
+                    type="text"
+                    className="form-input form-input-readonly"
+                    readOnly
+                    value={me?.emergencyContactNumber || ""}
+                  />
                 </div>
               </div>
 
@@ -540,6 +588,66 @@ export default function Profile({ setActivePage }) {
                 {fieldErrors.phone && (
                   <p className="form-field-error" role="alert">
                     {fieldErrors.phone}
+                  </p>
+                )}
+              </div>
+
+              <div className="form-grid profile-form-grid-2">
+                <div className="form-group">
+                  <label htmlFor="modal-years-of-experience">Years of experience</label>
+                  <input
+                    id="modal-years-of-experience"
+                    type="number"
+                    min="0"
+                    max="80"
+                    step="1"
+                    className={`form-input ${fieldErrors.yearsOfExperience ? "form-input-error" : ""}`}
+                    value={form.yearsOfExperience}
+                    onChange={(e) => setField("yearsOfExperience", e.target.value)}
+                    disabled={profileBusy}
+                    placeholder="e.g. 5"
+                  />
+                  {fieldErrors.yearsOfExperience && (
+                    <p className="form-field-error" role="alert">
+                      {fieldErrors.yearsOfExperience}
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modal-date-of-birth">Date of birth</label>
+                  <input
+                    id="modal-date-of-birth"
+                    type="date"
+                    className={`form-input ${fieldErrors.dateOfBirth ? "form-input-error" : ""}`}
+                    value={form.dateOfBirth}
+                    onChange={(e) => setField("dateOfBirth", e.target.value)}
+                    disabled={profileBusy}
+                  />
+                  {fieldErrors.dateOfBirth && (
+                    <p className="form-field-error" role="alert">
+                      {fieldErrors.dateOfBirth}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="modal-emergency-contact-number">Emergency contact number</label>
+                <input
+                  id="modal-emergency-contact-number"
+                  type="tel"
+                  inputMode="numeric"
+                  className={`form-input ${fieldErrors.emergencyContactNumber ? "form-input-error" : ""}`}
+                  value={form.emergencyContactNumber}
+                  onChange={(e) => setField("emergencyContactNumber", e.target.value)}
+                  disabled={profileBusy}
+                  placeholder="0771234567"
+                />
+                <p className="form-field-hint">Emergency contact number format: 0771234567</p>
+                {fieldErrors.emergencyContactNumber && (
+                  <p className="form-field-error" role="alert">
+                    {fieldErrors.emergencyContactNumber}
                   </p>
                 )}
               </div>

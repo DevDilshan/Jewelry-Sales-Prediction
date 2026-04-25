@@ -53,6 +53,21 @@ const staffSchema = new Schema({
         trim: true,
         default: "",
     },
+    yearsOfExperience: {
+        type: Number,
+        min: 0,
+        max: 80,
+        default: null,
+    },
+    dateOfBirth: {
+        type: Date,
+        default: null,
+    },
+    emergencyContactNumber: {
+        type: String,
+        trim: true,
+        default: "",
+    },
     /** Optional data URL or URL string (same pattern as product images). */
     profileImage: {
         type: String,

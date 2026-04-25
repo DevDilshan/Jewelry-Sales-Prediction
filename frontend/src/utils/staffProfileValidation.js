@@ -4,6 +4,8 @@ const ADDRESS_MAX = 500;
 const PROFILE_IMAGE_DATA_URL_RE = /^data:image\/(jpeg|jpg|png|gif|webp);base64,/i;
 const PROFILE_IMAGE_MAX_CHARS = 4_000_000;
 const STAFF_PHONE_LOCAL_RE = /^0\d{9}$/;
+const EXPERIENCE_MIN = 0;
+const EXPERIENCE_MAX = 80;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function requiredMsg(label) {
@@ -24,6 +26,9 @@ export function validateStaffProfileForm(fields) {
     jobTitle = "",
     department = "",
     address = "",
+    yearsOfExperience = "",
+    dateOfBirth = "",
+    emergencyContactNumber = "",
     email = "",
   } = fields;
 
@@ -70,6 +75,34 @@ export function validateStaffProfileForm(fields) {
   else if (addr.length > ADDRESS_MAX) errors.address = `Address must be at most ${ADDRESS_MAX} characters.`;
   else if (/<|>/.test(addr) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(addr)) {
     errors.address = "Address contains invalid characters.";
+  }
+
+  const exp = String(yearsOfExperience).trim();
+  if (!exp) errors.yearsOfExperience = requiredMsg("Years of experience");
+  else {
+    const n = Number(exp);
+    if (!Number.isInteger(n) || n < EXPERIENCE_MIN || n > EXPERIENCE_MAX) {
+      errors.yearsOfExperience = `Years of experience must be a whole number between ${EXPERIENCE_MIN} and ${EXPERIENCE_MAX}.`;
+    }
+  }
+
+  const dob = String(dateOfBirth).trim();
+  if (!dob) errors.dateOfBirth = "Date of birth is required.";
+  else if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) errors.dateOfBirth = "Date of birth must be in YYYY-MM-DD format.";
+  else {
+    const d = new Date(`${dob}T00:00:00.000Z`);
+    if (Number.isNaN(d.getTime())) errors.dateOfBirth = "Date of birth is invalid.";
+    else if (d > new Date()) errors.dateOfBirth = "Date of birth cannot be in the future.";
+  }
+
+  const ec = String(emergencyContactNumber).trim();
+  if (!ec) errors.emergencyContactNumber = requiredMsg("Emergency contact number");
+  else {
+    const digits = ec.replace(/\D/g, "");
+    if (!STAFF_PHONE_LOCAL_RE.test(digits)) {
+      errors.emergencyContactNumber =
+        "Enter exactly 10 digits starting with 0 (e.g. 0771234567).";
+    }
   }
 
   const em = String(email).trim().toLowerCase();

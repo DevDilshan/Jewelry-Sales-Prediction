@@ -6,6 +6,8 @@ const PROFILE_IMAGE_MAX_CHARS = 5_000_000;
 const PROFILE_IMAGE_DATA_URL_RE = /^data:image\/(jpeg|jpg|png|gif|webp);base64,/i;
 /** Local mobile: exactly 10 digits, first digit 0 (e.g. 0771234567) */
 const STAFF_PHONE_LOCAL_RE = /^0\d{9}$/;
+const EXPERIENCE_MIN = 0;
+const EXPERIENCE_MAX = 80;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function requiredMsg(fieldLabel) {
@@ -98,6 +100,54 @@ export function validateStaffProfilePatch(body) {
       errors.address = "Address contains invalid characters.";
     } else {
       values.address = t;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "yearsOfExperience")) {
+    const raw = body.yearsOfExperience;
+    const t = String(raw ?? "").trim();
+    if (!t) {
+      errors.yearsOfExperience = requiredMsg("Years of experience");
+    } else {
+      const n = Number(t);
+      if (!Number.isInteger(n) || n < EXPERIENCE_MIN || n > EXPERIENCE_MAX) {
+        errors.yearsOfExperience = `Years of experience must be a whole number between ${EXPERIENCE_MIN} and ${EXPERIENCE_MAX}.`;
+      } else {
+        values.yearsOfExperience = n;
+      }
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "dateOfBirth")) {
+    const t = String(body.dateOfBirth ?? "").trim();
+    if (!t) {
+      errors.dateOfBirth = "Date of birth is required.";
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+      errors.dateOfBirth = "Date of birth must be in YYYY-MM-DD format.";
+    } else {
+      const d = new Date(`${t}T00:00:00.000Z`);
+      if (Number.isNaN(d.getTime())) {
+        errors.dateOfBirth = "Date of birth is invalid.";
+      } else if (d > new Date()) {
+        errors.dateOfBirth = "Date of birth cannot be in the future.";
+      } else {
+        values.dateOfBirth = d;
+      }
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "emergencyContactNumber")) {
+    const raw = String(body.emergencyContactNumber ?? "").trim();
+    if (!raw) {
+      errors.emergencyContactNumber = requiredMsg("Emergency contact number");
+    } else {
+      const digits = raw.replace(/\D/g, "");
+      if (!STAFF_PHONE_LOCAL_RE.test(digits)) {
+        errors.emergencyContactNumber =
+          "Enter exactly 10 digits starting with 0 (e.g. 0771234567).";
+      } else {
+        values.emergencyContactNumber = digits;
+      }
     }
   }
 
