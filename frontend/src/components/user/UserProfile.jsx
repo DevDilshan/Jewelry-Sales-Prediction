@@ -5,6 +5,10 @@ import {
   isPasswordPolicyValid,
   PASSWORD_REQUIREMENTS_HINT,
 } from "../../utils/passwordPolicy";
+import {
+  validateCustomerProfileForm,
+  toLkMobileTenDigits,
+} from "../../utils/customerProfileValidation";
 import "./UserProfile.css";
 
 function splitFullName(fullName) {
@@ -25,7 +29,10 @@ export default function ProfileSettings() {
     fullName: "",
     phone: "",
     email: "",
+    address: "",
   });
+
+  const [profileFieldErrors, setProfileFieldErrors] = useState({});
 
   const [passwords, setPasswords] = useState({
     current: "",
@@ -55,8 +62,9 @@ export default function ProfileSettings() {
       .then((data) => {
         setProfile({
           fullName: [data.firstName, data.lastName].filter(Boolean).join(" ").trim(),
-          phone: data.phone || "",
+          phone: toLkMobileTenDigits(data.phone || ""),
           email: data.email || "",
+          address: data.address || "",
         });
       })
       .catch(() => setLoadError("Could not load your profile."))
@@ -71,13 +79,27 @@ export default function ProfileSettings() {
     refreshProfile();
   }, [navigate, refreshProfile]);
 
+  const mapServerProfileErrors = (errors) => {
+    if (!errors || typeof errors !== "object") return {};
+    const out = { ...errors };
+    delete out.email;
+    if (out.firstName || out.lastName) {
+      out.fullName = out.firstName || out.lastName;
+      delete out.firstName;
+      delete out.lastName;
+    }
+    return out;
+  };
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setProfileError("");
+    setProfileFieldErrors({});
     setProfileSaved(false);
     const { firstName, lastName } = splitFullName(profile.fullName);
-    if (!profile.email.trim() || !profile.email.includes("@")) {
-      setProfileError("Please enter a valid email address.");
+    const { ok, errors } = validateCustomerProfileForm(profile);
+    if (!ok) {
+      setProfileFieldErrors(errors);
       return;
     }
     setProfileBusy(true);
@@ -87,15 +109,16 @@ export default function ProfileSettings() {
         body: {
           firstName,
           lastName,
-          email: profile.email.trim(),
-          phone: profile.phone.trim(),
+          phone: toLkMobileTenDigits(profile.phone),
+          address: profile.address.trim(),
         },
         auth: "customer",
       });
       setProfile({
         fullName: [data.firstName, data.lastName].filter(Boolean).join(" ").trim(),
-        phone: data.phone || "",
+        phone: toLkMobileTenDigits(data.phone || ""),
         email: data.email || "",
+        address: data.address || "",
       });
       const token = getCustomerToken();
       if (token) {
@@ -106,10 +129,17 @@ export default function ProfileSettings() {
           email: data.email,
         });
       }
+      setProfileFieldErrors({});
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2500);
     } catch (err) {
-      setProfileError(err.message || "Could not save profile.");
+      const serverErrors = mapServerProfileErrors(err.data?.errors);
+      if (Object.keys(serverErrors).length > 0) {
+        setProfileFieldErrors(serverErrors);
+        setProfileError("");
+      } else {
+        setProfileError(err.message || "Could not save profile.");
+      }
     } finally {
       setProfileBusy(false);
     }
@@ -178,7 +208,7 @@ export default function ProfileSettings() {
             <p className="ps-loading">Loading profile…</p>
           ) : (
             <form onSubmit={handleSaveProfile} className="ps-form">
-              {profileError && <p className="ps-inline-error">{profileError}</p>}
+              {profileError ? <p className="ps-inline-error">{profileError}</p> : null}
               <div className="ps-form-row">
                 <div className="ps-field">
                   <label htmlFor="ps-fullname">FULL NAME</label>
@@ -186,38 +216,114 @@ export default function ProfileSettings() {
                     id="ps-fullname"
                     type="text"
                     value={profile.fullName}
-                    onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                    onChange={(e) => {
+                      setProfileFieldErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.fullName;
+                        return next;
+                      });
+                      setProfile({ ...profile, fullName: e.target.value });
+                    }}
                     placeholder="Your full name"
                     autoComplete="name"
                     disabled={profileBusy}
+                    maxLength={121}
+                    className={profileFieldErrors.fullName ? "ps-input-invalid" : ""}
+                    aria-invalid={Boolean(profileFieldErrors.fullName)}
+                    aria-describedby={profileFieldErrors.fullName ? "ps-fullname-err" : undefined}
                   />
+                  {profileFieldErrors.fullName && (
+                    <p id="ps-fullname-err" className="ps-field-error" role="alert">
+                      {profileFieldErrors.fullName}
+                    </p>
+                  )}
                 </div>
-                
+
                 <div className="ps-field">
-                  <label htmlFor="ps-phone">PHONE NUMBER</label>
+                  <label htmlFor="ps-phone">MOBILE NUMBER</label>
                   <input
                     id="ps-phone"
                     type="tel"
+                    inputMode="numeric"
                     value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    placeholder="+94 77 000 0000"
+                    onChange={(e) => {
+                      setProfileFieldErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.phone;
+                        return next;
+                      });
+                      setProfile({ ...profile, phone: toLkMobileTenDigits(e.target.value) });
+                    }}
+                    placeholder="0712345678"
                     autoComplete="tel"
                     disabled={profileBusy}
+                    maxLength={15}
+                    className={profileFieldErrors.phone ? "ps-input-invalid" : ""}
+                    aria-invalid={Boolean(profileFieldErrors.phone)}
+                    aria-describedby={profileFieldErrors.phone ? "ps-phone-err" : "ps-phone-hint"}
                   />
+                  {profileFieldErrors.phone ? (
+                    <p id="ps-phone-err" className="ps-field-error" role="alert">
+                      {profileFieldErrors.phone}
+                    </p>
+                  ) : (
+                    <p id="ps-phone-hint" className="ps-field-hint">
+                      10 digits, Sri Lankan format starting with 07 (e.g. 071, 077). You can paste +94… and it will be normalized.
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="ps-field">
-                <label htmlFor="ps-email">EMAIL ADDRESS</label>
-                <input
-                  id="ps-email"
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                  placeholder="your@email.com"
-                  autoComplete="email"
+                <span className="ps-field-label-text" id="ps-email-label">
+                  EMAIL ADDRESS
+                </span>
+                <div
+                  className="ps-readonly-value"
+                  aria-labelledby="ps-email-label"
+                  title={profile.email}
+                >
+                  {profile.email || "—"}
+                </div>
+                <p className="ps-field-hint">Email is fixed to your account and cannot be changed here.</p>
+              </div>
+
+              <div className="ps-field">
+                <label htmlFor="ps-address">SHIPPING / CONTACT ADDRESS</label>
+                <textarea
+                  id="ps-address"
+                  value={profile.address}
+                  onChange={(e) => {
+                    setProfileFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.address;
+                      return next;
+                    });
+                    setProfile({ ...profile, address: e.target.value });
+                  }}
+                  placeholder="Street, city, postal code, country"
+                  autoComplete="street-address"
                   disabled={profileBusy}
+                  rows={4}
+                  maxLength={2000}
+                  className={profileFieldErrors.address ? "ps-input-invalid" : ""}
+                  aria-invalid={Boolean(profileFieldErrors.address)}
+                  aria-describedby={
+                    profileFieldErrors.address ? "ps-address-err" : "ps-address-hint"
+                  }
                 />
+                <div className="ps-address-meta">
+                  {profileFieldErrors.address ? (
+                    <p id="ps-address-err" className="ps-field-error" role="alert">
+                      {profileFieldErrors.address}
+                    </p>
+                  ) : (
+                    <p id="ps-address-hint" className="ps-field-hint">
+                      Required. Street, city, postal code, and country (up to 2000 characters).
+                    </p>
+                  )}
+                  <span className="ps-char-count">{profile.address.length}/2000</span>
+                </div>
               </div>
 
               <div className="ps-form-footer">

@@ -45,6 +45,14 @@ const icons = {
       <circle cx="14" cy="16" r="1.5" />
     </svg>
   ),
+  customers: (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7" cy="6.5" r="2.5" />
+      <path d="M2 16v-1a4 4 0 014-4h2" />
+      <circle cx="14.5" cy="6" r="2" />
+      <path d="M12 16v-0.5a3.5 3.5 0 013.5-3.5H16" />
+    </svg>
+  ),
   prediction: (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 14l4-4 3 3 4-5 4 3" />
@@ -82,6 +90,7 @@ const ALL_MENU_ITEMS = [
   { id: "discounts", label: "Discounts", path: "/admin/discounts" },
   { id: "feedbacks", label: "Feedbacks", path: "/admin/feedbacks" },
   { id: "orders", label: "Orders", path: "/admin/orders" },
+  { id: "customers", label: "Customers", path: "/admin/customers" },
   { id: "sales-prediction", label: "Sales Prediction", path: "/admin/sales-prediction" },
   { id: "custom-design-requests", label: "Custom designs", path: "/admin/custom-design-requests" },
   { id: "designer-portfolio", label: "Portfolios", path: "/admin/designer-portfolio" },

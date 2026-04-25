@@ -70,6 +70,7 @@ export const ROLE_PERMISSIONS = {
   products:   ["admin", "productmanager", "designer"],
   discounts:  ["admin", "sales", "designer"],
   orders:     ["admin", "sales", "designer"],
+  customers:  ["admin", "productmanager", "sales", "viewer", "designer"],
   feedbacks:  ["admin", "productmanager", "sales", "viewer", "designer"],
   staff:      ["admin"],
   profile:    ["admin", "productmanager", "sales", "viewer", "designer"],

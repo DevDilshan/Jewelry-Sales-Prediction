@@ -34,6 +34,7 @@ import DesignerPortfolioPublicPage from './components/website/DesignerPortfolioP
 import UserCustomDesign from './components/user/UserCustomDesign'
 import CustomDesignRequestsAdmin from './components/pages/CustomDesignRequestsAdmin'
 import DesignerPortfolioStaff from './components/pages/DesignerPortfolioStaff'
+import AdminCustomers from './components/pages/AdminCustomers'
 export default function App() {
   return (
     <Router>
@@ -91,6 +92,11 @@ function AppContent() {
           <Route path="/admin/orders" element={
             <StaffGuard pageId="orders">
               <Orders setActivePage={setActivePage} />
+            </StaffGuard>
+          } />
+          <Route path="/admin/customers" element={
+            <StaffGuard pageId="customers">
+              <AdminCustomers setActivePage={setActivePage} />
             </StaffGuard>
           } />
           <Route path="/admin/staff" element={

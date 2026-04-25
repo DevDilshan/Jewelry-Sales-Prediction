@@ -1,6 +1,11 @@
 import Customer from "../models/Customer.js";
 import jwt from "jsonwebtoken";
 import { validatePasswordStrength } from "../utils/passwordPolicy.js";
+import {
+  mergeCustomerProfileForValidation,
+  validateCustomerProfileFields,
+  toLkMobileTenDigits,
+} from "../utils/customerProfileValidation.js";
 import { hashPassword, verifyPasswordMigrateLegacy } from "../utils/passwordHash.js";
 import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
 
@@ -168,6 +173,21 @@ function customerProfilePayload(customer) {
   };
 }
 
+const CUSTOMER_ADMIN_LIST_SELECT = "-password -resetToken -resetTokenExpiry";
+
+/** GET /api/staff/customers — staff directory of registered shop customers (no passwords). */
+export async function listCustomersAdmin(req, res) {
+  try {
+    const customers = await Customer.find()
+      .select(CUSTOMER_ADMIN_LIST_SELECT)
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(customers);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
 /** GET /customer/me — current user (Bearer). */
 export async function getCustomerMe(req, res) {
   try {
@@ -198,31 +218,31 @@ export async function updateCustomerMe(req, res) {
       update.lastName = String(req.body.lastName ?? "").trim();
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "phone")) {
-      update.phone = String(req.body.phone ?? "").trim();
+      update.phone = toLkMobileTenDigits(req.body.phone);
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "address")) {
       update.address = String(req.body.address ?? "").trim();
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "email")) {
       const emailNorm = String(req.body.email ?? "").trim().toLowerCase();
-      if (!emailNorm || !emailNorm.includes("@")) {
-        return res.status(400).json({ message: "A valid email is required." });
+      if (emailNorm && emailNorm !== String(customer.email || "").toLowerCase()) {
+        return res.status(400).json({ message: "Email cannot be changed." });
       }
-      if (emailNorm !== customer.email) {
-        const taken = await Customer.findOne({
-          email: emailNorm,
-          _id: { $ne: customer._id },
-        });
-        if (taken) {
-          return res.status(400).json({ message: "That email is already in use." });
-        }
-      }
-      update.email = emailNorm;
     }
 
     if (Object.keys(update).length === 0) {
       const fresh = await Customer.findById(req.customerId).select("-password");
       return res.json({ message: "No changes.", ...customerProfilePayload(fresh) });
+    }
+
+    const merged = mergeCustomerProfileForValidation(customer, update);
+    const fieldErrors = validateCustomerProfileFields(merged);
+    if (Object.keys(fieldErrors).length > 0) {
+      const first = Object.values(fieldErrors)[0];
+      return res.status(400).json({
+        message: typeof first === "string" ? first : "Invalid profile data.",
+        errors: fieldErrors,
+      });
     }
 
     const next = await Customer.findByIdAndUpdate(req.customerId, update, {
