@@ -331,51 +331,30 @@ export default function Products({ setActivePage }) {
       </div>
 
               {/* ── Stats Cards ── */}
-              <div className="stats-grid">
-        <div className="stat-card card-total">
-          <p className="stat-label">TOTAL PRODUCTS</p>
-          <p className="stat-value">{products.length}</p>
-          <p className="stat-sub">in catalog</p>
+        <div className="products-stats-grid">
+        <div className="product-stat-card card-total">
+          <p className="product-stat-label">TOTAL PRODUCTS</p>
+          <p className="product-stat-value">{products.length}</p>
+          <p className="product-stat-sub">in catalog</p>
         </div>
-        <div className="stat-card card-active">
-          <p className="stat-label">ACTIVE PRODUCTS</p>
-          <p className="stat-value">{products.filter(p => p.isActive).length}</p>
-          <p className="stat-sub">visible in shop</p>
+        <div className="product-stat-card card-active">
+          <p className="product-stat-label">ACTIVE PRODUCTS</p>
+          <p className="product-stat-value">{products.filter(p => p.isActive).length}</p>
+          <p className="product-stat-sub">visible in shop</p>
         </div>
-        <div className="stat-card card-out">
-          <p className="stat-label">OUT OF STOCK</p>
-          <p className="stat-value">{products.filter(p => p.stockQuantity === 0).length}</p>
-          <p className="stat-sub">need restocking</p>
+        <div className="product-stat-card card-out">
+          <p className="product-stat-label">OUT OF STOCK</p>
+          <p className="product-stat-value">{products.filter(p => p.stockQuantity === 0).length}</p>
+          <p className="product-stat-sub">need restocking</p>
         </div>
-        <div className="stat-card card-low">
-          <p className="stat-label">LOW STOCK</p>
-          <p className="stat-value">{products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= p.reorderLevel).length}</p>
-          <p className="stat-sub">below reorder level</p>
+        <div className="product-stat-card card-low">
+          <p className="product-stat-label">LOW STOCK</p>
+          <p className="product-stat-value">{products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= p.reorderLevel).length}</p>
+          <p className="product-stat-sub">below reorder level</p>
         </div>
       </div>
 
-      <div className="products-controls">
-        <div className="search-box">
-          <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input type="text" placeholder="Search by product name..." className="search-input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-        </div>
-        <select className="filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="All">Category: All</option>
-          <option value="Rings">Rings</option>
-          <option value="Necklace">Necklace</option>
-          <option value="Earring">Earring</option>
-          <option value="Bracelet">Bracelet</option>
-          <option value="Brooch">Brooch</option>
-        </select>
-        <select className="filter-select" value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
-          <option value="All">Stock Status: All</option>
-          <option value="In Stock">In Stock</option>
-          <option value="Out Of Stock">Out Of Stock</option>
-        </select>
-      </div>
-
+      
           {/* ── Low Stock Alerts ── */}
     {products.some(p => p.stockQuantity === 0 || p.stockQuantity <= p.reorderLevel) && (
       <div className="low-stock-section">
@@ -408,6 +387,29 @@ export default function Products({ setActivePage }) {
         </div>
       </div>
     )}
+
+    <div className="products-controls">
+        <div className="search-box">
+          <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input type="text" placeholder="Search by product name..." className="search-input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+        <select className="filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <option value="All">Category: All</option>
+          <option value="Rings">Rings</option>
+          <option value="Necklace">Necklace</option>
+          <option value="Earring">Earring</option>
+          <option value="Bracelet">Bracelet</option>
+          <option value="Brooch">Brooch</option>
+        </select>
+        <select className="filter-select" value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+          <option value="All">Stock Status: All</option>
+          <option value="In Stock">In Stock</option>
+          <option value="Out Of Stock">Out Of Stock</option>
+        </select>
+      </div>
+
 
     
 
