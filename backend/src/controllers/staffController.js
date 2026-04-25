@@ -110,16 +110,33 @@ export async function registerStaff(req, res) {
 export async function loginStaff(req, res) {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+    const em = typeof email === "string" ? email.trim() : "";
+    const pwd = password ?? "";
+    if (!em || !pwd) {
+      const errors = {};
+      if (!em) errors.email = "Email is required.";
+      if (!pwd) errors.password = "Password is required.";
+      const message =
+        !em && !pwd
+          ? "Email and password are required."
+          : !em
+            ? "Email is required."
+            : "Password is required.";
+      return res.status(400).json({ message, errors });
     }
-    const user = await Staff.findOne({ email: email.trim().toLowerCase() });
+    const user = await Staff.findOne({ email: em.toLowerCase() });
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        message: "No staff account uses this email address.",
+        errors: { email: "No staff account uses this email address." },
+      });
     }
     const passwordOk = await verifyPasswordMigrateLegacy(user, password);
     if (!passwordOk) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        message: "Incorrect password.",
+        errors: { password: "Incorrect password." },
+      });
     }
     const accesstoken = generateToken(user);
     res.json({
