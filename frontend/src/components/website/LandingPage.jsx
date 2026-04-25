@@ -74,33 +74,72 @@ function IconClock({ className }) {
   );
 }
 
+/* ── Animated Gem Hero ── */
 function HeroJewelArt() {
   return (
     <div className="hero-jewel-art" aria-hidden>
+      {/* Sparkle dots */}
+      {[
+        { cls: "sp sp-1" }, { cls: "sp sp-2" }, { cls: "sp sp-3" },
+        { cls: "sp sp-4" }, { cls: "sp sp-5" }, { cls: "sp sp-6" },
+        { cls: "sp sp-7" }, { cls: "sp sp-8" }, { cls: "sp sp-9" },
+        { cls: "sp sp-10"}, { cls: "sp sp-11"}, { cls: "sp sp-12"},
+      ].map(({ cls }, i) => (
+        <span key={i} className={cls} />
+      ))}
+
+      {/* Gem SVG */}
       <svg viewBox="0 0 200 200" className="hero-jewel-svg">
         <defs>
-          <linearGradient id="hj-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#e8d5a8" />
-            <stop offset="50%" stopColor="#d4af37" />
-            <stop offset="100%" stopColor="#b8960f" />
+          <linearGradient id="hj-top" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor="#f5e6c8" />
+            <stop offset="40%"  stopColor="#d4a84b" />
+            <stop offset="100%" stopColor="#8a6420" />
           </linearGradient>
-          <linearGradient id="hj-soft" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#f5f0e8" />
-            <stop offset="100%" stopColor="#faf8f4" />
+          <linearGradient id="hj-left" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#c9933a" />
+            <stop offset="100%" stopColor="#6b4d18" />
+          </linearGradient>
+          <linearGradient id="hj-right" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor="#e8c16e" />
+            <stop offset="100%" stopColor="#9a7030" />
+          </linearGradient>
+          <linearGradient id="hj-btml" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#b8852a" />
+            <stop offset="100%" stopColor="#7a5218" />
+          </linearGradient>
+          <linearGradient id="hj-btmr" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor="#d4a030" />
+            <stop offset="100%" stopColor="#9a7020" />
+          </linearGradient>
+          <linearGradient id="hj-shine" x1="0" y1="0" x2="0.5" y2="1">
+            <stop offset="0%"   stopColor="rgba(255,255,255,0.55)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
         </defs>
-        <circle cx="100" cy="100" r="88" fill="url(#hj-soft)" stroke="#ebe5d8" strokeWidth="1" />
-        <circle cx="100" cy="100" r="72" fill="none" stroke="url(#hj-gold)" strokeWidth="0.75" opacity="0.35" />
-        <path
-          d="M100 44 L128 92 L100 156 L72 92 Z"
-          fill="none"
-          stroke="url(#hj-gold)"
-          strokeWidth="1.25"
-          strokeLinejoin="round"
-        />
-        <path d="M100 56 L118 92 L100 138 L82 92 Z" fill="rgba(212,175,55,0.06)" stroke="url(#hj-gold)" strokeWidth="0.5" />
-        <line x1="100" y1="56" x2="100" y2="138" stroke="url(#hj-gold)" strokeWidth="0.4" opacity="0.5" />
-        <line x1="82" y1="92" x2="118" y2="92" stroke="url(#hj-gold)" strokeWidth="0.4" opacity="0.5" />
+
+        {/* Crown facets */}
+        <polygon points="100,20 140,70 100,60 60,70"  fill="url(#hj-top)" />
+        <polygon points="100,20 60,70  100,60"         fill="url(#hj-left)"  opacity="0.9" />
+        <polygon points="100,20 140,70 100,60"         fill="url(#hj-right)" opacity="0.85" />
+
+        {/* Girdle */}
+        <polygon points="60,70 100,60 140,70 130,90 100,82 70,90" fill="url(#hj-top)" opacity="0.7" />
+
+        {/* Pavilion facets */}
+        <polygon points="70,90  100,82 100,170" fill="url(#hj-btml)" opacity="0.95" />
+        <polygon points="130,90 100,82 100,170" fill="url(#hj-btmr)" opacity="0.88" />
+        <polygon points="60,70  70,90  100,170 100,82" fill="url(#hj-left)"  opacity="0.5" />
+        <polygon points="140,70 130,90 100,170 100,82" fill="url(#hj-right)" opacity="0.5" />
+
+        {/* Shine */}
+        <polygon points="100,20 130,60 100,55 75,62" fill="url(#hj-shine)" opacity="0.7" />
+
+        {/* Outline strokes */}
+        <polygon points="100,20 140,70 130,90 100,170 70,90 60,70" fill="none" stroke="rgba(184,154,94,0.4)" strokeWidth="0.8" />
+        <line x1="100" y1="20"  x2="100" y2="170" stroke="rgba(184,154,94,0.2)" strokeWidth="0.6" />
+        <line x1="60"  y1="70"  x2="140" y2="70"  stroke="rgba(184,154,94,0.2)" strokeWidth="0.6" />
+        <line x1="70"  y1="90"  x2="130" y2="90"  stroke="rgba(184,154,94,0.15)" strokeWidth="0.6" />
       </svg>
     </div>
   );
@@ -108,9 +147,9 @@ function HeroJewelArt() {
 
 const FEATURES = [
   { Icon: IconShield, title: "Certified authentic", desc: "Certificate of authenticity with every piece." },
-  { Icon: IconTruck, title: "Insured delivery", desc: "Complimentary insured delivery across Sri Lanka." },
-  { Icon: IconReturn, title: "30-day returns", desc: "Hassle-free returns within 30 days of purchase." },
-  { Icon: IconSupport, title: "Expert support", desc: "Jewelry consultants when you need guidance." },
+  { Icon: IconTruck,  title: "Insured delivery",   desc: "Complimentary insured delivery across Sri Lanka." },
+  { Icon: IconReturn, title: "30-day returns",      desc: "Hassle-free returns within 30 days of purchase." },
+  { Icon: IconSupport,title: "Expert support",      desc: "Jewelry consultants when you need guidance." },
 ];
 
 export default function LandingPage() {
@@ -126,15 +165,9 @@ export default function LandingPage() {
         const list = Array.isArray(data) ? data.filter((p) => p.isActive) : [];
         if (!cancelled) setShowcase(list.slice(0, 4));
       })
-      .catch(() => {
-        if (!cancelled) setShowcase([]);
-      })
-      .finally(() => {
-        if (!cancelled) setShowcaseLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .catch(() => { if (!cancelled) setShowcase([]); })
+      .finally(() => { if (!cancelled) setShowcaseLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const scrollToShowcase = () => {
@@ -155,8 +188,8 @@ export default function LandingPage() {
             made to last
           </h1>
           <p>
-            Beceff brings together refined materials and careful craft. Explore the boutique collection—each piece chosen for
-            clarity of line and lasting quality.
+            Beceff brings together refined materials and careful craft. Explore the boutique
+            collection—each piece chosen for clarity of line and lasting quality.
           </p>
           <div className="hero-buttons">
             <button type="button" className="btn-primary" onClick={scrollToShowcase}>
@@ -183,6 +216,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+
         <div className="hero-visual">
           <div className="hero-ring-wrapper">
             <HeroJewelArt />
@@ -218,37 +252,33 @@ export default function LandingPage() {
                     </button>
                   </div>
                 )
-              : (
-                  showcase.map((p) => (
-                    <article key={p._id} className="showcase-card">
-                      <button
-                        type="button"
-                        className="showcase-card-hit"
-                        onClick={() => navigate(`/shop/product/${p._id}`)}
-                      >
-                        <span className="visually-hidden">View {p.productName}</span>
-                      </button>
-                      <div className="showcase-card-image">
-                        {p.productImage ? (
-                          <img src={p.productImage} alt="" />
-                        ) : (
-                          <span className="showcase-card-placeholder" aria-hidden />
+              : showcase.map((p) => (
+                  <article key={p._id} className="showcase-card">
+                    <button
+                      type="button"
+                      className="showcase-card-hit"
+                      onClick={() => navigate(`/shop/product/${p._id}`)}
+                    >
+                      <span className="visually-hidden">View {p.productName}</span>
+                    </button>
+                    <div className="showcase-card-image">
+                      {p.productImage
+                        ? <img src={p.productImage} alt="" />
+                        : <span className="showcase-card-placeholder" aria-hidden />}
+                    </div>
+                    <div className="showcase-card-body">
+                      <span className="showcase-card-meta">{p.productCategory}</span>
+                      <h3>{p.productName}</h3>
+                      <p className="showcase-card-price">
+                        {p.compareAtPrice != null && p.compareAtPrice > p.productPrice && (
+                          <span className="showcase-price-was">LKR {Number(p.compareAtPrice).toLocaleString()} </span>
                         )}
-                      </div>
-                      <div className="showcase-card-body">
-                        <span className="showcase-card-meta">{p.productCategory}</span>
-                        <h3>{p.productName}</h3>
-                        <p className="showcase-card-price">
-                          {p.compareAtPrice != null && p.compareAtPrice > p.productPrice && (
-                            <span className="showcase-price-was">LKR {Number(p.compareAtPrice).toLocaleString()} </span>
-                          )}
-                          LKR {Number(p.productPrice).toLocaleString()}
-                        </p>
-                        <span className="showcase-card-cta">View piece</span>
-                      </div>
-                    </article>
-                  ))
-                )}
+                        LKR {Number(p.productPrice).toLocaleString()}
+                      </p>
+                      <span className="showcase-card-cta">View piece →</span>
+                    </div>
+                  </article>
+                ))}
         </div>
 
         {!showcaseLoading && showcase.length > 0 && (
@@ -281,12 +311,13 @@ export default function LandingPage() {
           <span className="section-tag">Our story</span>
           <h2>Crafting dreams since 1995</h2>
           <p>
-            For nearly three decades, Beceff has been a destination for fine jewelry in Sri Lanka. Master artisans blend
-            traditional technique with contemporary restraint—pieces meant to be worn for years, then handed down.
+            For nearly three decades, Beceff has been a destination for fine jewelry in Sri Lanka. Master
+            artisans blend traditional technique with contemporary restraint—pieces meant to be worn for
+            years, then handed down.
           </p>
           <p>
-            Gemstones are ethically sourced and inspected. Settings are finished by hand. The standard is simple: if it is not
-            excellent, it does not leave the atelier.
+            Gemstones are ethically sourced and inspected. Settings are finished by hand. The standard is
+            simple: if it is not excellent, it does not leave the atelier.
           </p>
           <div className="about-values">
             <div className="value-item">
@@ -313,60 +344,46 @@ export default function LandingPage() {
             <p>See the collection in person at our Colombo salon.</p>
             <div className="contact-details">
               <div className="contact-item">
-                <span className="contact-icon-wrap">
-                  <IconPin />
-                </span>
+                <span className="contact-icon-wrap"><IconPin /></span>
                 <div>
                   <strong>Address</strong>
                   <p>42 Galle Road, Colombo 03, Sri Lanka</p>
                 </div>
               </div>
               <div className="contact-item">
-                <span className="contact-icon-wrap">
-                  <IconPhone />
-                </span>
+                <span className="contact-icon-wrap"><IconPhone /></span>
                 <div>
                   <strong>Phone</strong>
                   <p>+94 11 234 5678</p>
                 </div>
               </div>
               <div className="contact-item">
-                <span className="contact-icon-wrap">
-                  <IconMail />
-                </span>
+                <span className="contact-icon-wrap"><IconMail /></span>
                 <div>
                   <strong>Email</strong>
                   <p>hello@beceff.com</p>
                 </div>
               </div>
               <div className="contact-item">
-                <span className="contact-icon-wrap">
-                  <IconClock />
-                </span>
+                <span className="contact-icon-wrap"><IconClock /></span>
                 <div>
                   <strong>Hours</strong>
-                  <p>Mon - Sat: 10 AM - 8 PM</p>
+                  <p>Mon – Sat: 10 AM – 8 PM</p>
                 </div>
               </div>
             </div>
           </div>
+
           <div className="contact-form-box">
             <h3>Write to us</h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert("Thank you. We will respond shortly.");
-              }}
-            >
+            <form onSubmit={(e) => { e.preventDefault(); alert("Thank you. We will respond shortly."); }}>
               <div className="cf-row">
-                <input type="text" placeholder="Name" required />
-                <input type="email" placeholder="Email" required />
+                <input type="text"  placeholder="Name"    required />
+                <input type="email" placeholder="Email"   required />
               </div>
               <input type="text" placeholder="Subject" />
               <textarea placeholder="Message" rows={4} required />
-              <button type="submit" className="btn-submit-contact">
-                Send
-              </button>
+              <button type="submit" className="btn-submit-contact">Send</button>
             </form>
           </div>
         </div>
@@ -378,13 +395,8 @@ export default function LandingPage() {
             <div className="footer-logo">
               <div className="navbar-logo-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1">
-                  <path
-                    d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                    fill="none"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                    fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <span>Beceff</span>
@@ -393,33 +405,15 @@ export default function LandingPage() {
           </div>
           <div className="footer-links-group">
             <h4>Explore</h4>
-            <button type="button" onClick={scrollToShowcase}>
-              Featured
-            </button>
-            <button type="button" onClick={() => navigate("/shop")}>
-              Shop
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const el = document.getElementById("about");
-                if (el) el.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              About
-            </button>
+            <button type="button" onClick={scrollToShowcase}>Featured</button>
+            <button type="button" onClick={() => navigate("/shop")}>Shop</button>
+            <button type="button" onClick={() => { const el = document.getElementById("about"); if (el) el.scrollIntoView({ behavior: "smooth" }); }}>About</button>
           </div>
           <div className="footer-links-group">
             <h4>Account</h4>
-            <button type="button" onClick={() => navigate("/dashboard")}>
-              Dashboard
-            </button>
-            <button type="button" onClick={() => navigate("/dashboard/orders")}>
-              Orders
-            </button>
-            <button type="button" onClick={() => navigate("/login")}>
-              Sign in
-            </button>
+            <button type="button" onClick={() => navigate("/dashboard")}>Dashboard</button>
+            <button type="button" onClick={() => navigate("/dashboard/orders")}>Orders</button>
+            <button type="button" onClick={() => navigate("/login")}>Sign in</button>
           </div>
         </div>
         <div className="footer-bottom">
