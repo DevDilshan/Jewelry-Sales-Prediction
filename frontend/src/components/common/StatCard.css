@@ -1,55 +1,138 @@
+/* ══════════════════════════════════════════
+   StatCard.css — matches LandingPage theme
+   Tokens: ink #0e0c09 · gold #b89a5e · cream #f7f5f1
+══════════════════════════════════════════ */
+
 .stat-card {
-  background: white;
-  border: 1px solid #f5e6c8;
+  background: #fff;
+  border: 1px solid rgba(14, 12, 9, 0.07);
   border-radius: 12px;
-  padding: 24px;
-  transition: all 0.2s ease;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s,
+              border-color 0.2s;
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.08);
-  border-color: #e8d5a8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(14, 12, 9, 0.06);
+  border-color: rgba(184, 154, 94, 0.3);
 }
 
+/* Thin gold accent bar on the left edge */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #b89a5e;
+  transition: background 0.25s;
+}
+
+.stat-card:hover::before {
+  background: linear-gradient(180deg, #d4b97a 0%, #b89a5e 100%);
+}
+
+/* Title (label) */
 .stat-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: #888;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  margin: 0 0 12px 0;
-  letter-spacing: 0.8px;
+  color: #a09990;
+  margin: 0 0 14px 0;
 }
 
+/* Value row holds the main number + an optional badge/extra */
 .stat-value-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .stat-value {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 8px 0;
-}
-
-.stat-extra {
-  font-size: 14px;
-  color: #d4af37;
-  margin-bottom: 8px;
-}
-
-.stat-change {
-  font-size: 12px;
+  color: #0e0c09;
+  letter-spacing: -0.025em;
+  line-height: 1;
   margin: 0;
 }
 
-.stat-change.positive {
-  color: #22c55e;
-  font-weight: 500;
+.stat-extra {
+  font-size: 11px;
+  font-weight: 600;
+  color: #b89a5e;
+  background: #fdf9f0;
+  border: 1px solid rgba(184, 154, 94, 0.25);
+  padding: 3px 8px;
+  border-radius: 99px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Change indicator (e.g. "+12.5%" or "-3.2%") */
+.stat-change {
+  font-size: 11.5px;
+  font-weight: 600;
+  margin: 0;
+  color: #7a756e;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Tiny dot before change text */
+.stat-change::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b89a5e;
+  display: inline-block;
+}
+
+/* Variant colors */
+.stat-change.positive,
+.stat-change.up {
+  color: #166534;
+}
+
+.stat-change.positive::before,
+.stat-change.up::before {
+  background: #22c55e;
+}
+
+.stat-change.negative,
+.stat-change.down {
+  color: #dc2626;
+}
+
+.stat-change.negative::before,
+.stat-change.down::before {
+  background: #dc2626;
 }
 
 .stat-change.neutral {
-  color: #b45309;
-  font-weight: 500;
+  color: #7a756e;
+}
+
+.stat-change.neutral::before {
+  background: #b89a5e;
+}
+
+/* Warning variant */
+.stat-change.warning {
+  color: #d97706;
+}
+
+.stat-change.warning::before {
+  background: #f59e0b;
 }
