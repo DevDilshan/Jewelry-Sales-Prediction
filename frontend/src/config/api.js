@@ -1,6 +1,16 @@
 const raw = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 export const API_BASE = raw.replace(/\/$/, "");
 
+/** Origin without `/api` — used for `/uploads/...` URLs */
+export const API_ORIGIN = API_BASE.replace(/\/api\/?$/i, "") || "";
+
+/** Full URL for a stored upload path, e.g. `custom-designs/file.png` */
+export function uploadUrl(relPath) {
+  if (!relPath) return "";
+  const clean = String(relPath).replace(/^\/+/, "");
+  return `${API_ORIGIN}/uploads/${clean}`;
+}
+
 const STAFF_KEY = "spark_staff_token";
 const STAFF_INFO_KEY = "spark_staff";
 const CUSTOMER_KEY = "spark_customer_token";
@@ -31,8 +41,24 @@ export function getStaffInfo() {
   }
 }
 
+/** Read `role` from JWT payload when cached staff info omits it (fixes designer vs admin UI routing). */
+function getRoleFromStaffJwt() {
+  const t = getStaffToken();
+  if (!t) return null;
+  try {
+    const part = t.split(".")[1];
+    if (!part) return null;
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "===".slice((b64.length + 3) % 4);
+    const payload = JSON.parse(atob(padded));
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
 export function getStaffRole() {
-  return getStaffInfo()?.role || null;
+  return getStaffInfo()?.role || getRoleFromStaffJwt();
 }
 
 /**
@@ -40,13 +66,18 @@ export function getStaffRole() {
  * Missing key = any staff can see it.
  */
 export const ROLE_PERMISSIONS = {
-  dashboard:  ["admin", "productmanager", "sales", "viewer"],
-  products:   ["admin", "productmanager"],
-  discounts:  ["admin", "sales"],
-  orders:     ["admin", "sales"],
-  feedbacks:  ["admin", "productmanager", "sales", "viewer"],
+  dashboard:  ["admin", "productmanager", "sales", "viewer", "designer"],
+  products:   ["admin", "productmanager", "designer"],
+  discounts:  ["admin", "sales", "designer"],
+  orders:     ["admin", "sales", "designer"],
+  customers:  ["admin", "productmanager", "sales", "viewer", "designer"],
+  feedbacks:  ["admin", "productmanager", "sales", "viewer", "designer"],
   staff:      ["admin"],
-  profile:    ["admin", "productmanager", "sales", "viewer"],
+  profile:    ["admin", "productmanager", "sales", "viewer", "designer"],
+  "sales-prediction": ["admin", "productmanager", "sales", "viewer", "designer"],
+  "custom-design-requests": ["admin", "productmanager", "sales", "viewer", "designer"],
+  /** Designers edit their own; admin/PM manage all; sales/viewer read-only */
+  "designer-portfolio": ["admin", "productmanager", "sales", "viewer", "designer"],
 };
 
 export function canAccess(pageId) {
@@ -98,6 +129,85 @@ export async function api(path, options = {}) {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { message: text || res.statusText };
+  }
+
+  if (!res.ok) {
+    const msg = data.message || data.error || res.statusText;
+    const err = new Error(typeof msg === "string" ? msg : "Request failed");
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
+}
+
+/**
+ * POST multipart/form-data (e.g. sketch upload). Do not set Content-Type — browser sets boundary.
+ */
+export async function apiForm(path, formData, options = {}) {
+  const { auth } = options;
+  const headers = { ...options.headers };
+
+  if (auth === "staff") {
+    const t = getStaffToken();
+    if (t) headers.Authorization = `Bearer ${t}`;
+  }
+  if (auth === "customer") {
+    const t = getCustomerToken();
+    if (t) headers.Authorization = `Bearer ${t}`;
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { message: text || res.statusText };
+  }
+
+  if (!res.ok) {
+    const msg = data.message || data.error || res.statusText;
+    const err = new Error(typeof msg === "string" ? msg : "Request failed");
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
+}
+
+/** DELETE (no body) */
+export async function apiDelete(path, options = {}) {
+  const { auth } = options;
+  const headers = { ...options.headers };
+
+  if (auth === "staff") {
+    const t = getStaffToken();
+    if (t) headers.Authorization = `Bearer ${t}`;
+  }
+  if (auth === "customer") {
+    const t = getCustomerToken();
+    if (t) headers.Authorization = `Bearer ${t}`;
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers,
   });
 
   const text = await res.text();

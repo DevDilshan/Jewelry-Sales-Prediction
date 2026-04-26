@@ -41,10 +41,26 @@ export default function StaffLogin() {
         username: data.username,
         email: data.email,
         role: data.role,
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        profileImage: data.profileImage || "",
       });
       navigate("/admin");
     } catch (err) {
-      setError(err.message || "Invalid credentials");
+      const apiErrors = err.data?.errors;
+      if (apiErrors && typeof apiErrors === "object") {
+        const next = {};
+        if (typeof apiErrors.email === "string") next.email = apiErrors.email;
+        if (typeof apiErrors.password === "string") next.password = apiErrors.password;
+        if (Object.keys(next).length > 0) {
+          setFieldErrors(next);
+          setError("");
+        } else {
+          setError(err.message || "Invalid credentials");
+        }
+      } else {
+        setError(err.message || "Invalid credentials");
+      }
     } finally {
       setBusy(false);
     }

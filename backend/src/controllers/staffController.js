@@ -1,8 +1,12 @@
 import jwt from "jsonwebtoken";
 import Staff from "../models/Staff.js";
+import DesignerPortfolio from "../models/DesignerPortfolio.js";
+import { deleteUploadedRelPath } from "../utils/uploadedFile.js";
 import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 import { hashPassword, verifyPasswordMigrateLegacy, verifyStoredPassword } from "../utils/passwordHash.js";
 import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
+import { validateStaffProfilePatch } from "../utils/staffProfileValidation.js";
+import { isValidStaffAccountEmail, staffAccountEmailErrorMessage } from "../utils/staffEmail.js";
 
 const DEFAULT_STAFF_PASSWORD = () =>
   process.env.DEFAULT_STAFF_PASSWORD?.trim() || "ChangeMe@123";
@@ -36,8 +40,8 @@ export async function setupFirstStaff(req, res) {
     if (!username?.trim() || !email?.trim()) {
       return res.status(400).json({ message: "Username and email are required." });
     }
-    if (!String(email).includes("@")) {
-      return res.status(400).json({ message: "Invalid email" });
+    if (!isValidStaffAccountEmail(email)) {
+      return res.status(400).json({ message: staffAccountEmailErrorMessage() });
     }
     const customPwd = req.body.password?.trim();
     const plainPassword = customPwd || DEFAULT_STAFF_PASSWORD();
@@ -71,10 +75,10 @@ export async function registerStaff(req, res) {
     if (!username?.trim() || !email?.trim()) {
       return res.status(400).json({ message: "Username and email are required." });
     }
-    if (!String(email).includes("@")) {
-      return res.status(400).json({ message: "Invalid email" });
+    if (!isValidStaffAccountEmail(email)) {
+      return res.status(400).json({ message: staffAccountEmailErrorMessage() });
     }
-    const allowed = ["admin", "productmanager", "sales", "viewer"];
+    const allowed = ["admin", "productmanager", "sales", "viewer", "designer"];
     const r = allowed.includes(role) ? role : "viewer";
     const customPwd = req.body.password?.trim();
     const plainPassword = customPwd || DEFAULT_STAFF_PASSWORD();
@@ -106,22 +110,42 @@ export async function registerStaff(req, res) {
 export async function loginStaff(req, res) {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+    const em = typeof email === "string" ? email.trim() : "";
+    const pwd = password ?? "";
+    if (!em || !pwd) {
+      const errors = {};
+      if (!em) errors.email = "Email is required.";
+      if (!pwd) errors.password = "Password is required.";
+      const message =
+        !em && !pwd
+          ? "Email and password are required."
+          : !em
+            ? "Email is required."
+            : "Password is required.";
+      return res.status(400).json({ message, errors });
     }
-    const user = await Staff.findOne({ email: email.trim().toLowerCase() });
+    const user = await Staff.findOne({ email: em.toLowerCase() });
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        message: "No staff account uses this email address.",
+        errors: { email: "No staff account uses this email address." },
+      });
     }
     const passwordOk = await verifyPasswordMigrateLegacy(user, password);
     if (!passwordOk) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        message: "Incorrect password.",
+        errors: { password: "Incorrect password." },
+      });
     }
     const accesstoken = generateToken(user);
     res.json({
       username: user.username,
       email: user.email,
       role: user.role,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      profileImage: user.profileImage || "",
       accesstoken,
     });
   } catch (error) {
@@ -138,6 +162,19 @@ export async function listStaff(req, res) {
   }
 }
 
+/** GET /api/staff/designers — accounts with designer role (for portfolio assignment) */
+export async function listDesignerStaff(req, res) {
+  try {
+    const designers = await Staff.find({ role: "designer" })
+      .select("username email firstName lastName")
+      .sort({ username: 1 })
+      .lean();
+    res.json(designers);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
 export async function getStaffMe(req, res) {
   try {
     const user = await Staff.findById(req.user.id).select(STAFF_SAFE_SELECT);
@@ -146,6 +183,58 @@ export async function getStaffMe(req, res) {
     }
     res.json(user);
   } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+}
+
+/** PATCH /staff/me — update own profile (personal fields + email). */
+export async function updateStaffMe(req, res) {
+  try {
+    const parsed = validateStaffProfilePatch(req.body);
+    if (!parsed.ok) {
+      return res.status(400).json({
+        message: "Validation failed.",
+        errors: parsed.errors,
+      });
+    }
+    const { values } = parsed;
+    if (Object.keys(values).length === 0) {
+      const user = await Staff.findById(req.user.id).select(STAFF_SAFE_SELECT);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      return res.json(user);
+    }
+
+    const existing = await Staff.findById(req.user.id);
+    if (!existing) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (values.email != null && values.email !== existing.email) {
+      const taken = await Staff.findOne({
+        email: values.email,
+        _id: { $ne: existing._id },
+      });
+      if (taken) {
+        return res.status(400).json({
+          message: "That email is already in use.",
+          errors: { email: "That email is already in use." },
+        });
+      }
+    }
+
+    const update = { ...values };
+    const user = await Staff.findByIdAndUpdate(req.user.id, update, {
+      new: true,
+    }).select(STAFF_SAFE_SELECT);
+
+    res.json(user);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: "Email or username conflict.",
+        errors: { email: "That email is already in use." },
+      });
+    }
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 }
@@ -231,6 +320,9 @@ export async function updateStaff(req, res) {
     delete body.password;
     delete body.resetToken;
     delete body.resetTokenExpiry;
+    if (body.email != null && String(body.email).trim() !== "" && !isValidStaffAccountEmail(body.email)) {
+      return res.status(400).json({ message: staffAccountEmailErrorMessage() });
+    }
     const user = await Staff.findByIdAndUpdate(req.params.id, body, { new: true }).select(STAFF_SAFE_SELECT);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -246,10 +338,19 @@ export async function deleteStaff(req, res) {
     if (String(req.params.id) === String(req.user?.id)) {
       return res.status(400).json({ message: "You cannot remove your own account." });
     }
-    const user = await Staff.findByIdAndDelete(req.params.id);
+    const targetId = req.params.id;
+    const user = await Staff.findById(targetId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    const portfolios = await DesignerPortfolio.find({ staff: targetId });
+    for (const p of portfolios) {
+      for (const img of p.images) {
+        await deleteUploadedRelPath(img.relPath);
+      }
+    }
+    await DesignerPortfolio.deleteMany({ staff: targetId });
+    await Staff.findByIdAndDelete(targetId);
     res.status(200).json({ message: "User removed successfully" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });

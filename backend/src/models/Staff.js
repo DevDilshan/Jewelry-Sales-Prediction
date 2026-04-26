@@ -20,8 +20,58 @@ const staffSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ["admin", "productmanager", "sales", "viewer"],
+        enum: ["admin", "productmanager", "sales", "viewer", "designer"],
         default: "viewer"
+    },
+    firstName: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    lastName: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    phone: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    jobTitle: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    department: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    address: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    yearsOfExperience: {
+        type: Number,
+        min: 0,
+        max: 80,
+        default: null,
+    },
+    dateOfBirth: {
+        type: Date,
+        default: null,
+    },
+    emergencyContactNumber: {
+        type: String,
+        trim: true,
+        default: "",
+    },
+    /** Optional data URL or URL string (same pattern as product images). */
+    profileImage: {
+        type: String,
+        default: "",
     },
     resetToken: {
         type: String,

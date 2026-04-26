@@ -40,6 +40,9 @@ export default function Products({ setActivePage }) {
   const [editData, setEditData] = useState({})
   const [addErrors, setAddErrors] = useState({})
   const [editErrors, setEditErrors] = useState({})
+  const [toast, setToast] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 8
   const menuRef = useRef(null)
 
   const [products, setProducts] = useState([])
@@ -56,6 +59,7 @@ export default function Products({ setActivePage }) {
   })
   const [mainImage, setMainImage] = useState(null)
   const [additionalImages, setAdditionalImages] = useState([null, null, null, null])
+  const [editAdditionalImages, setEditAdditionalImages] = useState([null, null, null, null])
 
   // Close action menu on outside click
   useEffect(() => {
@@ -66,7 +70,11 @@ export default function Products({ setActivePage }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [actionMenu])
 
-  const filteredProducts = products.filter(product => {
+      useEffect(() => {
+      setCurrentPage(1)
+    }, [searchQuery, categoryFilter, stockFilter])
+
+    const filteredProducts = products.filter(product => {
     const matchesSearch = product.productName?.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = categoryFilter === 'All' || product.productCategory === categoryFilter
     let matchesStock = true
@@ -74,6 +82,11 @@ export default function Products({ setActivePage }) {
     if (stockFilter === 'Out Of Stock') matchesStock = product.stockQuantity === 0
     return matchesSearch && matchesCategory && matchesStock
   })
+    const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)
+    const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+)
 
   const handleMainImageUpload = async (e) => {
     const file = e.target.files?.[0]
@@ -113,6 +126,20 @@ export default function Products({ setActivePage }) {
     e.target.value = ''
   }
 
+  const handleEditAdditionalImageUpload = async (index, e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      const updated = [...editAdditionalImages]
+      updated[index] = dataUrl
+      setEditAdditionalImages(updated)
+    } catch (err) {
+      console.error('Could not read image:', err)
+    }
+    e.target.value = ''
+  }
+
   const getStockStatus = (count, reorderLevel) => {
     if (count === 0) return 'out-of-stock'
     if (count <= reorderLevel) return 'low-stock'
@@ -135,6 +162,11 @@ export default function Products({ setActivePage }) {
     }
   }
 
+  const showToast = (message, type = 'success') => {
+  setToast({ message, type })
+  setTimeout(() => setToast(null), 3000)
+}
+
   // ── Validate Add form, returns error object ──
   const validateAdd = () => {
     const errs = {}
@@ -150,6 +182,8 @@ export default function Products({ setActivePage }) {
       errs.price = 'Please enter a valid price greater than 0.'
     if (newProduct.stockCount === '' || isNaN(newProduct.stockCount) || parseInt(newProduct.stockCount) < 0)
       errs.stockCount = 'Please enter a valid stock quantity (0 or more).'
+    if (!newProduct.reorderLevel || isNaN(newProduct.reorderLevel) || parseInt(newProduct.reorderLevel) <= 0)
+       errs.reorderLevel = 'Reorder level must be greater than 0.'
     return errs
   }
 
@@ -164,6 +198,8 @@ export default function Products({ setActivePage }) {
       errs.productPrice = 'Please enter a valid price greater than 0.'
     if (editData.stockQuantity === '' || isNaN(editData.stockQuantity) || parseInt(editData.stockQuantity) < 0)
       errs.stockQuantity = 'Please enter a valid stock quantity (0 or more).'
+    if (!editData.reorderLevel || isNaN(editData.reorderLevel) || parseInt(editData.reorderLevel) <= 0)
+       errs.reorderLevel = 'Reorder level must be greater than 0.'
     return errs
   }
 
@@ -187,11 +223,15 @@ export default function Products({ setActivePage }) {
         metalMaterial: newProduct.metal.toLowerCase(),
         gemType: newProduct.gem.toLowerCase(),
         stockQuantity: stockQty,
-        reorderLevel: parseInt(newProduct.reorderLevel) || 3,
+        reorderLevel: parseInt(newProduct.reorderLevel),
         isActive: stockQty === 0 ? false : newProduct.active
       }
       if (mainImage && String(mainImage).startsWith('data:')) {
         prod.productImage = mainImage
+      }
+      const extras = additionalImages.filter((x) => x && String(x).startsWith('data:'))
+      if (extras.length) {
+        prod.additionalImages = extras
       }
 
       const res = await axios.post(`${API_BASE}/product/create`, prod, { headers: staffAuthHeaders() })
@@ -204,6 +244,7 @@ export default function Products({ setActivePage }) {
       setAdditionalImages([null, null, null, null])
       setAddErrors({})
       setShowModal(false)
+      showToast('Product added successfully!')
     } catch (error) {
       const msg = error.response?.data?.message || 'Failed to save product. Please try again.'
       setAddErrors({ server: msg })
@@ -213,6 +254,8 @@ export default function Products({ setActivePage }) {
   const openEdit = (product) => {
     setSelectedProduct(product)
     setEditData({ ...product })
+    const existing = Array.isArray(product.additionalImages) ? product.additionalImages : []
+    setEditAdditionalImages([0, 1, 2, 3].map((i) => existing[i] || null))
     setEditErrors({})
     setActionMenu(null)
     setEditModal(true)
@@ -239,7 +282,8 @@ export default function Products({ setActivePage }) {
         gemType: editData.gemType?.toLowerCase() || 'none',
         stockQuantity: stockQty,
         productImage: editData.productImage || selectedProduct.productImage,
-        reorderLevel: parseInt(editData.reorderLevel) || 3,
+        additionalImages: editAdditionalImages.filter((x) => x && String(x).trim()),
+        reorderLevel: parseInt(editData.reorderLevel),
         isActive: stockQty === 0 ? false : (selectedProduct.stockQuantity === 0 ? true : editData.isActive)
       }
 
@@ -250,6 +294,7 @@ export default function Products({ setActivePage }) {
       setProducts(products.map(p => p._id === selectedProduct._id ? { ...p, ...updatedProduct } : p))
       setEditErrors({})
       setEditModal(false)
+      showToast('Product updated successfully!')
       setSelectedProduct(null)
     } catch (error) {
       const msg = error.response?.data?.message || 'Failed to update product. Please try again.'
@@ -272,6 +317,7 @@ export default function Products({ setActivePage }) {
     }
     setDeleteConfirm(false)
     setSelectedProduct(null)
+    showToast('Product deleted successfully!', 'delete')
   }
 
   return (
@@ -284,7 +330,65 @@ export default function Products({ setActivePage }) {
         <button className="add-btn" onClick={() => { setShowModal(true); setAddErrors({}) }}>+ Add New Product</button>
       </div>
 
-      <div className="products-controls">
+              {/* ── Stats Cards ── */}
+        <div className="products-stats-grid">
+        <div className="product-stat-card card-total">
+          <p className="product-stat-label">TOTAL PRODUCTS</p>
+          <p className="product-stat-value">{products.length}</p>
+          <p className="product-stat-sub">in catalog</p>
+        </div>
+        <div className="product-stat-card card-active">
+          <p className="product-stat-label">ACTIVE PRODUCTS</p>
+          <p className="product-stat-value">{products.filter(p => p.isActive).length}</p>
+          <p className="product-stat-sub">visible in shop</p>
+        </div>
+        <div className="product-stat-card card-out">
+          <p className="product-stat-label">OUT OF STOCK</p>
+          <p className="product-stat-value">{products.filter(p => p.stockQuantity === 0).length}</p>
+          <p className="product-stat-sub">need restocking</p>
+        </div>
+        <div className="product-stat-card card-low">
+          <p className="product-stat-label">LOW STOCK</p>
+          <p className="product-stat-value">{products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= p.reorderLevel).length}</p>
+          <p className="product-stat-sub">below reorder level</p>
+        </div>
+      </div>
+
+      
+          {/* ── Low Stock Alerts ── */}
+    {products.some(p => p.stockQuantity === 0 || p.stockQuantity <= p.reorderLevel) && (
+      <div className="low-stock-section">
+        <div className="low-stock-header">
+          <span className="low-stock-title">
+            ⚠️ Stock Alerts
+          </span>
+          <span className="low-stock-count">
+            {products.filter(p => p.stockQuantity === 0 || p.stockQuantity <= p.reorderLevel).length} products need attention
+          </span>
+        </div>
+        <div className="low-stock-list">
+          {products
+            .filter(p => p.stockQuantity === 0 || p.stockQuantity <= p.reorderLevel)
+            .map(p => (
+              <div key={p._id} className={`low-stock-item ${p.stockQuantity === 0 ? 'alert-out' : 'alert-low'}`}>
+                <div className="low-stock-info">
+                  <span className="low-stock-name">{p.productName}</span>
+                  <span className="low-stock-category">{p.productCategory}</span>
+                </div>
+                <div className="low-stock-meta">
+                  <span className="low-stock-qty">Stock: <strong>{p.stockQuantity}</strong></span>
+                  <span className="low-stock-reorder">Reorder Level: <strong>{p.reorderLevel}</strong></span>
+                  <span className={`low-stock-badge ${p.stockQuantity === 0 ? 'badge-out' : 'badge-low'}`}>
+                    {p.stockQuantity === 0 ? 'Out of Stock' : 'Low Stock'}
+                  </span>
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
+    )}
+
+    <div className="products-controls">
         <div className="search-box">
           <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -297,7 +401,7 @@ export default function Products({ setActivePage }) {
           <option value="Necklace">Necklace</option>
           <option value="Earring">Earring</option>
           <option value="Bracelet">Bracelet</option>
-          <option value="Watch">Watch</option>
+          <option value="Brooch">Brooch</option>
         </select>
         <select className="filter-select" value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
           <option value="All">Stock Status: All</option>
@@ -305,6 +409,9 @@ export default function Products({ setActivePage }) {
           <option value="Out Of Stock">Out Of Stock</option>
         </select>
       </div>
+
+
+    
 
       <div className="products-table-container">
         <table className="products-table">
@@ -323,7 +430,7 @@ export default function Products({ setActivePage }) {
             </tr>
           </thead>
           <tbody>
-            {filteredProducts.map(product => {
+            {paginatedProducts.map(product => {
               const stockStatus = getStockStatus(product.stockQuantity, product.reorderLevel)
               return (
                 <tr key={product._id}>
@@ -380,13 +487,19 @@ export default function Products({ setActivePage }) {
       </div>
 
       <div className="pagination">
-        <span>SHOWING 1 TO {filteredProducts.length} OF {products.length} PRODUCTS</span>
+        <span>SHOWING {filteredProducts.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1} TO {Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)} OF {filteredProducts.length} PRODUCTS</span>
         <div className="pagination-buttons">
-          <button className="page-btn">‹</button>
-          <button className="page-btn active">1</button>
-          <button className="page-btn">2</button>
-          <button className="page-btn">3</button>
-          <button className="page-btn">›</button>
+          <button className="page-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>‹</button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            <button
+              key={page}
+              className={`page-btn ${currentPage === page ? 'active' : ''}`}
+              onClick={() => setCurrentPage(page)}
+            >
+              {page}
+            </button>
+          ))}
+          <button className="page-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>›</button>
         </div>
       </div>
 
@@ -445,7 +558,8 @@ export default function Products({ setActivePage }) {
                         <option value="Necklace">Necklace</option>
                         <option value="Earring">Earring</option>
                         <option value="Bracelet">Bracelet</option>
-                        <option value="Watch">Watch</option>
+                        <option value="Brooch">Brooch</option>
+                        <option value="Pendant">Pendant</option>
                       </select>
                       {addErrors.category && <span style={errorStyle}>{addErrors.category}</span>}
                     </div>
@@ -525,11 +639,13 @@ export default function Products({ setActivePage }) {
                       <label>REORDER LEVEL</label>
                       <input
                         type="number"
-                        min="0"
+                        min="1"
                         value={newProduct.reorderLevel}
                         onChange={(e) => setNewProduct({ ...newProduct, reorderLevel: e.target.value })}
-                        placeholder="3"
-                      />
+                        placeholder="5"
+                         />
+                        {addErrors.reorderLevel && <span style={errorStyle}>{addErrors.reorderLevel}</span>}
+                     
                     </div>
                     <div className="form-group active-status-group">
                       <label>ACTIVE STATUS</label>
@@ -579,6 +695,24 @@ export default function Products({ setActivePage }) {
                   {editData.productImage && (
                     <p className="section-label" style={{ marginTop: 8, fontWeight: 500 }}>Click image to replace</p>
                   )}
+                  <p className="section-label" style={{ marginTop: 16 }}>ADDITIONAL PHOTOS</p>
+                  <div className="additional-images">
+                    {editAdditionalImages.map((img, i) => (
+                      <label key={i} className="additional-image-slot">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleEditAdditionalImageUpload(i, e)}
+                          style={{ display: 'none' }}
+                        />
+                        {img ? (
+                          <img src={img} alt={`Additional ${i + 1}`} className="uploaded-add-img" />
+                        ) : (
+                          <span className="add-img-plus">+</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="modal-right">
 
@@ -603,7 +737,8 @@ export default function Products({ setActivePage }) {
                         <option value="Necklace">Necklace</option>
                         <option value="Earring">Earring</option>
                         <option value="Bracelet">Bracelet</option>
-                        <option value="Watch">Watch</option>
+                        <option value="Brooch">Brooch</option>
+                        <option value="Pendant">Pendant</option>
                       </select>
                       {editErrors.productCategory && <span style={errorStyle}>{editErrors.productCategory}</span>}
                     </div>
@@ -675,11 +810,12 @@ export default function Products({ setActivePage }) {
                     <div className="form-group">
                       <label>REORDER LEVEL</label>
                       <input
-                        type="number"
-                        min="0"
-                        value={editData.reorderLevel || 0}
-                        onChange={(e) => setEditData({ ...editData, reorderLevel: e.target.value })}
-                      />
+                          type="number"
+                          min="1"
+                          value={editData.reorderLevel || ''}
+                          onChange={(e) => { setEditData({ ...editData, reorderLevel: e.target.value }); setEditErrors(p => ({ ...p, reorderLevel: '' })) }}
+                        />
+                          {editErrors.reorderLevel && <span style={errorStyle}>{editErrors.reorderLevel}</span>}
                     </div>
                     <div className="form-group active-status-group">
                       <label>ACTIVE STATUS</label>
@@ -704,7 +840,6 @@ export default function Products({ setActivePage }) {
           </div>
         </div>
       )}
-
       {/* ── Delete Confirmation Modal ── */}
       {deleteConfirm && selectedProduct && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(false)}>
@@ -726,6 +861,14 @@ export default function Products({ setActivePage }) {
           </div>
         </div>
       )}
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.type === 'success' ? '✓' : '🗑'} {toast.message}
+        </div>
+      )}
+
     </div>
   )
 }

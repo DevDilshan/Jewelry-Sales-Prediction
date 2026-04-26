@@ -35,6 +35,12 @@ const icons = {
             <circle cx="10" cy="7" r="3" />
         </svg>
     ),
+    customDesign: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 17.5V14l8-8 4 4-8 8H3z" />
+            <path d="M13 6l2-2 3 3-2 2" />
+        </svg>
+    ),
 }
 
 export default function UserSidebar() {
@@ -44,6 +50,7 @@ export default function UserSidebar() {
     const getActive = () => {
         if (location.pathname.includes('/orders')) return 'orders'
         if (location.pathname.includes('/feedback')) return 'feedback'
+        if (location.pathname.includes('/custom-design')) return 'customDesign'
         if (location.pathname.includes('/shop')) return 'shop'
         if (location.pathname.includes('/profile')) return 'profile'
         return 'overview'
@@ -55,6 +62,7 @@ export default function UserSidebar() {
         { id: 'overview', label: 'Overview', path: '/dashboard' },
         { id: 'orders', label: 'My Orders', path: '/dashboard/orders' },
         { id: 'feedback', label: 'My Reviews', path: '/dashboard/feedback' },
+        { id: 'customDesign', label: 'Custom design', path: '/dashboard/custom-design' },
         { id: 'shop', label: 'Shop', path: '/shop' },
         { id: 'profile', label: 'Profile', path: '/dashboard/profile' },
     ]

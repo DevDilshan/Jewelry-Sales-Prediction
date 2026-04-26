@@ -1,0 +1,293 @@
+.cda-page {
+  padding: 24px 28px 48px;
+  max-width: 1100px;
+}
+
+.cda-header h1 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  margin: 0 0 8px;
+  color: #1a1a1a;
+}
+
+.cda-lead {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0 0 20px;
+}
+
+.cda-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.cda-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+}
+
+.cda-filter select {
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.cda-readonly-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.cda-muted {
+  color: #888;
+}
+
+.cda-error {
+  color: #c53030;
+}
+
+.cda-table-wrap {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.cda-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.cda-table th,
+.cda-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.cda-table th {
+  background: #fafafa;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.cda-empty-cell {
+  text-align: center;
+  color: #888;
+  padding: 28px !important;
+}
+
+.cda-pill {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eee;
+  color: #444;
+}
+
+.cda-pill--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.cda-pill--in_review {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.cda-pill--quoted {
+  background: #d1fae5;
+  color: #065f46;
+}
+.cda-pill--declined {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.cda-pill--completed {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.cda-view-btn {
+  padding: 6px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.cda-view-btn:hover {
+  border-color: #bbb;
+}
+
+.cda-meta {
+  font-size: 0.85rem;
+  color: #888;
+  padding: 10px 16px;
+  margin: 0;
+}
+
+.cda-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.cda-modal {
+  background: #fff;
+  border-radius: 14px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.cda-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #eee;
+}
+
+.cda-modal-head h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.cda-modal-close {
+  border: none;
+  background: transparent;
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+  color: #666;
+}
+
+.cda-modal-body {
+  padding: 20px 22px 24px;
+}
+
+.cda-modal-sketch {
+  margin-bottom: 16px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f5f3ef;
+  max-height: 320px;
+}
+
+.cda-modal-sketch img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  display: block;
+}
+
+.cda-modal-meta p {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  color: #444;
+}
+
+.cda-email {
+  color: #888;
+  font-size: 0.88rem;
+}
+
+.cda-modal-desc {
+  margin: 16px 0;
+}
+
+.cda-modal-desc strong {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.cda-modal-desc p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.cda-modal-form {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.cda-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+}
+
+.cda-field select,
+.cda-field textarea {
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  text-transform: none;
+  font-weight: 400;
+}
+
+.cda-save-btn {
+  margin-top: 8px;
+  padding: 10px 20px;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cda-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cda-save-error {
+  color: #c53030;
+  font-size: 0.9rem;
+  margin: 0 0 8px;
+}
