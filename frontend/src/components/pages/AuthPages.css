@@ -49,6 +49,10 @@
   box-sizing: border-box;
 }
 
+.auth-input.auth-input--error {
+  border-color: #b42318;
+}
+
 .auth-password-wrap {
   position: relative;
 }
@@ -76,14 +80,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  margin-top: 14px;
 }
 
 .auth-row .auth-label {
   margin-top: 0;
-}
-
-.auth-row div:first-child .auth-label {
-  margin-top: 14px;
 }
 
 .auth-error {

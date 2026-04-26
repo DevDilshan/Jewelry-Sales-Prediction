@@ -1,6 +1,15 @@
 /** Sri Lankan mobile: 10 digits, local format starting with 07 (e.g. 0712345678). */
 const LK_MOBILE_10_RE = /^07[0-9]{8}$/;
 
+/** Requires a dot in the domain after @ (e.g. name@example.com, not name@localhost). */
+const CUSTOMER_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidCustomerEmail(email) {
+  const t = String(email ?? "").trim().toLowerCase();
+  if (!t || t.length > 254) return false;
+  return CUSTOMER_EMAIL_RE.test(t);
+}
+
 /** Strip to digits, map leading 94… to 0… (local), keep at most 10 digits. */
 export function toLkMobileTenDigits(value) {
   let d = String(value ?? "").replace(/\D/g, "");

@@ -5,6 +5,7 @@ import {
   mergeCustomerProfileForValidation,
   validateCustomerProfileFields,
   toLkMobileTenDigits,
+  isValidCustomerEmail,
 } from "../utils/customerProfileValidation.js";
 import { hashPassword, verifyPasswordMigrateLegacy } from "../utils/passwordHash.js";
 import { generatePasswordResetToken, passwordResetExpiryDate } from "../utils/passwordResetToken.js";
@@ -20,8 +21,10 @@ export async function registerCustomer(req,res){
         if(!email || !password){
             return res.status(400).json({message: "All fields are required."})
         }
-        if(!email.includes("@")){
-            return res.status(400).json({message: "Invalid email"})
+        if (!isValidCustomerEmail(email)) {
+            return res.status(400).json({
+                message: "Enter a valid email with a domain that includes a dot after @ (e.g. name@example.com).",
+            });
         }
         const policy = validatePasswordStrength(password);
         if (!policy.ok) {
