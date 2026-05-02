@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createCustomDesignRequest,
+  createGuestCustomDesignInquiry,
   getCustomDesignRequestAdmin,
   getMyCustomDesignRequest,
   listCustomDesignRequestsAdmin,
@@ -25,6 +26,9 @@ function uploadSketchSafe(req, res, next) {
     next();
   });
 }
+
+/** Storefront / Expo: guest inquiry (JSON body, no sketch). Must be registered before POST "/". */
+router.post("/inquiry", createGuestCustomDesignInquiry);
 
 router.post("/", verifyCustomerToken, uploadSketchSafe, createCustomDesignRequest);
 router.get("/my", verifyCustomerToken, listMyCustomDesignRequests);

@@ -113,3 +113,10 @@
   color: #888;
   margin: 0;
 }
+
+.designer-card-stats {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b5a3a;
+  margin: 8px 0 0;
+}

@@ -44,6 +44,48 @@
   font-weight: 600;
 }
 
+.cd-section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b6914;
+  margin: 0 0 10px;
+}
+
+.cd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.cd-chip {
+  display: inline-block;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--dark);
+  background: #f8f6f1;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.cd-chip:hover {
+  border-color: #c45c26;
+  background: #fff8f0;
+}
+
+.cd-footnote {
+  margin: 14px 0 0;
+  font-size: 0.88rem;
+  color: #888;
+  text-align: center;
+}
+
 .cd-label {
   display: block;
   font-size: 0.78rem;

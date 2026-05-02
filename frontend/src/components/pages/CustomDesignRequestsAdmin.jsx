@@ -12,12 +12,21 @@ const STATUS_LABELS = {
   completed: "Completed",
 };
 
-function customerLabel(row) {
+function requesterLabel(row) {
   const c = row.customer;
   if (c && (c.firstName || c.lastName)) {
     return [c.firstName, c.lastName].filter(Boolean).join(" ");
   }
+  if (row.guestName && String(row.guestName).trim()) {
+    return String(row.guestName).trim();
+  }
   return "—";
+}
+
+function requesterEmail(row) {
+  if (row.customer?.email) return row.customer.email;
+  if (row.guestEmail) return row.guestEmail;
+  return "";
 }
 
 export default function CustomDesignRequestsAdmin({ setActivePage }) {
@@ -86,7 +95,9 @@ export default function CustomDesignRequestsAdmin({ setActivePage }) {
     <div className="cda-page">
       <div className="cda-header">
         <h1>Custom design requests</h1>
-        <p className="cda-lead">Customer-submitted sketches and descriptions. Update status and internal notes.</p>
+        <p className="cda-lead">
+          Storefront inquiries (guest or signed-in) and sketch uploads. Update status and internal notes.
+        </p>
       </div>
 
       <div className="cda-toolbar">
@@ -113,7 +124,7 @@ export default function CustomDesignRequestsAdmin({ setActivePage }) {
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Customer</th>
+                <th>Requester</th>
                 <th>Title</th>
                 <th>Status</th>
                 <th />
@@ -130,7 +141,15 @@ export default function CustomDesignRequestsAdmin({ setActivePage }) {
                 rows.map((row) => (
                   <tr key={row._id}>
                     <td>{row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}</td>
-                    <td>{customerLabel(row)}</td>
+                    <td>
+                      <span className="cda-req-name">{requesterLabel(row)}</span>
+                      {requesterEmail(row) ? (
+                        <span className="cda-req-email">
+                          <br />
+                          {requesterEmail(row)}
+                        </span>
+                      ) : null}
+                    </td>
                     <td>{row.title?.trim() || "—"}</td>
                     <td>
                       <span className={`cda-pill cda-pill--${row.status}`}>{STATUS_LABELS[row.status] || row.status}</span>
@@ -174,12 +193,24 @@ export default function CustomDesignRequestsAdmin({ setActivePage }) {
               </div>
               <div className="cda-modal-meta">
                 <p>
-                  <strong>Customer:</strong> {customerLabel(selected)}{" "}
-                  {selected.customer?.email ? <span className="cda-email">({selected.customer.email})</span> : null}
+                  <strong>Requester:</strong> {requesterLabel(selected)}
+                  {requesterEmail(selected) ? (
+                    <span className="cda-email"> ({requesterEmail(selected)})</span>
+                  ) : null}
                 </p>
+                {!selected.customer && selected.guestPhone ? (
+                  <p>
+                    <strong>Phone (guest):</strong> {selected.guestPhone}
+                  </p>
+                ) : null}
                 {selected.customer?.phone ? (
                   <p>
                     <strong>Phone:</strong> {selected.customer.phone}
+                  </p>
+                ) : null}
+                {selected.budgetNote ? (
+                  <p>
+                    <strong>Budget note:</strong> {selected.budgetNote}
                   </p>
                 ) : null}
                 <p>

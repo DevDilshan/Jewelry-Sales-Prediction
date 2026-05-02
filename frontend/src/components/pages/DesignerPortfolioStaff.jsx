@@ -10,6 +10,28 @@ function parseSpecialties(str) {
     .slice(0, 20);
 }
 
+const DIGITS_ONLY = /^\d+$/;
+
+function parsePortfolioYears(str) {
+  const t = String(str ?? "").trim();
+  if (!DIGITS_ONLY.test(t)) {
+    return { ok: false, message: "Years of experience must be a whole number from 0 to 80." };
+  }
+  const v = parseInt(t, 10);
+  if (v > 80) return { ok: false, message: "Years of experience cannot be greater than 80." };
+  return { ok: true, value: v };
+}
+
+function parsePortfolioProjects(str) {
+  const t = String(str ?? "").trim();
+  if (!DIGITS_ONLY.test(t)) {
+    return { ok: false, message: "Completed projects must be a whole number from 0 to 100,000." };
+  }
+  const v = parseInt(t, 10);
+  if (v > 100000) return { ok: false, message: "Completed projects cannot be greater than 100,000." };
+  return { ok: true, value: v };
+}
+
 /** Designer role — own portfolio via /me */
 function PortfolioMeEditor({ setActivePage }) {
   useEffect(() => {
@@ -24,6 +46,8 @@ function PortfolioMeEditor({ setActivePage }) {
   const [headline, setHeadline] = useState("");
   const [bio, setBio] = useState("");
   const [specialtiesStr, setSpecialtiesStr] = useState("");
+  const [yearsStr, setYearsStr] = useState("0");
+  const [projectsStr, setProjectsStr] = useState("0");
   const [isPublished, setIsPublished] = useState(false);
 
   const [createBusy, setCreateBusy] = useState(false);
@@ -44,6 +68,8 @@ function PortfolioMeEditor({ setActivePage }) {
           setHeadline(row.headline || "");
           setBio(row.bio || "");
           setSpecialtiesStr(Array.isArray(row.specialties) ? row.specialties.join(", ") : "");
+          setYearsStr(row.yearsOfExperience != null ? String(row.yearsOfExperience) : "0");
+          setProjectsStr(row.completedProjects != null ? String(row.completedProjects) : "0");
           setIsPublished(!!row.isPublished);
         }
       })
@@ -63,6 +89,16 @@ function PortfolioMeEditor({ setActivePage }) {
       setFormError("Display name must be at least 2 characters.");
       return;
     }
+    const y = parsePortfolioYears(yearsStr);
+    if (!y.ok) {
+      setFormError(y.message);
+      return;
+    }
+    const pr = parsePortfolioProjects(projectsStr);
+    if (!pr.ok) {
+      setFormError(pr.message);
+      return;
+    }
     setCreateBusy(true);
     try {
       await api("/designer-portfolios/me", {
@@ -72,6 +108,8 @@ function PortfolioMeEditor({ setActivePage }) {
           headline: headline.trim().slice(0, 200),
           bio: bio.trim().slice(0, 8000),
           specialties: parseSpecialties(specialtiesStr),
+          yearsOfExperience: y.value,
+          completedProjects: pr.value,
           isPublished,
         },
         auth: "staff",
@@ -93,6 +131,16 @@ function PortfolioMeEditor({ setActivePage }) {
       setFormError("Display name must be at least 2 characters.");
       return;
     }
+    const y = parsePortfolioYears(yearsStr);
+    if (!y.ok) {
+      setFormError(y.message);
+      return;
+    }
+    const pr = parsePortfolioProjects(projectsStr);
+    if (!pr.ok) {
+      setFormError(pr.message);
+      return;
+    }
     setSaveBusy(true);
     try {
       const res = await api("/designer-portfolios/me", {
@@ -102,6 +150,8 @@ function PortfolioMeEditor({ setActivePage }) {
           headline: headline.trim().slice(0, 200),
           bio: bio.trim().slice(0, 8000),
           specialties: parseSpecialties(specialtiesStr),
+          yearsOfExperience: y.value,
+          completedProjects: pr.value,
           isPublished,
         },
         auth: "staff",
@@ -193,6 +243,24 @@ function PortfolioMeEditor({ setActivePage }) {
               placeholder="Rings, custom bridal, stone sourcing"
             />
           </label>
+          <label className="dps-field">
+            Years of experience (0–80)
+            <input
+              inputMode="numeric"
+              value={yearsStr}
+              onChange={(e) => setYearsStr(e.target.value.replace(/\D/g, "").slice(0, 3))}
+              placeholder="0"
+            />
+          </label>
+          <label className="dps-field">
+            Completed projects (0–100,000)
+            <input
+              inputMode="numeric"
+              value={projectsStr}
+              onChange={(e) => setProjectsStr(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="0"
+            />
+          </label>
           <label className="dps-check">
             <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} />
             Publish on the website
@@ -231,6 +299,22 @@ function PortfolioMeEditor({ setActivePage }) {
         <label className="dps-field">
           Specialties (comma-separated)
           <input value={specialtiesStr} onChange={(e) => setSpecialtiesStr(e.target.value)} />
+        </label>
+        <label className="dps-field">
+          Years of experience (0–80)
+          <input
+            inputMode="numeric"
+            value={yearsStr}
+            onChange={(e) => setYearsStr(e.target.value.replace(/\D/g, "").slice(0, 3))}
+          />
+        </label>
+        <label className="dps-field">
+          Completed projects (0–100,000)
+          <input
+            inputMode="numeric"
+            value={projectsStr}
+            onChange={(e) => setProjectsStr(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          />
         </label>
         <label className="dps-check">
           <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} />
@@ -299,6 +383,8 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
   const [headline, setHeadline] = useState("");
   const [bio, setBio] = useState("");
   const [specialtiesStr, setSpecialtiesStr] = useState("");
+  const [yearsStr, setYearsStr] = useState("0");
+  const [projectsStr, setProjectsStr] = useState("0");
   const [isPublished, setIsPublished] = useState(false);
 
   const [newStaffId, setNewStaffId] = useState("");
@@ -306,6 +392,8 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
   const [newHeadline, setNewHeadline] = useState("");
   const [newBio, setNewBio] = useState("");
   const [newSpecialties, setNewSpecialties] = useState("");
+  const [newYearsStr, setNewYearsStr] = useState("0");
+  const [newProjectsStr, setNewProjectsStr] = useState("0");
   const [newPublished, setNewPublished] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState("");
@@ -385,6 +473,8 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
             setHeadline(row.headline || "");
             setBio(row.bio || "");
             setSpecialtiesStr(Array.isArray(row.specialties) ? row.specialties.join(", ") : "");
+            setYearsStr(row.yearsOfExperience != null ? String(row.yearsOfExperience) : "0");
+            setProjectsStr(row.completedProjects != null ? String(row.completedProjects) : "0");
             setIsPublished(!!row.isPublished);
           }
         })
@@ -412,6 +502,16 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
       setFormError("Display name must be at least 2 characters.");
       return;
     }
+    const y = parsePortfolioYears(yearsStr);
+    if (!y.ok) {
+      setFormError(y.message);
+      return;
+    }
+    const pr = parsePortfolioProjects(projectsStr);
+    if (!pr.ok) {
+      setFormError(pr.message);
+      return;
+    }
     setSaveBusy(true);
     try {
       const res = await api(`/designer-portfolios/admin/${selectedId}`, {
@@ -421,6 +521,8 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
           headline: headline.trim().slice(0, 200),
           bio: bio.trim().slice(0, 8000),
           specialties: parseSpecialties(specialtiesStr),
+          yearsOfExperience: y.value,
+          completedProjects: pr.value,
           isPublished,
         },
         auth: "staff",
@@ -447,6 +549,16 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
       setCreateError("Display name must be at least 2 characters.");
       return;
     }
+    const y = parsePortfolioYears(newYearsStr);
+    if (!y.ok) {
+      setCreateError(y.message);
+      return;
+    }
+    const pr = parsePortfolioProjects(newProjectsStr);
+    if (!pr.ok) {
+      setCreateError(pr.message);
+      return;
+    }
     setCreateBusy(true);
     try {
       const res = await api("/designer-portfolios/admin", {
@@ -457,6 +569,8 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
           headline: newHeadline.trim().slice(0, 200),
           bio: newBio.trim().slice(0, 8000),
           specialties: parseSpecialties(newSpecialties),
+          yearsOfExperience: y.value,
+          completedProjects: pr.value,
           isPublished: newPublished,
         },
         auth: "staff",
@@ -469,6 +583,8 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
       setNewHeadline("");
       setNewBio("");
       setNewSpecialties("");
+      setNewYearsStr("0");
+      setNewProjectsStr("0");
       setNewPublished(false);
     } catch (err) {
       setCreateError(err.message || "Could not create portfolio.");
@@ -569,6 +685,24 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
                 Specialties (comma-separated)
                 <input value={newSpecialties} onChange={(e) => setNewSpecialties(e.target.value)} />
               </label>
+              <label className="dps-field">
+                Years of experience (0–80)
+                <input
+                  inputMode="numeric"
+                  value={newYearsStr}
+                  onChange={(e) => setNewYearsStr(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                  placeholder="0"
+                />
+              </label>
+              <label className="dps-field">
+                Completed projects (0–100,000)
+                <input
+                  inputMode="numeric"
+                  value={newProjectsStr}
+                  onChange={(e) => setNewProjectsStr(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="0"
+                />
+              </label>
               <label className="dps-check">
                 <input type="checkbox" checked={newPublished} onChange={(e) => setNewPublished(e.target.checked)} />
                 Publish on the website
@@ -636,6 +770,24 @@ function PortfolioDirectory({ setActivePage, readOnly }) {
                 <label className="dps-field">
                   Specialties (comma-separated)
                   <input value={specialtiesStr} onChange={(e) => setSpecialtiesStr(e.target.value)} disabled={!canEdit} />
+                </label>
+                <label className="dps-field">
+                  Years of experience (0–80)
+                  <input
+                    inputMode="numeric"
+                    value={yearsStr}
+                    onChange={(e) => setYearsStr(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                    disabled={!canEdit}
+                  />
+                </label>
+                <label className="dps-field">
+                  Completed projects (0–100,000)
+                  <input
+                    inputMode="numeric"
+                    value={projectsStr}
+                    onChange={(e) => setProjectsStr(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    disabled={!canEdit}
+                  />
                 </label>
                 <label className="dps-check">
                   <input

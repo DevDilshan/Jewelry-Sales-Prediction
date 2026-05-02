@@ -71,6 +71,14 @@
   color: #5c4a32;
 }
 
+.dp-public-stats {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dark);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
 .dp-bio {
   font-size: 1.02rem;
   line-height: 1.7;

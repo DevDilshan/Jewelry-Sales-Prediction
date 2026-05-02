@@ -1,14 +1,23 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Navbar from "./Navbar";
-import { apiForm, getCustomerToken } from "../../config/api";
+import { api, getCustomerToken } from "../../config/api";
 import "./CustomDesignPage.css";
 
+const DESIGN_IDEAS = [
+  "Engagement ring with custom engraving",
+  "Gold necklace with birthstone pendant",
+  "Matching bridal jewellery set",
+  "Custom bracelet with family initials",
+];
+
 export default function CustomDesignPage() {
-  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [file, setFile] = useState(null);
+  const [budget, setBudget] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -18,30 +27,41 @@ export default function CustomDesignPage() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!signedIn) {
-      navigate(`/login?return=${encodeURIComponent("/custom-design")}`);
-      return;
-    }
-    if (!file) {
-      setError("Please attach a sketch image (JPEG, PNG, GIF, or WebP).");
-      return;
-    }
+    const n = name.trim();
+    const em = email.trim();
     const desc = description.trim();
+    if (!n || n.length < 2) {
+      setError("Please enter your name (at least 2 characters).");
+      return;
+    }
+    if (!em || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
     if (!desc) {
       setError("Please describe what you have in mind.");
       return;
     }
     setBusy(true);
     try {
-      const fd = new FormData();
-      fd.append("sketch", file);
-      fd.append("description", desc);
-      if (title.trim()) fd.append("title", title.trim().slice(0, 200));
-      await apiForm("/custom-design-requests", fd, { auth: "customer" });
+      await api("/custom-design-requests/inquiry", {
+        method: "POST",
+        body: {
+          name: n,
+          email: em,
+          phone: phone.trim() || undefined,
+          description: desc,
+          budget: budget.trim() || undefined,
+          title: title.trim().slice(0, 200) || undefined,
+        },
+      });
       setSuccess(true);
+      setName("");
+      setEmail("");
+      setPhone("");
       setTitle("");
       setDescription("");
-      setFile(null);
+      setBudget("");
     } catch (err) {
       setError(err.message || "Could not submit your request.");
     } finally {
@@ -54,21 +74,23 @@ export default function CustomDesignPage() {
       <Navbar />
       <div className="shop-inner cd-inner">
         <header className="cd-header">
-          <h1>Bespoke &amp; custom design</h1>
+          <h1>Request a custom design</h1>
           <p className="cd-lead">
-            Share a sketch or reference photo and tell us about your dream piece. Our team will review your request and get
-            back to you.
+            Tell us about your vision — metal, stones, style, and budget. Our design team will reply within a couple of
+            business days. No account required.
           </p>
         </header>
 
         {success ? (
           <div className="cd-success">
-            <h2>Request received</h2>
-            <p>We&apos;ll review your sketch and description and contact you soon.</p>
+            <h2>Request sent</h2>
+            <p>Thank you! We&apos;ll reach out using the email you provided.</p>
             <div className="cd-success-actions">
-              <Link to="/dashboard/custom-design" className="cd-btn-secondary">
-                View my requests
-              </Link>
+              {signedIn ? (
+                <Link to="/dashboard/custom-design" className="cd-btn-secondary">
+                  View my requests
+                </Link>
+              ) : null}
               <Link to="/designers" className="cd-btn-primary">
                 Meet our designers
               </Link>
@@ -76,16 +98,66 @@ export default function CustomDesignPage() {
           </div>
         ) : (
           <form className="cd-form" onSubmit={onSubmit}>
-            {!signedIn && (
+            {signedIn && (
               <p className="cd-hint">
-                <Link to={`/login?return=${encodeURIComponent("/custom-design")}`}>Sign in</Link> or{" "}
-                <Link to={`/register?return=${encodeURIComponent("/custom-design")}`}>create an account</Link> to submit a
-                request.
+                You&apos;re signed in — you can also{" "}
+                <Link to="/dashboard/custom-design">track requests in your account</Link>.
               </p>
             )}
 
+            <p className="cd-section-label">Popular requests</p>
+            <div className="cd-chips">
+              {DESIGN_IDEAS.map((idea) => (
+                <button key={idea} type="button" className="cd-chip" onClick={() => setDescription(idea)}>
+                  {idea}
+                </button>
+              ))}
+            </div>
+
+            <label className="cd-label" htmlFor="cd-name">
+              Your name <span className="cd-req">*</span>
+            </label>
+            <input
+              id="cd-name"
+              type="text"
+              className="cd-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={200}
+              autoComplete="name"
+              placeholder="e.g. Amali Perera"
+            />
+
+            <label className="cd-label" htmlFor="cd-email">
+              Email <span className="cd-req">*</span>
+            </label>
+            <input
+              id="cd-email"
+              type="email"
+              className="cd-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              maxLength={320}
+              autoComplete="email"
+              placeholder="you@example.com"
+            />
+
+            <label className="cd-label" htmlFor="cd-phone">
+              Phone <span className="cd-optional">(optional)</span>
+            </label>
+            <input
+              id="cd-phone"
+              type="tel"
+              className="cd-input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              maxLength={40}
+              autoComplete="tel"
+              placeholder="+94 77 000 0000"
+            />
+
             <label className="cd-label" htmlFor="cd-title">
-              Title <span className="cd-optional">(optional)</span>
+              Short title <span className="cd-optional">(optional)</span>
             </label>
             <input
               id="cd-title"
@@ -98,7 +170,7 @@ export default function CustomDesignPage() {
             />
 
             <label className="cd-label" htmlFor="cd-desc">
-              Description <span className="cd-req">*</span>
+              Describe your design <span className="cd-req">*</span>
             </label>
             <textarea
               id="cd-desc"
@@ -108,30 +180,28 @@ export default function CustomDesignPage() {
               rows={8}
               maxLength={8000}
               required
-              placeholder="Metal, stones, style, sizing, occasion, budget range — anything that helps us understand your vision."
+              placeholder="Metal, stones, style, sizing, occasion — anything that helps us understand your vision."
             />
 
-            <label className="cd-label" htmlFor="cd-sketch">
-              Sketch or reference image <span className="cd-req">*</span>
+            <label className="cd-label" htmlFor="cd-budget">
+              Approximate budget (LKR) <span className="cd-optional">(optional)</span>
             </label>
-            <div className="cd-file-wrap">
-              <input
-                id="cd-sketch"
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                onChange={(e) => {
-                  setFile(e.target.files?.[0] || null);
-                  setError("");
-                }}
-              />
-              <p className="cd-file-hint">JPEG, PNG, GIF, or WebP · up to 8 MB</p>
-            </div>
+            <input
+              id="cd-budget"
+              type="text"
+              className="cd-input"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              maxLength={500}
+              placeholder="e.g. 50,000 – 100,000"
+            />
 
             {error ? <p className="cd-error">{error}</p> : null}
 
             <button type="submit" className="cd-submit" disabled={busy}>
-              {busy ? "Sending…" : "Submit request"}
+              {busy ? "Sending…" : "Send request"}
             </button>
+            <p className="cd-footnote">No payment is required at this stage.</p>
           </form>
         )}
       </div>

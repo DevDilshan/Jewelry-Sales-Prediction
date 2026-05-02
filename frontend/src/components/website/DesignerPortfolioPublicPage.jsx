@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import Navbar from "./Navbar";
 import { API_BASE, uploadUrl } from "../../config/api";
 import "./DesignerPortfolioPublicPage.css";
-import "./DesignerPortfolioPublicPage.css";
 
 export default function DesignerPortfolioPublicPage() {
   const { portfolioId } = useParams();
@@ -71,6 +70,16 @@ export default function DesignerPortfolioPublicPage() {
                 ))}
               </ul>
             )}
+
+            {(() => {
+              const parts = [];
+              if (data.yearsOfExperience != null) parts.push(`${data.yearsOfExperience}+ yrs experience`);
+              if (data.completedProjects != null) {
+                parts.push(`${Number(data.completedProjects).toLocaleString()} completed projects`);
+              }
+              if (parts.length === 0) return null;
+              return <p className="dp-public-stats">{parts.join(" · ")}</p>;
+            })()}
 
             {data.bio ? <div className="dp-bio">{data.bio}</div> : null}
 

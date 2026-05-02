@@ -54,6 +54,18 @@ const designerPortfolioSchema = new Schema(
         message: "At most 20 specialties, each up to 80 characters.",
       },
     },
+    yearsOfExperience: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 80,
+    },
+    completedProjects: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100000,
+    },
     images: {
       type: [portfolioImageSchema],
       default: [],

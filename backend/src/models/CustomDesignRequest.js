@@ -8,9 +8,15 @@ const customDesignRequestSchema = new Schema(
     customer: {
       type: Schema.Types.ObjectId,
       ref: "Customer",
-      required: true,
+      required: false,
+      sparse: true,
       index: true,
     },
+    /** Guest storefront inquiry (no customer account). Mutually exclusive with `customer`. */
+    guestName: { type: String, trim: true, default: "", maxlength: 200 },
+    guestEmail: { type: String, trim: true, default: "", maxlength: 320 },
+    guestPhone: { type: String, trim: true, default: "", maxlength: 40 },
+    budgetNote: { type: String, trim: true, default: "", maxlength: 500 },
     title: {
       type: String,
       trim: true,
@@ -23,11 +29,11 @@ const customDesignRequestSchema = new Schema(
       required: true,
       maxlength: 8000,
     },
-    /** Path relative to the uploads root, e.g. custom-designs/abc.png */
+    /** Path relative to the uploads root, e.g. custom-designs/abc.png (empty for guest text-only inquiries). */
     sketchRelPath: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
     sketchOriginalName: {
       type: String,

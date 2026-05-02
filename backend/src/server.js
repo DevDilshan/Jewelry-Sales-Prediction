@@ -23,7 +23,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5001
+const PORT = process.env.PORT || 5001;
+
+/** Correct `req.protocol` / host behind Render, nginx, etc. (needed for absolute image URLs). */
+app.set("trust proxy", 1);
 
 connectDB();
 app.use(express.json({ limit: "15mb" }));

@@ -117,25 +117,7 @@ export function validateStaffProfilePatch(body) {
       }
     }
   }
-
-  if (Object.prototype.hasOwnProperty.call(body, "dateOfBirth")) {
-    const t = String(body.dateOfBirth ?? "").trim();
-    if (!t) {
-      errors.dateOfBirth = "Date of birth is required.";
-    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) {
-      errors.dateOfBirth = "Date of birth must be in YYYY-MM-DD format.";
-    } else {
-      const d = new Date(`${t}T00:00:00.000Z`);
-      if (Number.isNaN(d.getTime())) {
-        errors.dateOfBirth = "Date of birth is invalid.";
-      } else if (d > new Date()) {
-        errors.dateOfBirth = "Date of birth cannot be in the future.";
-      } else {
-        values.dateOfBirth = d;
-      }
-    }
-  }
-
+x
   if (Object.prototype.hasOwnProperty.call(body, "emergencyContactNumber")) {
     const raw = String(body.emergencyContactNumber ?? "").trim();
     if (!raw) {

@@ -3,8 +3,55 @@ import { sketchRelPathFromFilename } from "../middlewares/uploadCustomDesignSket
 
 const ALLOWED_STATUSES = ["pending", "in_review", "quoted", "declined", "completed"];
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function normalizeDescription(raw) {
   return String(raw ?? "").trim();
+}
+
+/** POST /api/custom-design-requests/inquiry — public, no login; text + contact (no sketch). */
+export async function createGuestCustomDesignInquiry(req, res) {
+  try {
+    const guestName = String(req.body?.name ?? req.body?.guestName ?? "").trim();
+    const guestEmail = String(req.body?.email ?? req.body?.guestEmail ?? "").trim().toLowerCase();
+    const guestPhone = String(req.body?.phone ?? req.body?.guestPhone ?? "").trim();
+    const budgetNote = String(req.body?.budget ?? req.body?.budgetNote ?? "").trim().slice(0, 500);
+    let description = normalizeDescription(req.body?.description);
+
+    if (!guestName || guestName.length < 2) {
+      return res.status(400).json({ success: false, message: "Name is required (at least 2 characters)." });
+    }
+    if (!guestEmail || !EMAIL_RE.test(guestEmail)) {
+      return res.status(400).json({ success: false, message: "A valid email address is required." });
+    }
+    if (!description) {
+      return res.status(400).json({ success: false, message: "Description is required." });
+    }
+    if (description.length > 8000) {
+      return res.status(400).json({
+        success: false,
+        message: "Description must be at most 8000 characters.",
+      });
+    }
+
+    const doc = await CustomDesignRequest.create({
+      guestName,
+      guestEmail,
+      guestPhone: guestPhone.slice(0, 40),
+      budgetNote: budgetNote || "",
+      description,
+      sketchRelPath: "",
+      sketchOriginalName: "",
+      sketchMimeType: "",
+      title: String(req.body?.title ?? "").trim().slice(0, 200),
+      status: "pending",
+    });
+
+    const lean = await CustomDesignRequest.findById(doc._id).lean();
+    res.status(201).json({ success: true, data: lean });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message || "Could not create inquiry" });
+  }
 }
 
 /** POST /api/custom-design-requests — customer + multipart (sketch required) */

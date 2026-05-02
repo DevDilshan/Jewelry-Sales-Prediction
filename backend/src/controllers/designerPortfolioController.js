@@ -3,9 +3,12 @@ import DesignerPortfolio from "../models/DesignerPortfolio.js";
 import Staff from "../models/Staff.js";
 import { portfolioImageRelPathFromFilename } from "../middlewares/uploadDesignerPortfolioImage.js";
 import { deleteUploadedRelPath } from "../utils/uploadedFile.js";
+import { requestPublicBaseUrl, uploadsUrlForRelPath } from "../utils/publicAssetUrl.js";
 
 const MAX_IMAGES = 15;
 const MAX_SPECIALTIES = 20;
+const YEARS_MAX = 80;
+const PROJECTS_MAX = 100000;
 
 function normalizeSpecialties(raw) {
   if (raw == null) return [];
@@ -18,6 +21,42 @@ function normalizeSpecialties(raw) {
   return out;
 }
 
+/** Create / default: missing → 0. */
+function parseYearsOfExperienceWrite(raw) {
+  if (raw === undefined || raw === null || raw === "") return { value: 0 };
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > YEARS_MAX) {
+    return { error: "yearsOfExperience must be an integer from 0 to 80." };
+  }
+  return { value: n };
+}
+
+function parseCompletedProjectsWrite(raw) {
+  if (raw === undefined || raw === null || raw === "") return { value: 0 };
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > PROJECTS_MAX) {
+    return { error: "completedProjects must be an integer from 0 to 100,000." };
+  }
+  return { value: n };
+}
+
+/** PATCH: only when field is present in body. */
+function parseYearsOfExperiencePatch(raw) {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > YEARS_MAX) {
+    return { error: "yearsOfExperience must be an integer from 0 to 80." };
+  }
+  return { value: n };
+}
+
+function parseCompletedProjectsPatch(raw) {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > PROJECTS_MAX) {
+    return { error: "completedProjects must be an integer from 0 to 100,000." };
+  }
+  return { value: n };
+}
+
 function publicStaffFields(staff) {
   if (!staff || typeof staff !== "object") return null;
   return {
@@ -27,23 +66,36 @@ function publicStaffFields(staff) {
   };
 }
 
-function toPublicPortfolio(doc) {
+function toPublicPortfolio(doc, assetBase) {
   const o = doc.toObject ? doc.toObject() : { ...doc };
   const staff = publicStaffFields(o.staff);
-  return {
+  const base = assetBase || "";
+  const out = {
     _id: o._id,
     displayName: o.displayName,
     headline: o.headline,
     bio: o.bio,
     specialties: o.specialties || [],
-    images: (o.images || []).map((img) => ({
-      _id: img._id,
-      relPath: img.relPath,
-      caption: img.caption || "",
-    })),
+    images: (o.images || []).map((img) => {
+      const relPath = img.relPath;
+      return {
+        _id: img._id,
+        relPath,
+        caption: img.caption || "",
+        /** Absolute URL for clients (mobile/web); still send `relPath` for backward compatibility. */
+        url: uploadsUrlForRelPath(base, relPath),
+      };
+    }),
     updatedAt: o.updatedAt,
     staff,
   };
+  if (typeof o.yearsOfExperience === "number" && Number.isFinite(o.yearsOfExperience)) {
+    out.yearsOfExperience = o.yearsOfExperience;
+  }
+  if (typeof o.completedProjects === "number" && Number.isFinite(o.completedProjects)) {
+    out.completedProjects = o.completedProjects;
+  }
+  return out;
 }
 
 /** GET /api/designer-portfolios/public */
@@ -59,7 +111,8 @@ export async function listPublishedPortfolios(req, res) {
       .populate("staff", "firstName lastName jobTitle")
       .lean();
 
-    const data = rows.map((row) => toPublicPortfolio(row));
+    const assetBase = requestPublicBaseUrl(req);
+    const data = rows.map((row) => toPublicPortfolio(row, assetBase));
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message || "Could not list portfolios" });
@@ -79,7 +132,8 @@ export async function getPublishedPortfolioById(req, res) {
     if (!row) {
       return res.status(404).json({ success: false, message: "Portfolio not found." });
     }
-    res.json({ success: true, data: toPublicPortfolio(row) });
+    const assetBase = requestPublicBaseUrl(req);
+    res.json({ success: true, data: toPublicPortfolio(row, assetBase) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message || "Could not load portfolio" });
   }
@@ -124,12 +178,19 @@ export async function createMyDesignerPortfolio(req, res) {
     const specialties = normalizeSpecialties(req.body?.specialties);
     const isPublished = Boolean(req.body?.isPublished);
 
+    const y = parseYearsOfExperienceWrite(req.body?.yearsOfExperience);
+    if (y.error) return res.status(400).json({ success: false, message: y.error });
+    const p = parseCompletedProjectsWrite(req.body?.completedProjects);
+    if (p.error) return res.status(400).json({ success: false, message: p.error });
+
     const doc = await DesignerPortfolio.create({
       staff: req.user.id,
       displayName,
       headline,
       bio,
       specialties,
+      yearsOfExperience: y.value,
+      completedProjects: p.value,
       images: [],
       isPublished,
     });
@@ -174,6 +235,16 @@ export async function patchMyDesignerPortfolio(req, res) {
     }
     if (req.body.isPublished != null) {
       patch.isPublished = Boolean(req.body.isPublished);
+    }
+    if (req.body.yearsOfExperience !== undefined && req.body.yearsOfExperience !== null) {
+      const r = parseYearsOfExperiencePatch(req.body.yearsOfExperience);
+      if (r.error) return res.status(400).json({ success: false, message: r.error });
+      patch.yearsOfExperience = r.value;
+    }
+    if (req.body.completedProjects !== undefined && req.body.completedProjects !== null) {
+      const r = parseCompletedProjectsPatch(req.body.completedProjects);
+      if (r.error) return res.status(400).json({ success: false, message: r.error });
+      patch.completedProjects = r.value;
     }
 
     if (Array.isArray(req.body.imageOrder)) {
@@ -372,6 +443,16 @@ export async function patchDesignerPortfolioAdmin(req, res) {
     if (req.body.isPublished != null) {
       patch.isPublished = Boolean(req.body.isPublished);
     }
+    if (req.body.yearsOfExperience !== undefined && req.body.yearsOfExperience !== null) {
+      const r = parseYearsOfExperiencePatch(req.body.yearsOfExperience);
+      if (r.error) return res.status(400).json({ success: false, message: r.error });
+      patch.yearsOfExperience = r.value;
+    }
+    if (req.body.completedProjects !== undefined && req.body.completedProjects !== null) {
+      const r = parseCompletedProjectsPatch(req.body.completedProjects);
+      if (r.error) return res.status(400).json({ success: false, message: r.error });
+      patch.completedProjects = r.value;
+    }
 
     if (Array.isArray(req.body.imageOrder)) {
       const ids = req.body.imageOrder.map((x) => String(x));
@@ -451,12 +532,19 @@ export async function createDesignerPortfolioAdmin(req, res) {
     const specialties = normalizeSpecialties(req.body?.specialties);
     const isPublished = Boolean(req.body?.isPublished);
 
+    const y = parseYearsOfExperienceWrite(req.body?.yearsOfExperience);
+    if (y.error) return res.status(400).json({ success: false, message: y.error });
+    const p = parseCompletedProjectsWrite(req.body?.completedProjects);
+    if (p.error) return res.status(400).json({ success: false, message: p.error });
+
     const doc = await DesignerPortfolio.create({
       staff: staffId,
       displayName,
       headline,
       bio,
       specialties,
+      yearsOfExperience: y.value,
+      completedProjects: p.value,
       images: [],
       isPublished,
     });

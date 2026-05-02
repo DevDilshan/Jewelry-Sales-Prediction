@@ -75,6 +75,13 @@ export default function DesignersPage() {
                 <h2>{p.displayName}</h2>
                 {p.headline ? <p className="designer-card-headline">{p.headline}</p> : null}
                 <p className="designer-card-meta">{designerName(p)}</p>
+                {(() => {
+                  const parts = [];
+                  if (p.yearsOfExperience != null) parts.push(`${p.yearsOfExperience}+ yrs`);
+                  if (p.completedProjects != null) parts.push(`${Number(p.completedProjects).toLocaleString()} projects`);
+                  if (parts.length === 0) return null;
+                  return <p className="designer-card-stats">{parts.join(" · ")}</p>;
+                })()}
               </div>
             </Link>
           ))}
