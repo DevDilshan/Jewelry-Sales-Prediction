@@ -1,6 +1,7 @@
 const MIN_LENGTH = 8;
 
-/param {unknown} password
+/**
+ * @param {unknown} password
  * @returns {{ ok: true } | { ok: false, message: string }}
  */
 export function validatePasswordStrength(password) {
@@ -16,5 +17,3 @@ export function validatePasswordStrength(password) {
   }
   return { ok: true };
 }
-**
- * @
