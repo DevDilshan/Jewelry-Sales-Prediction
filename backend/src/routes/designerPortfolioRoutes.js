@@ -6,6 +6,7 @@ import {
   createMyDesignerPortfolio,
   deleteAdminPortfolioImage,
   deleteMyPortfolioImage,
+  deleteMyDesignerPortfolio,
   getDesignerPortfolioAdmin,
   getMyDesignerPortfolio,
   getPublishedPortfolioById,
@@ -32,18 +33,16 @@ function uploadImageSafe(req, res, next) {
   });
 }
 
-/** Storefront — published portfolios only */
 router.get("/public", listPublishedPortfolios);
 router.get("/public/:id", getPublishedPortfolioById);
 
-/** Designer — own portfolio (role: designer) */
 router.get("/me", verifyToken, allowRoles("designer"), getMyDesignerPortfolio);
 router.post("/me", verifyToken, allowRoles("designer"), createMyDesignerPortfolio);
 router.patch("/me", verifyToken, allowRoles("designer"), patchMyDesignerPortfolio);
 router.post("/me/images", verifyToken, allowRoles("designer"), uploadImageSafe, addMyPortfolioImage);
 router.delete("/me/images/:imageId", verifyToken, allowRoles("designer"), deleteMyPortfolioImage);
+router.delete("/me", verifyToken, allowRoles("designer"), deleteMyDesignerPortfolio);
 
-/** Staff dashboard */
 router.post(
   "/admin",
   verifyToken,

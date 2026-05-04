@@ -24,7 +24,6 @@ function normalizeSpecialties(raw) {
   return out;
 }
 
-/** emptyAsZero: create / default when missing → 0. false: PATCH semantics (caller only passes when updating). */
 function parseYears(raw, emptyAsZero) {
   if (emptyAsZero && (raw === undefined || raw === null || raw === "")) return { value: 0 };
   const n = Number(raw);
@@ -102,7 +101,6 @@ async function leanPortfolioById(id, staffSelect) {
   return DesignerPortfolio.findById(id).populate("staff", staffSelect).lean();
 }
 
-/** Validates create POST body; same rules for /me and admin create. */
 function readCreatePortfolioBody(body) {
   const displayName = String(body?.displayName ?? "").trim();
   if (displayName.length < 2 || displayName.length > 120) {
@@ -123,7 +121,6 @@ function readCreatePortfolioBody(body) {
   };
 }
 
-/** Mutates row.images when body.imageOrder is an array. Returns error message or null. */
 function applyImageOrder(row, imageOrder) {
   const ids = imageOrder.map((x) => String(x));
   const byId = new Map(row.images.map((img) => [img._id.toString(), img]));
@@ -143,7 +140,6 @@ function applyImageOrder(row, imageOrder) {
   return null;
 }
 
-/** Shared PATCH field validation for designer /me and admin/:id. */
 function buildPortfolioPatch(row, body) {
   const patch = {};
   if (body.displayName != null) {
@@ -180,7 +176,6 @@ async function cleanupUploadedFile(req) {
   }
 }
 
-/** GET /api/designer-portfolios/public */
 export const listPublishedPortfolios = asyncHandler(
   async (req, res) => {
     const limit = Math.min(Math.max(parseInt(String(req.query.limit || "20"), 10) || 20, 1), 50);
@@ -197,7 +192,6 @@ export const listPublishedPortfolios = asyncHandler(
   "Could not list portfolios"
 );
 
-/** GET /api/designer-portfolios/public/:id */
 export const getPublishedPortfolioById = asyncHandler(
   async (req, res) => {
     const { id } = req.params;
@@ -211,7 +205,6 @@ export const getPublishedPortfolioById = asyncHandler(
   "Could not load portfolio"
 );
 
-/** GET /api/designer-portfolios/me — designer only */
 export const getMyDesignerPortfolio = asyncHandler(
   async (req, res) => {
     const row = await DesignerPortfolio.findOne({ staff: req.user.id })
@@ -222,7 +215,6 @@ export const getMyDesignerPortfolio = asyncHandler(
   "Could not load portfolio"
 );
 
-/** POST /api/designer-portfolios/me — create portfolio (designer only) */
 export const createMyDesignerPortfolio = asyncHandler(
   async (req, res) => {
     if (await DesignerPortfolio.findOne({ staff: req.user.id })) {
@@ -240,7 +232,6 @@ export const createMyDesignerPortfolio = asyncHandler(
   "Could not create portfolio"
 );
 
-/** PATCH /api/designer-portfolios/me */
 export const patchMyDesignerPortfolio = asyncHandler(
   async (req, res) => {
     const row = await DesignerPortfolio.findOne({ staff: req.user.id });
@@ -256,7 +247,6 @@ export const patchMyDesignerPortfolio = asyncHandler(
   "Could not update portfolio"
 );
 
-/** POST /api/designer-portfolios/me/images — multipart field `image` */
 export const addMyPortfolioImage = asyncHandler(
   async (req, res) => {
     if (!req.file) return fail(res, 400, "An image file is required (field name: image).");
@@ -283,7 +273,6 @@ export const addMyPortfolioImage = asyncHandler(
   { onCatch: cleanupUploadedFile }
 );
 
-/** DELETE /api/designer-portfolios/me/images/:imageId */
 export const deleteMyPortfolioImage = asyncHandler(
   async (req, res) => {
     const { imageId } = req.params;
@@ -301,7 +290,24 @@ export const deleteMyPortfolioImage = asyncHandler(
   "Could not remove image"
 );
 
-/** GET /api/designer-portfolios/admin */
+/** DELETE entire portfolio for the signed-in designer (all images + document). */
+export const deleteMyDesignerPortfolio = asyncHandler(
+  async (req, res) => {
+    const row = await DesignerPortfolio.findOne({ staff: req.user.id });
+    if (!row) {
+      return fail(res, 404, "No portfolio to delete.");
+    }
+    for (const img of row.images || []) {
+      if (img?.relPath) {
+        await deleteUploadedRelPath(img.relPath);
+      }
+    }
+    await DesignerPortfolio.deleteOne({ _id: row._id });
+    res.json({ success: true, message: "Portfolio deleted." });
+  },
+  "Could not delete portfolio"
+);
+
 export const listDesignerPortfoliosAdmin = asyncHandler(
   async (req, res) => {
     const limit = Math.min(Math.max(parseInt(String(req.query.limit || "50"), 10) || 50, 1), 100);
@@ -320,7 +326,6 @@ export const listDesignerPortfoliosAdmin = asyncHandler(
   "Could not list portfolios"
 );
 
-/** GET /api/designer-portfolios/admin/:id */
 export const getDesignerPortfolioAdmin = asyncHandler(
   async (req, res) => {
     const { id } = req.params;
@@ -332,7 +337,6 @@ export const getDesignerPortfolioAdmin = asyncHandler(
   "Could not load portfolio"
 );
 
-/** PATCH /api/designer-portfolios/admin/:id — admin / productmanager */
 export const patchDesignerPortfolioAdmin = asyncHandler(
   async (req, res) => {
     const { id } = req.params;
@@ -348,7 +352,6 @@ export const patchDesignerPortfolioAdmin = asyncHandler(
   "Could not update portfolio"
 );
 
-/** POST /api/designer-portfolios/admin — create portfolio for a designer staff member */
 export const createDesignerPortfolioAdmin = asyncHandler(
   async (req, res) => {
     const staffId = req.body?.staffId;
@@ -371,7 +374,6 @@ export const createDesignerPortfolioAdmin = asyncHandler(
   "Could not create portfolio"
 );
 
-/** POST /api/designer-portfolios/admin/:id/images — same as /me/images but for any portfolio (admin) */
 export const addAdminPortfolioImage = asyncHandler(
   async (req, res) => {
     if (!req.file) return fail(res, 400, "An image file is required (field name: image).");
@@ -402,7 +404,6 @@ export const addAdminPortfolioImage = asyncHandler(
   { onCatch: cleanupUploadedFile }
 );
 
-/** DELETE /api/designer-portfolios/admin/:id/images/:imageId */
 export const deleteAdminPortfolioImage = asyncHandler(
   async (req, res) => {
     const { id: portfolioId, imageId } = req.params;
