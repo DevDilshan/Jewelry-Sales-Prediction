@@ -1,4 +1,5 @@
 import CustomDesignRequest from "../models/CustomDesignRequest.js";
+import Customer from "../models/Customer.js";
 import { sketchRelPathFromFilename } from "../middlewares/uploadCustomDesignSketch.js";
 
 const ALLOWED_STATUSES = ["pending", "in_review", "quoted", "declined", "completed"];
@@ -34,7 +35,7 @@ export async function createGuestCustomDesignInquiry(req, res) {
       });
     }
 
-    const doc = await CustomDesignRequest.create({
+    const payload = {
       guestName,
       guestEmail,
       guestPhone: guestPhone.slice(0, 40),
@@ -45,7 +46,12 @@ export async function createGuestCustomDesignInquiry(req, res) {
       sketchMimeType: "",
       title: String(req.body?.title ?? "").trim().slice(0, 200),
       status: "pending",
-    });
+    };
+    if (req.customerId) {
+      payload.customer = req.customerId;
+    }
+
+    const doc = await CustomDesignRequest.create(payload);
 
     const lean = await CustomDesignRequest.findById(doc._id).lean();
     res.status(201).json({ success: true, data: lean });
@@ -105,10 +111,16 @@ export async function createCustomDesignRequest(req, res) {
   }
 }
 
-/** GET /api/custom-design-requests/my — current customer's requests */
+/** GET /api/custom-design-requests/my — linked by `customer` or by matching `guestEmail` to account email */
 export async function listMyCustomDesignRequests(req, res) {
   try {
-    const list = await CustomDesignRequest.find({ customer: req.customerId })
+    const customer = await Customer.findById(req.customerId).select("email").lean();
+    const email = customer?.email ? String(customer.email).trim().toLowerCase() : "";
+    const or = [{ customer: req.customerId }];
+    if (email) {
+      or.push({ guestEmail: email });
+    }
+    const list = await CustomDesignRequest.find({ $or: or })
       .sort({ createdAt: -1 })
       .lean();
     res.json({ success: true, data: list });
@@ -117,12 +129,18 @@ export async function listMyCustomDesignRequests(req, res) {
   }
 }
 
-/** GET /api/custom-design-requests/my/:id — single request if owned by customer */
+/** GET /api/custom-design-requests/my/:id — owned by customer id or guest inquiry with same email */
 export async function getMyCustomDesignRequest(req, res) {
   try {
+    const customer = await Customer.findById(req.customerId).select("email").lean();
+    const email = customer?.email ? String(customer.email).trim().toLowerCase() : "";
+    const or = [{ customer: req.customerId }];
+    if (email) {
+      or.push({ guestEmail: email });
+    }
     const row = await CustomDesignRequest.findOne({
       _id: req.params.id,
-      customer: req.customerId,
+      $or: or,
     }).lean();
     if (!row) {
       return res.status(404).json({ success: false, message: "Request not found." });

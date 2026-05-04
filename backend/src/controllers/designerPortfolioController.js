@@ -10,6 +10,9 @@ const MAX_SPECIALTIES = 20;
 const YEARS_MAX = 80;
 const PROJECTS_MAX = 100000;
 
+const POPULATE_STAFF_ME = "firstName lastName email username jobTitle";
+const POPULATE_STAFF_ADMIN = `${POPULATE_STAFF_ME} role`;
+
 function normalizeSpecialties(raw) {
   if (raw == null) return [];
   const arr = Array.isArray(raw) ? raw : String(raw).split(/[,;]/);
@@ -21,9 +24,9 @@ function normalizeSpecialties(raw) {
   return out;
 }
 
-/** Create / default: missing → 0. */
-function parseYearsOfExperienceWrite(raw) {
-  if (raw === undefined || raw === null || raw === "") return { value: 0 };
+/** emptyAsZero: create / default when missing → 0. false: PATCH semantics (caller only passes when updating). */
+function parseYears(raw, emptyAsZero) {
+  if (emptyAsZero && (raw === undefined || raw === null || raw === "")) return { value: 0 };
   const n = Number(raw);
   if (!Number.isInteger(n) || n < 0 || n > YEARS_MAX) {
     return { error: "yearsOfExperience must be an integer from 0 to 80." };
@@ -31,25 +34,8 @@ function parseYearsOfExperienceWrite(raw) {
   return { value: n };
 }
 
-function parseCompletedProjectsWrite(raw) {
-  if (raw === undefined || raw === null || raw === "") return { value: 0 };
-  const n = Number(raw);
-  if (!Number.isInteger(n) || n < 0 || n > PROJECTS_MAX) {
-    return { error: "completedProjects must be an integer from 0 to 100,000." };
-  }
-  return { value: n };
-}
-
-/** PATCH: only when field is present in body. */
-function parseYearsOfExperiencePatch(raw) {
-  const n = Number(raw);
-  if (!Number.isInteger(n) || n < 0 || n > YEARS_MAX) {
-    return { error: "yearsOfExperience must be an integer from 0 to 80." };
-  }
-  return { value: n };
-}
-
-function parseCompletedProjectsPatch(raw) {
+function parseProjects(raw, emptyAsZero) {
+  if (emptyAsZero && (raw === undefined || raw === null || raw === "")) return { value: 0 };
   const n = Number(raw);
   if (!Number.isInteger(n) || n < 0 || n > PROJECTS_MAX) {
     return { error: "completedProjects must be an integer from 0 to 100,000." };
@@ -82,7 +68,6 @@ function toPublicPortfolio(doc, assetBase) {
         _id: img._id,
         relPath,
         caption: img.caption || "",
-        /** Absolute URL for clients (mobile/web); still send `relPath` for backward compatibility. */
         url: uploadsUrlForRelPath(base, relPath),
       };
     }),
@@ -98,553 +83,341 @@ function toPublicPortfolio(doc, assetBase) {
   return out;
 }
 
+function fail(res, status, message) {
+  return res.status(status).json({ success: false, message });
+}
+
+function asyncHandler(handler, fallbackMessage, { onCatch } = {}) {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (error) {
+      if (onCatch) await onCatch(req, error);
+      res.status(500).json({ success: false, message: error.message || fallbackMessage });
+    }
+  };
+}
+
+async function leanPortfolioById(id, staffSelect) {
+  return DesignerPortfolio.findById(id).populate("staff", staffSelect).lean();
+}
+
+/** Validates create POST body; same rules for /me and admin create. */
+function readCreatePortfolioBody(body) {
+  const displayName = String(body?.displayName ?? "").trim();
+  if (displayName.length < 2 || displayName.length > 120) {
+    return { error: "displayName is required (2–120 characters)." };
+  }
+  const y = parseYears(body?.yearsOfExperience, true);
+  if (y.error) return { error: y.error };
+  const p = parseProjects(body?.completedProjects, true);
+  if (p.error) return { error: p.error };
+  return {
+    displayName,
+    headline: String(body?.headline ?? "").trim().slice(0, 200),
+    bio: String(body?.bio ?? "").trim().slice(0, 8000),
+    specialties: normalizeSpecialties(body?.specialties),
+    isPublished: Boolean(body?.isPublished),
+    yearsOfExperience: y.value,
+    completedProjects: p.value,
+  };
+}
+
+/** Mutates row.images when body.imageOrder is an array. Returns error message or null. */
+function applyImageOrder(row, imageOrder) {
+  const ids = imageOrder.map((x) => String(x));
+  const byId = new Map(row.images.map((img) => [img._id.toString(), img]));
+  if (ids.length !== row.images.length) {
+    return "imageOrder must list every image id exactly once.";
+  }
+  const seen = new Set();
+  const reordered = [];
+  for (const id of ids) {
+    if (seen.has(id)) return "Duplicate id in imageOrder.";
+    seen.add(id);
+    const img = byId.get(id);
+    if (!img) return `Unknown image id: ${id}`;
+    reordered.push(img);
+  }
+  row.images = reordered;
+  return null;
+}
+
+/** Shared PATCH field validation for designer /me and admin/:id. */
+function buildPortfolioPatch(row, body) {
+  const patch = {};
+  if (body.displayName != null) {
+    const displayName = String(body.displayName).trim();
+    if (displayName.length < 2 || displayName.length > 120) {
+      return { error: "displayName must be 2–120 characters." };
+    }
+    patch.displayName = displayName;
+  }
+  if (body.headline != null) patch.headline = String(body.headline).trim().slice(0, 200);
+  if (body.bio != null) patch.bio = String(body.bio).trim().slice(0, 8000);
+  if (body.specialties != null) patch.specialties = normalizeSpecialties(body.specialties);
+  if (body.isPublished != null) patch.isPublished = Boolean(body.isPublished);
+  if (body.yearsOfExperience !== undefined && body.yearsOfExperience !== null) {
+    const r = parseYears(body.yearsOfExperience, false);
+    if (r.error) return { error: r.error };
+    patch.yearsOfExperience = r.value;
+  }
+  if (body.completedProjects !== undefined && body.completedProjects !== null) {
+    const r = parseProjects(body.completedProjects, false);
+    if (r.error) return { error: r.error };
+    patch.completedProjects = r.value;
+  }
+  if (Array.isArray(body.imageOrder)) {
+    const err = applyImageOrder(row, body.imageOrder);
+    if (err) return { error: err };
+  }
+  return { patch };
+}
+
+async function cleanupUploadedFile(req) {
+  if (req.file?.filename) {
+    await deleteUploadedRelPath(portfolioImageRelPathFromFilename(req.file.filename));
+  }
+}
+
 /** GET /api/designer-portfolios/public */
-export async function listPublishedPortfolios(req, res) {
-  try {
+export const listPublishedPortfolios = asyncHandler(
+  async (req, res) => {
     const limit = Math.min(Math.max(parseInt(String(req.query.limit || "20"), 10) || 20, 1), 50);
     const skip = Math.max(parseInt(String(req.query.skip || "0"), 10) || 0, 0);
-
     const rows = await DesignerPortfolio.find({ isPublished: true })
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("staff", "firstName lastName jobTitle")
       .lean();
-
     const assetBase = requestPublicBaseUrl(req);
-    const data = rows.map((row) => toPublicPortfolio(row, assetBase));
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not list portfolios" });
-  }
-}
+    res.json({ success: true, data: rows.map((row) => toPublicPortfolio(row, assetBase)) });
+  },
+  "Could not list portfolios"
+);
 
 /** GET /api/designer-portfolios/public/:id */
-export async function getPublishedPortfolioById(req, res) {
-  try {
+export const getPublishedPortfolioById = asyncHandler(
+  async (req, res) => {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "Invalid portfolio id." });
-    }
+    if (!mongoose.Types.ObjectId.isValid(id)) return fail(res, 400, "Invalid portfolio id.");
     const row = await DesignerPortfolio.findOne({ _id: id, isPublished: true })
       .populate("staff", "firstName lastName jobTitle")
       .lean();
-    if (!row) {
-      return res.status(404).json({ success: false, message: "Portfolio not found." });
-    }
-    const assetBase = requestPublicBaseUrl(req);
-    res.json({ success: true, data: toPublicPortfolio(row, assetBase) });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not load portfolio" });
-  }
-}
+    if (!row) return fail(res, 404, "Portfolio not found.");
+    res.json({ success: true, data: toPublicPortfolio(row, requestPublicBaseUrl(req)) });
+  },
+  "Could not load portfolio"
+);
 
 /** GET /api/designer-portfolios/me — designer only */
-export async function getMyDesignerPortfolio(req, res) {
-  try {
+export const getMyDesignerPortfolio = asyncHandler(
+  async (req, res) => {
     const row = await DesignerPortfolio.findOne({ staff: req.user.id })
-      .populate("staff", "firstName lastName email username jobTitle")
+      .populate("staff", POPULATE_STAFF_ME)
       .lean();
-    if (!row) {
-      return res.json({ success: true, data: null });
-    }
-    res.json({ success: true, data: row });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not load portfolio" });
-  }
-}
+    res.json({ success: true, data: row || null });
+  },
+  "Could not load portfolio"
+);
 
 /** POST /api/designer-portfolios/me — create portfolio (designer only) */
-export async function createMyDesignerPortfolio(req, res) {
-  try {
-    const existing = await DesignerPortfolio.findOne({ staff: req.user.id });
-    if (existing) {
-      return res.status(409).json({
-        success: false,
-        message: "You already have a portfolio. Use PATCH to update it.",
-      });
+export const createMyDesignerPortfolio = asyncHandler(
+  async (req, res) => {
+    if (await DesignerPortfolio.findOne({ staff: req.user.id })) {
+      return fail(res, 409, "You already have a portfolio. Use PATCH to update it.");
     }
-
-    const displayName = String(req.body?.displayName ?? "").trim();
-    if (displayName.length < 2 || displayName.length > 120) {
-      return res.status(400).json({
-        success: false,
-        message: "displayName is required (2–120 characters).",
-      });
-    }
-
-    const headline = String(req.body?.headline ?? "").trim().slice(0, 200);
-    const bio = String(req.body?.bio ?? "").trim().slice(0, 8000);
-    const specialties = normalizeSpecialties(req.body?.specialties);
-    const isPublished = Boolean(req.body?.isPublished);
-
-    const y = parseYearsOfExperienceWrite(req.body?.yearsOfExperience);
-    if (y.error) return res.status(400).json({ success: false, message: y.error });
-    const p = parseCompletedProjectsWrite(req.body?.completedProjects);
-    if (p.error) return res.status(400).json({ success: false, message: p.error });
-
+    const fields = readCreatePortfolioBody(req.body);
+    if (fields.error) return fail(res, 400, fields.error);
     const doc = await DesignerPortfolio.create({
       staff: req.user.id,
-      displayName,
-      headline,
-      bio,
-      specialties,
-      yearsOfExperience: y.value,
-      completedProjects: p.value,
+      ...fields,
       images: [],
-      isPublished,
     });
-
-    const populated = await DesignerPortfolio.findById(doc._id)
-      .populate("staff", "firstName lastName email username jobTitle")
-      .lean();
-
-    res.status(201).json({ success: true, data: populated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not create portfolio" });
-  }
-}
+    res.status(201).json({ success: true, data: await leanPortfolioById(doc._id, POPULATE_STAFF_ME) });
+  },
+  "Could not create portfolio"
+);
 
 /** PATCH /api/designer-portfolios/me */
-export async function patchMyDesignerPortfolio(req, res) {
-  try {
+export const patchMyDesignerPortfolio = asyncHandler(
+  async (req, res) => {
     const row = await DesignerPortfolio.findOne({ staff: req.user.id });
     if (!row) {
-      return res.status(404).json({
-        success: false,
-        message: "No portfolio yet. Create one with POST /api/designer-portfolios/me first.",
-      });
+      return fail(res, 404, "No portfolio yet. Create one with POST /api/designer-portfolios/me first.");
     }
-
-    const patch = {};
-    if (req.body.displayName != null) {
-      const displayName = String(req.body.displayName).trim();
-      if (displayName.length < 2 || displayName.length > 120) {
-        return res.status(400).json({ success: false, message: "displayName must be 2–120 characters." });
-      }
-      patch.displayName = displayName;
-    }
-    if (req.body.headline != null) {
-      patch.headline = String(req.body.headline).trim().slice(0, 200);
-    }
-    if (req.body.bio != null) {
-      patch.bio = String(req.body.bio).trim().slice(0, 8000);
-    }
-    if (req.body.specialties != null) {
-      patch.specialties = normalizeSpecialties(req.body.specialties);
-    }
-    if (req.body.isPublished != null) {
-      patch.isPublished = Boolean(req.body.isPublished);
-    }
-    if (req.body.yearsOfExperience !== undefined && req.body.yearsOfExperience !== null) {
-      const r = parseYearsOfExperiencePatch(req.body.yearsOfExperience);
-      if (r.error) return res.status(400).json({ success: false, message: r.error });
-      patch.yearsOfExperience = r.value;
-    }
-    if (req.body.completedProjects !== undefined && req.body.completedProjects !== null) {
-      const r = parseCompletedProjectsPatch(req.body.completedProjects);
-      if (r.error) return res.status(400).json({ success: false, message: r.error });
-      patch.completedProjects = r.value;
-    }
-
-    if (Array.isArray(req.body.imageOrder)) {
-      const ids = req.body.imageOrder.map((x) => String(x));
-      const byId = new Map(row.images.map((img) => [img._id.toString(), img]));
-      if (ids.length !== row.images.length) {
-        return res.status(400).json({
-          success: false,
-          message: "imageOrder must list every image id exactly once.",
-        });
-      }
-      const seen = new Set();
-      const reordered = [];
-      for (const id of ids) {
-        if (seen.has(id)) {
-          return res.status(400).json({ success: false, message: "Duplicate id in imageOrder." });
-        }
-        seen.add(id);
-        const img = byId.get(id);
-        if (!img) {
-          return res.status(400).json({ success: false, message: `Unknown image id: ${id}` });
-        }
-        reordered.push(img);
-      }
-      row.images = reordered;
-    }
-
-    Object.assign(row, patch);
+    const built = buildPortfolioPatch(row, req.body);
+    if (built.error) return fail(res, 400, built.error);
+    Object.assign(row, built.patch);
     await row.save();
-
-    const populated = await DesignerPortfolio.findById(row._id)
-      .populate("staff", "firstName lastName email username jobTitle")
-      .lean();
-
-    res.json({ success: true, data: populated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not update portfolio" });
-  }
-}
+    res.json({ success: true, data: await leanPortfolioById(row._id, POPULATE_STAFF_ME) });
+  },
+  "Could not update portfolio"
+);
 
 /** POST /api/designer-portfolios/me/images — multipart field `image` */
-export async function addMyPortfolioImage(req, res) {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "An image file is required (field name: image).",
-      });
-    }
-
+export const addMyPortfolioImage = asyncHandler(
+  async (req, res) => {
+    if (!req.file) return fail(res, 400, "An image file is required (field name: image).");
     const row = await DesignerPortfolio.findOne({ staff: req.user.id });
     if (!row) {
-      await deleteUploadedRelPath(portfolioImageRelPathFromFilename(req.file.filename));
-      return res.status(404).json({
-        success: false,
-        message: "No portfolio yet. Create one with POST /api/designer-portfolios/me first.",
-      });
+      await cleanupUploadedFile(req);
+      return fail(res, 404, "No portfolio yet. Create one with POST /api/designer-portfolios/me first.");
     }
-
     if (row.images.length >= MAX_IMAGES) {
-      await deleteUploadedRelPath(portfolioImageRelPathFromFilename(req.file.filename));
-      return res.status(400).json({
-        success: false,
-        message: `At most ${MAX_IMAGES} portfolio images allowed.`,
-      });
+      await cleanupUploadedFile(req);
+      return fail(res, 400, `At most ${MAX_IMAGES} portfolio images allowed.`);
     }
-
-    const caption = String(req.body?.caption ?? "").trim().slice(0, 500);
     const rel = portfolioImageRelPathFromFilename(req.file.filename);
-
     row.images.push({
       relPath: rel,
-      caption,
+      caption: String(req.body?.caption ?? "").trim().slice(0, 500),
       originalName: String(req.file.originalname || "").slice(0, 500),
       mimeType: req.file.mimetype || "",
     });
     await row.save();
-
-    const populated = await DesignerPortfolio.findById(row._id)
-      .populate("staff", "firstName lastName email username jobTitle")
-      .lean();
-
-    res.status(201).json({ success: true, data: populated });
-  } catch (error) {
-    if (req.file?.filename) {
-      await deleteUploadedRelPath(portfolioImageRelPathFromFilename(req.file.filename));
-    }
-    res.status(500).json({ success: false, message: error.message || "Could not add image" });
-  }
-}
+    res.status(201).json({ success: true, data: await leanPortfolioById(row._id, POPULATE_STAFF_ME) });
+  },
+  "Could not add image",
+  { onCatch: cleanupUploadedFile }
+);
 
 /** DELETE /api/designer-portfolios/me/images/:imageId */
-export async function deleteMyPortfolioImage(req, res) {
-  try {
+export const deleteMyPortfolioImage = asyncHandler(
+  async (req, res) => {
     const { imageId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(imageId)) {
-      return res.status(400).json({ success: false, message: "Invalid image id." });
-    }
-
+    if (!mongoose.Types.ObjectId.isValid(imageId)) return fail(res, 400, "Invalid image id.");
     const row = await DesignerPortfolio.findOne({ staff: req.user.id });
-    if (!row) {
-      return res.status(404).json({ success: false, message: "Portfolio not found." });
-    }
-
+    if (!row) return fail(res, 404, "Portfolio not found.");
     const img = row.images.id(imageId);
-    if (!img) {
-      return res.status(404).json({ success: false, message: "Image not found." });
-    }
-
+    if (!img) return fail(res, 404, "Image not found.");
     const relPath = img.relPath;
     row.images.pull({ _id: imageId });
     await row.save();
     await deleteUploadedRelPath(relPath);
-
-    const populated = await DesignerPortfolio.findById(row._id)
-      .populate("staff", "firstName lastName email username jobTitle")
-      .lean();
-
-    res.json({ success: true, data: populated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not remove image" });
-  }
-}
+    res.json({ success: true, data: await leanPortfolioById(row._id, POPULATE_STAFF_ME) });
+  },
+  "Could not remove image"
+);
 
 /** GET /api/designer-portfolios/admin */
-export async function listDesignerPortfoliosAdmin(req, res) {
-  try {
+export const listDesignerPortfoliosAdmin = asyncHandler(
+  async (req, res) => {
     const limit = Math.min(Math.max(parseInt(String(req.query.limit || "50"), 10) || 50, 1), 100);
     const skip = Math.max(parseInt(String(req.query.skip || "0"), 10) || 0, 0);
     const q = {};
     if (req.query.isPublished === "true") q.isPublished = true;
     if (req.query.isPublished === "false") q.isPublished = false;
-
     const rows = await DesignerPortfolio.find(q)
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("staff", "firstName lastName email username jobTitle role")
+      .populate("staff", POPULATE_STAFF_ADMIN)
       .lean();
-
     res.json({ success: true, data: rows });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not list portfolios" });
-  }
-}
+  },
+  "Could not list portfolios"
+);
 
 /** GET /api/designer-portfolios/admin/:id */
-export async function getDesignerPortfolioAdmin(req, res) {
-  try {
+export const getDesignerPortfolioAdmin = asyncHandler(
+  async (req, res) => {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "Invalid portfolio id." });
-    }
-    const row = await DesignerPortfolio.findById(id)
-      .populate("staff", "firstName lastName email username jobTitle role")
-      .lean();
-    if (!row) {
-      return res.status(404).json({ success: false, message: "Portfolio not found." });
-    }
+    if (!mongoose.Types.ObjectId.isValid(id)) return fail(res, 400, "Invalid portfolio id.");
+    const row = await DesignerPortfolio.findById(id).populate("staff", POPULATE_STAFF_ADMIN).lean();
+    if (!row) return fail(res, 404, "Portfolio not found.");
     res.json({ success: true, data: row });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not load portfolio" });
-  }
-}
+  },
+  "Could not load portfolio"
+);
 
 /** PATCH /api/designer-portfolios/admin/:id — admin / productmanager */
-export async function patchDesignerPortfolioAdmin(req, res) {
-  try {
+export const patchDesignerPortfolioAdmin = asyncHandler(
+  async (req, res) => {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "Invalid portfolio id." });
-    }
-
+    if (!mongoose.Types.ObjectId.isValid(id)) return fail(res, 400, "Invalid portfolio id.");
     const row = await DesignerPortfolio.findById(id);
-    if (!row) {
-      return res.status(404).json({ success: false, message: "Portfolio not found." });
-    }
-
-    const patch = {};
-    if (req.body.displayName != null) {
-      const displayName = String(req.body.displayName).trim();
-      if (displayName.length < 2 || displayName.length > 120) {
-        return res.status(400).json({ success: false, message: "displayName must be 2–120 characters." });
-      }
-      patch.displayName = displayName;
-    }
-    if (req.body.headline != null) {
-      patch.headline = String(req.body.headline).trim().slice(0, 200);
-    }
-    if (req.body.bio != null) {
-      patch.bio = String(req.body.bio).trim().slice(0, 8000);
-    }
-    if (req.body.specialties != null) {
-      patch.specialties = normalizeSpecialties(req.body.specialties);
-    }
-    if (req.body.isPublished != null) {
-      patch.isPublished = Boolean(req.body.isPublished);
-    }
-    if (req.body.yearsOfExperience !== undefined && req.body.yearsOfExperience !== null) {
-      const r = parseYearsOfExperiencePatch(req.body.yearsOfExperience);
-      if (r.error) return res.status(400).json({ success: false, message: r.error });
-      patch.yearsOfExperience = r.value;
-    }
-    if (req.body.completedProjects !== undefined && req.body.completedProjects !== null) {
-      const r = parseCompletedProjectsPatch(req.body.completedProjects);
-      if (r.error) return res.status(400).json({ success: false, message: r.error });
-      patch.completedProjects = r.value;
-    }
-
-    if (Array.isArray(req.body.imageOrder)) {
-      const ids = req.body.imageOrder.map((x) => String(x));
-      const byId = new Map(row.images.map((img) => [img._id.toString(), img]));
-      if (ids.length !== row.images.length) {
-        return res.status(400).json({
-          success: false,
-          message: "imageOrder must list every image id exactly once.",
-        });
-      }
-      const seen = new Set();
-      const reordered = [];
-      for (const iid of ids) {
-        if (seen.has(iid)) {
-          return res.status(400).json({ success: false, message: "Duplicate id in imageOrder." });
-        }
-        seen.add(iid);
-        const img = byId.get(iid);
-        if (!img) {
-          return res.status(400).json({ success: false, message: `Unknown image id: ${iid}` });
-        }
-        reordered.push(img);
-      }
-      row.images = reordered;
-    }
-
-    Object.assign(row, patch);
+    if (!row) return fail(res, 404, "Portfolio not found.");
+    const built = buildPortfolioPatch(row, req.body);
+    if (built.error) return fail(res, 400, built.error);
+    Object.assign(row, built.patch);
     await row.save();
-
-    const populated = await DesignerPortfolio.findById(row._id)
-      .populate("staff", "firstName lastName email username jobTitle role")
-      .lean();
-
-    res.json({ success: true, data: populated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not update portfolio" });
-  }
-}
+    res.json({ success: true, data: await leanPortfolioById(row._id, POPULATE_STAFF_ADMIN) });
+  },
+  "Could not update portfolio"
+);
 
 /** POST /api/designer-portfolios/admin — create portfolio for a designer staff member */
-export async function createDesignerPortfolioAdmin(req, res) {
-  try {
+export const createDesignerPortfolioAdmin = asyncHandler(
+  async (req, res) => {
     const staffId = req.body?.staffId;
     if (!staffId || !mongoose.Types.ObjectId.isValid(String(staffId))) {
-      return res.status(400).json({ success: false, message: "Valid staffId is required." });
+      return fail(res, 400, "Valid staffId is required.");
     }
-
     const staffMember = await Staff.findById(staffId).select("role");
-    if (!staffMember) {
-      return res.status(404).json({ success: false, message: "Staff member not found." });
-    }
+    if (!staffMember) return fail(res, 404, "Staff member not found.");
     if (staffMember.role !== "designer") {
-      return res.status(400).json({
-        success: false,
-        message: "Portfolios can only be created for accounts with the designer role.",
-      });
+      return fail(res, 400, "Portfolios can only be created for accounts with the designer role.");
     }
-
-    const existing = await DesignerPortfolio.findOne({ staff: staffId });
-    if (existing) {
-      return res.status(409).json({
-        success: false,
-        message: "This designer already has a portfolio.",
-      });
+    if (await DesignerPortfolio.findOne({ staff: staffId })) {
+      return fail(res, 409, "This designer already has a portfolio.");
     }
-
-    const displayName = String(req.body?.displayName ?? "").trim();
-    if (displayName.length < 2 || displayName.length > 120) {
-      return res.status(400).json({
-        success: false,
-        message: "displayName is required (2–120 characters).",
-      });
-    }
-
-    const headline = String(req.body?.headline ?? "").trim().slice(0, 200);
-    const bio = String(req.body?.bio ?? "").trim().slice(0, 8000);
-    const specialties = normalizeSpecialties(req.body?.specialties);
-    const isPublished = Boolean(req.body?.isPublished);
-
-    const y = parseYearsOfExperienceWrite(req.body?.yearsOfExperience);
-    if (y.error) return res.status(400).json({ success: false, message: y.error });
-    const p = parseCompletedProjectsWrite(req.body?.completedProjects);
-    if (p.error) return res.status(400).json({ success: false, message: p.error });
-
-    const doc = await DesignerPortfolio.create({
-      staff: staffId,
-      displayName,
-      headline,
-      bio,
-      specialties,
-      yearsOfExperience: y.value,
-      completedProjects: p.value,
-      images: [],
-      isPublished,
-    });
-
-    const populated = await DesignerPortfolio.findById(doc._id)
-      .populate("staff", "firstName lastName email username jobTitle role")
-      .lean();
-
-    res.status(201).json({ success: true, data: populated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not create portfolio" });
-  }
-}
+    const fields = readCreatePortfolioBody(req.body);
+    if (fields.error) return fail(res, 400, fields.error);
+    const doc = await DesignerPortfolio.create({ staff: staffId, ...fields, images: [] });
+    res.status(201).json({ success: true, data: await leanPortfolioById(doc._id, POPULATE_STAFF_ADMIN) });
+  },
+  "Could not create portfolio"
+);
 
 /** POST /api/designer-portfolios/admin/:id/images — same as /me/images but for any portfolio (admin) */
-export async function addAdminPortfolioImage(req, res) {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "An image file is required (field name: image).",
-      });
-    }
-
+export const addAdminPortfolioImage = asyncHandler(
+  async (req, res) => {
+    if (!req.file) return fail(res, 400, "An image file is required (field name: image).");
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      await deleteUploadedRelPath(portfolioImageRelPathFromFilename(req.file.filename));
-      return res.status(400).json({ success: false, message: "Invalid portfolio id." });
+      await cleanupUploadedFile(req);
+      return fail(res, 400, "Invalid portfolio id.");
     }
-
     const row = await DesignerPortfolio.findById(id);
     if (!row) {
-      await deleteUploadedRelPath(portfolioImageRelPathFromFilename(req.file.filename));
-      return res.status(404).json({
-        success: false,
-        message: "Portfolio not found.",
-      });
+      await cleanupUploadedFile(req);
+      return fail(res, 404, "Portfolio not found.");
     }
-
     if (row.images.length >= MAX_IMAGES) {
-      await deleteUploadedRelPath(portfolioImageRelPathFromFilename(req.file.filename));
-      return res.status(400).json({
-        success: false,
-        message: `At most ${MAX_IMAGES} portfolio images allowed.`,
-      });
+      await cleanupUploadedFile(req);
+      return fail(res, 400, `At most ${MAX_IMAGES} portfolio images allowed.`);
     }
-
-    const caption = String(req.body?.caption ?? "").trim().slice(0, 500);
-    const rel = portfolioImageRelPathFromFilename(req.file.filename);
-
     row.images.push({
-      relPath: rel,
-      caption,
+      relPath: portfolioImageRelPathFromFilename(req.file.filename),
+      caption: String(req.body?.caption ?? "").trim().slice(0, 500),
       originalName: String(req.file.originalname || "").slice(0, 500),
       mimeType: req.file.mimetype || "",
     });
     await row.save();
-
-    const populated = await DesignerPortfolio.findById(row._id)
-      .populate("staff", "firstName lastName email username jobTitle role")
-      .lean();
-
-    res.status(201).json({ success: true, data: populated });
-  } catch (error) {
-    if (req.file?.filename) {
-      await deleteUploadedRelPath(portfolioImageRelPathFromFilename(req.file.filename));
-    }
-    res.status(500).json({ success: false, message: error.message || "Could not add image" });
-  }
-}
+    res.status(201).json({ success: true, data: await leanPortfolioById(row._id, POPULATE_STAFF_ADMIN) });
+  },
+  "Could not add image",
+  { onCatch: cleanupUploadedFile }
+);
 
 /** DELETE /api/designer-portfolios/admin/:id/images/:imageId */
-export async function deleteAdminPortfolioImage(req, res) {
-  try {
+export const deleteAdminPortfolioImage = asyncHandler(
+  async (req, res) => {
     const { id: portfolioId, imageId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(portfolioId) || !mongoose.Types.ObjectId.isValid(imageId)) {
-      return res.status(400).json({ success: false, message: "Invalid id." });
+      return fail(res, 400, "Invalid id.");
     }
-
     const row = await DesignerPortfolio.findById(portfolioId);
-    if (!row) {
-      return res.status(404).json({ success: false, message: "Portfolio not found." });
-    }
-
+    if (!row) return fail(res, 404, "Portfolio not found.");
     const img = row.images.id(imageId);
-    if (!img) {
-      return res.status(404).json({ success: false, message: "Image not found." });
-    }
-
+    if (!img) return fail(res, 404, "Image not found.");
     const relPath = img.relPath;
     row.images.pull({ _id: imageId });
     await row.save();
     await deleteUploadedRelPath(relPath);
-
-    const populated = await DesignerPortfolio.findById(row._id)
-      .populate("staff", "firstName lastName email username jobTitle role")
-      .lean();
-
-    res.json({ success: true, data: populated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message || "Could not remove image" });
-  }
-}
+    res.json({ success: true, data: await leanPortfolioById(row._id, POPULATE_STAFF_ADMIN) });
+  },
+  "Could not remove image"
+);

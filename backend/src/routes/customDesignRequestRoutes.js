@@ -8,7 +8,7 @@ import {
   listMyCustomDesignRequests,
   updateCustomDesignRequestAdmin,
 } from "../controllers/customDesignRequestController.js";
-import { verifyCustomerToken } from "../middlewares/customerAuth.js";
+import { optionalVerifyCustomerToken, verifyCustomerToken } from "../middlewares/customerAuth.js";
 import { verifyToken } from "../middlewares/staffAuthMiddleware.js";
 import { allowRoles } from "../middlewares/staffRoleMiddleware.js";
 import { uploadCustomDesignSketch } from "../middlewares/uploadCustomDesignSketch.js";
@@ -27,8 +27,8 @@ function uploadSketchSafe(req, res, next) {
   });
 }
 
-/** Storefront / Expo: guest inquiry (JSON body, no sketch). Must be registered before POST "/". */
-router.post("/inquiry", createGuestCustomDesignInquiry);
+/** Storefront / Expo: guest inquiry (JSON body, no sketch). Optional Bearer → links `customer` for GET /my. */
+router.post("/inquiry", optionalVerifyCustomerToken, createGuestCustomDesignInquiry);
 
 router.post("/", verifyCustomerToken, uploadSketchSafe, createCustomDesignRequest);
 router.get("/my", verifyCustomerToken, listMyCustomDesignRequests);
